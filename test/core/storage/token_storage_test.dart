@@ -1,6 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mentorix_app/core/network/auth_tokens.dart';
+import 'package:mentorix_app/core/storage/storage_keys.dart';
 import 'package:mentorix_app/core/storage/token_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -66,20 +67,23 @@ void main() {
   group('переустановка', () {
     test('нет флага установки — токены прошлой установки стираются', () async {
       final storage = await create(
-        secure: {'access_token': 'stale', 'refresh_token': 'stale'},
+        secure: {
+          StorageKeys.accessToken: 'stale',
+          StorageKeys.refreshToken: 'stale',
+        },
       );
 
       await storage.ensureFreshInstall();
 
       expect(await storage.hasAnyToken(), isFalse);
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getBool(TokenStorage.installFlagKey), isTrue);
+      expect(prefs.getBool(StorageKeys.secureStorageInstallFlag), isTrue);
     });
 
     test('флаг есть — токены сохраняются', () async {
       final storage = await create(
-        secure: {'access_token': 'a', 'refresh_token': 'r'},
-        prefs: {TokenStorage.installFlagKey: true},
+        secure: {StorageKeys.accessToken: 'a', StorageKeys.refreshToken: 'r'},
+        prefs: {StorageKeys.secureStorageInstallFlag: true},
       );
 
       await storage.ensureFreshInstall();

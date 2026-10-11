@@ -1,4 +1,5 @@
 import 'package:mentorix_app/core/router/route_names.dart';
+import 'package:mentorix_app/core/storage/storage_keys.dart';
 import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -18,23 +19,22 @@ class OnboardingFlow {
   String nextRoute(UserProfile profile) {
     final id = profile.userId;
 
-    if (!profile.telegramLinked && !(_prefs.getBool(_offerKey(id)) ?? false)) {
+    final offerDone =
+        _prefs.getBool(StorageKeys.onboardingTelegramOfferDone(id)) ?? false;
+    final inviteDone =
+        _prefs.getBool(StorageKeys.onboardingInviteDone(id)) ?? false;
+
+    if (!profile.telegramLinked && !offerDone) {
       return RouteNames.telegramOffer;
     }
-    if (!(_prefs.getBool(_inviteKey(id)) ?? false)) {
-      return RouteNames.invite;
-    }
+    if (!inviteDone) return RouteNames.invite;
     return RouteNames.home;
   }
 
   Future<void> skipTelegramOffer(String userId) =>
-      _prefs.setBool(_offerKey(userId), true);
+      _prefs.setBool(StorageKeys.onboardingTelegramOfferDone(userId), true);
 
   /// Приглашение принято или пропущено.
   Future<void> completeInvite(String userId) =>
-      _prefs.setBool(_inviteKey(userId), true);
-
-  String _offerKey(String userId) => 'onboarding_telegram_offer_done_$userId';
-
-  String _inviteKey(String userId) => 'onboarding_invite_done_$userId';
+      _prefs.setBool(StorageKeys.onboardingInviteDone(userId), true);
 }

@@ -8,6 +8,7 @@ import 'package:mentorix_app/core/config/telegram_config.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
 import 'package:mentorix_app/core/router/app_router.dart';
 import 'package:mentorix_app/core/router/onboarding_flow.dart';
+import 'package:mentorix_app/core/storage/storage_keys.dart';
 import 'package:mentorix_app/core/widgets/brand_svg_icon.dart';
 import 'package:mentorix_app/generated/assets.dart';
 import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
@@ -72,7 +73,7 @@ void main() {
   }) async {
     SharedPreferences.setMockInitialValues({
       ...stored,
-      if (inviteDone) 'onboarding_invite_done_${profile.userId}': true,
+      if (inviteDone) StorageKeys.onboardingInviteDone(profile.userId): true,
     });
     final prefs = await SharedPreferences.getInstance();
 
@@ -174,7 +175,7 @@ void main() {
       await pumpApp(
         tester,
         brightness: Brightness.light,
-        stored: {ThemeRepositoryImpl.storageKey: 'dark'},
+        stored: {StorageKeys.themeMode: 'dark'},
       );
 
       expect(currentBrightness(tester), Brightness.dark);
@@ -196,7 +197,7 @@ void main() {
       await tapButton();
       expect(find.byTooltip(app.l10n.themeModeLight), findsOneWidget);
       expect(currentBrightness(tester), Brightness.light);
-      expect(app.prefs.getString(ThemeRepositoryImpl.storageKey), 'light');
+      expect(app.prefs.getString(StorageKeys.themeMode), 'light');
 
       await tapButton();
       expect(find.byTooltip(app.l10n.themeModeDark), findsOneWidget);
@@ -204,7 +205,7 @@ void main() {
 
       await tapButton();
       expect(find.byTooltip(app.l10n.themeModeSystem), findsOneWidget);
-      expect(app.prefs.getString(ThemeRepositoryImpl.storageKey), 'system');
+      expect(app.prefs.getString(StorageKeys.themeMode), 'system');
     });
   });
 

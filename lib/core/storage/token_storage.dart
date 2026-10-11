@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mentorix_app/core/logging/app_logger.dart';
 import 'package:mentorix_app/core/network/auth_tokens.dart';
+import 'package:mentorix_app/core/storage/storage_keys.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Токены сессии в `flutter_secure_storage`: access_token, refresh_token,
@@ -18,39 +19,30 @@ class TokenStorage {
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
 
-  /// Флаг лежит в `shared_preferences`: при удалении приложения он стирается,
-  /// а Keychain на iOS — нет.
-  static const installFlagKey = 'secure_storage_install_flag';
-
-  static const _accessKey = 'access_token';
-  static const _refreshKey = 'refresh_token';
-  static const _expiresKey = 'expires_at';
-  static const _userIdKey = 'user_id';
-
   final FlutterSecureStorage _storage;
   final SharedPreferences _prefs;
 
   /// После переустановки Keychain хранит токены прошлой установки (на общем
   /// устройстве — возможно, чужого аккаунта). Нет флага — всё стираем.
   Future<void> ensureFreshInstall() async {
-    if (_prefs.getBool(installFlagKey) ?? false) return;
+    if (_prefs.getBool(StorageKeys.secureStorageInstallFlag) ?? false) return;
 
     try {
       await _storage.deleteAll();
     } on PlatformException catch (e, st) {
       AppLogger.error('secure storage wipe failed', e, st);
     }
-    await _prefs.setBool(installFlagKey, true);
+    await _prefs.setBool(StorageKeys.secureStorageInstallFlag, true);
   }
 
-  Future<String?> readAccessToken() => _read(_accessKey);
+  Future<String?> readAccessToken() => _read(StorageKeys.accessToken);
 
-  Future<String?> readRefreshToken() => _read(_refreshKey);
+  Future<String?> readRefreshToken() => _read(StorageKeys.refreshToken);
 
-  Future<String?> readUserId() => _read(_userIdKey);
+  Future<String?> readUserId() => _read(StorageKeys.userId);
 
   Future<DateTime?> readExpiresAt() async {
-    final raw = await _read(_expiresKey);
+    final raw = await _read(StorageKeys.expiresAt);
     return raw == null ? null : DateTime.tryParse(raw)?.toUtc();
   }
 
@@ -63,23 +55,23 @@ class TokenStorage {
   /// Refresh-токен пишется первым: он одноразовый, старый уже недействителен,
   /// и потерять новый хуже всего.
   Future<void> save(AuthTokens tokens) async {
-    await _storage.write(key: _refreshKey, value: tokens.refreshToken);
-    await _storage.write(key: _accessKey, value: tokens.accessToken);
-    await _storage.write(key: _userIdKey, value: tokens.userId);
+    await _storage.write(key: StorageKeys.refreshToken, value: tokens.refreshToken);
+    await _storage.write(key: StorageKeys.accessToken, value: tokens.accessToken);
+    await _storage.write(key: StorageKeys.userId, value: tokens.userId);
 
     final expiresAt = tokens.expiresAt;
     if (expiresAt == null) {
-      await _storage.delete(key: _expiresKey);
+      await _storage.delete(key: StorageKeys.expiresAt);
     } else {
       await _storage.write(
-        key: _expiresKey,
+        key: StorageKeys.expiresAt,
         value: expiresAt.toUtc().toIso8601String(),
       );
     }
   }
 
   Future<void> clear() async {
-    for (final key in const [_accessKey, _refreshKey, _expiresKey, _userIdKey]) {
+    for (final key in StorageKeys.sessionTokens) {
       try {
         await _storage.delete(key: key);
       } on PlatformException catch (e, st) {

@@ -12,6 +12,7 @@ import 'package:mentorix_app/core/network/auth_tokens.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
 import 'package:mentorix_app/core/router/app_router.dart';
 import 'package:mentorix_app/core/router/onboarding_flow.dart';
+import 'package:mentorix_app/core/storage/storage_keys.dart';
 import 'package:mentorix_app/core/storage/token_storage.dart';
 import 'package:mentorix_app/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:mentorix_app/features/auth/data/repositories/auth_repository_impl.dart';
@@ -54,7 +55,7 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({});
     SharedPreferences.setMockInitialValues({
       // Флаг установки: иначе «чистая установка» сотрёт токены на старте.
-      TokenStorage.installFlagKey: true,
+      StorageKeys.secureStorageInstallFlag: true,
     });
     prefs = await SharedPreferences.getInstance();
     tokens = TokenStorage(const FlutterSecureStorage(), prefs);

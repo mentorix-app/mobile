@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mentorix_app/core/logging/app_logger.dart';
+import 'package:mentorix_app/core/storage/storage_keys.dart';
 
 /// Имя из Apple, которое ещё не принял бэкенд.
 ///
@@ -10,13 +11,11 @@ import 'package:mentorix_app/core/logging/app_logger.dart';
 class PendingAppleNameStorage {
   PendingAppleNameStorage(this._storage);
 
-  static const _key = 'pending_apple_name';
-
   final FlutterSecureStorage _storage;
 
   Future<String?> read() async {
     try {
-      final value = await _storage.read(key: _key);
+      final value = await _storage.read(key: StorageKeys.pendingAppleName);
       return value == null || value.isEmpty ? null : value;
     } on PlatformException catch (e, st) {
       AppLogger.error('pending apple name read failed', e, st);
@@ -26,7 +25,7 @@ class PendingAppleNameStorage {
 
   Future<void> save(String name) async {
     try {
-      await _storage.write(key: _key, value: name);
+      await _storage.write(key: StorageKeys.pendingAppleName, value: name);
     } on PlatformException catch (e, st) {
       AppLogger.error('pending apple name write failed', e, st);
     }
@@ -34,7 +33,7 @@ class PendingAppleNameStorage {
 
   Future<void> clear() async {
     try {
-      await _storage.delete(key: _key);
+      await _storage.delete(key: StorageKeys.pendingAppleName);
     } on PlatformException catch (e, st) {
       AppLogger.error('pending apple name delete failed', e, st);
     }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mentorix_app/core/storage/storage_keys.dart';
 import 'package:mentorix_app/features/theme/data/repositories/theme_repository_impl.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,14 +22,14 @@ void main() {
   });
 
   test('читает сохранённое значение', () async {
-    final (cubit, _) = await createCubit({'theme_mode': 'dark'});
+    final (cubit, _) = await createCubit({StorageKeys.themeMode: 'dark'});
 
     expect(cubit.state, ThemeMode.dark);
     await cubit.close();
   });
 
   test('неизвестное сохранённое значение — системная тема', () async {
-    final (cubit, _) = await createCubit({'theme_mode': 'sepia'});
+    final (cubit, _) = await createCubit({StorageKeys.themeMode: 'sepia'});
 
     expect(cubit.state, ThemeMode.system);
     await cubit.close();
@@ -40,12 +41,12 @@ void main() {
     await cubit.setThemeMode(ThemeMode.light);
 
     expect(cubit.state, ThemeMode.light);
-    expect(prefs.getString('theme_mode'), 'light');
+    expect(prefs.getString(StorageKeys.themeMode), 'light');
     await cubit.close();
   });
 
   test('повторный выбор той же темы ничего не эмитит', () async {
-    final (cubit, _) = await createCubit({'theme_mode': 'light'});
+    final (cubit, _) = await createCubit({StorageKeys.themeMode: 'light'});
     final emitted = <ThemeMode>[];
     final subscription = cubit.stream.listen(emitted.add);
 
