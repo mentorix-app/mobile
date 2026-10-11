@@ -29,14 +29,12 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<!-- Google Sign-In: iOS client id в обратном порядке (REVERSED_CLIENT_ID) -->
 				<string>com.googleusercontent.apps.437977573630-19gdn5igg4t37erfeul4k91uv7v7k8ir</string>
 			</array>
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<!-- Google Sign-In. Значения совпадают с config/stage.json (проверяет тест). -->
 	<key>GIDClientID</key>
 	<string>437977573630-19gdn5igg4t37erfeul4k91uv7v7k8ir.apps.googleusercontent.com</string>
 	<key>GIDServerClientID</key>
@@ -70,6 +68,8 @@
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+	<key>UIStatusBarHidden</key>
+	<false/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -83,7 +83,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>UIStatusBarHidden</key>
-	<false/>
 </dict>
 </plist>
