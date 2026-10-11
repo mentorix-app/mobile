@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Текстовая шкала: размеры — мобильная колонка `globals.css`
-/// (`--fs-*` в `@media (max-width: 768px)`), шрифт — Inter.
+/// (`--fs-*` в `@media (max-width: 768px)`), шрифт — встроенный Inter
+/// (`assets/fonts`, веса 400 / 500 / 600).
 ///
 /// Начертания в `globals.css` не заданы: заголовки h1–h5 — `w600`, остальное —
 /// `w400`. Слоты `TextTheme`, которых нет в таблице (`display*`, `titleSmall`,
 /// `labelLarge`, `labelMedium`), остаются Material-умолчаниями.
 abstract final class AppTextTheme {
+  /// Семейство из секции `fonts` в `pubspec.yaml`.
+  static const fontFamily = 'Inter';
+
   static const double h1 = 24;
   static const double h2 = 20;
   static const double h3 = 18;
@@ -22,9 +25,10 @@ abstract final class AppTextTheme {
     required Brightness brightness,
     required Color color,
   }) {
-    final base = GoogleFonts.interTextTheme(
-      ThemeData(brightness: brightness).textTheme,
-    );
+    final base = ThemeData(
+      brightness: brightness,
+      fontFamily: fontFamily,
+    ).textTheme;
 
     TextStyle? scale(TextStyle? style, double size, FontWeight weight) =>
         style?.copyWith(fontSize: size, fontWeight: weight);

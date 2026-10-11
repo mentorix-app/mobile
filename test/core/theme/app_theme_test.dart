@@ -15,9 +15,6 @@ double _contrast(Color a, Color b) {
 }
 
 void main() {
-  // google_fonts при построении темы обращается к биндингу.
-  TestWidgetsFlutterBinding.ensureInitialized();
-
   group('токены светлой темы совпадают с globals.css', () {
     late final AppThemeExtension t;
     setUpAll(() => t = AppTheme.light.extension<AppThemeExtension>()!);

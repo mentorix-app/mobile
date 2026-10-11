@@ -53,9 +53,6 @@ dependencies:
     sdk: flutter
   intl: ^0.20.2
 
-  # Шрифт Inter — файлы не храним, берём через google_fonts
-  google_fonts: ^8.1.0
-
   # Логотипы в assets/icons — SVG
   flutter_svg: ^2.2.1
 
@@ -99,6 +96,20 @@ flutter:
     # PNG логотипа для нативного сплеша и Flutter-сплеша: один и тот же файл,
     # поэтому переход между ними не меняет ни размер, ни положение логотипа.
     - assets/splash/
+
+  # Inter встроен в приложение (лицензия SIL OFL — assets/fonts/OFL.txt): так
+  # шрифт есть в первом кадре, без скачивания и без подмены системным.
+  # Статические начертания оптического размера 18 pt: подходят всей шкале
+  # 12–24 sp. Нужные веса — 400 (текст), 500 (кнопки), 600 (заголовки).
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter_18pt-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter_18pt-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter_18pt-SemiBold.ttf
+          weight: 600
 
   # To add assets to your application, add an assets section, like this:
   # assets:
