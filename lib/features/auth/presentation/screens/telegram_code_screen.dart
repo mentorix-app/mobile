@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mentorix_app/core/router/route_names.dart';
 import 'package:mentorix_app/core/theme/app_spacing.dart';
@@ -94,13 +95,14 @@ class _TelegramCodeScreenState extends State<TelegramCodeScreen> {
                         const SizedBox(height: AppSpacing.lg),
                         const TelegramLinkSteps(),
                         const SizedBox(height: AppSpacing.sm),
-                        OutlinedButton(
+                        OutlinedButton.icon(
                           // Имя бота — из config/stage.json; пока плейсхолдер,
                           // кнопка неактивна.
                           onPressed: cubit.isBotConfigured && !busy
                               ? () => _openBot(context, l10n)
                               : null,
-                          child: Text(l10n.telegramOpenBotAction),
+                          icon: const FaIcon(FontAwesomeIcons.telegram, size: 20),
+                          label: Text(l10n.telegramOpenBotAction),
                         ),
                         const SizedBox(height: AppSpacing.xl),
                         TextField(

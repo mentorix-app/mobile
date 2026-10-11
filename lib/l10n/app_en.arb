@@ -18,6 +18,7 @@
   "loginSubtitle": "Sign in to continue",
   "signInWithGoogle": "Continue with Google",
   "signInWithApple": "Continue with Apple",
+  "loginTelegramHint": "Already training via Telegram? Sign in with Google or Apple, then link Telegram on the next step.",
 
   "telegramOfferTitle": "Do you already train via Telegram?",
   "telegramOfferBody": "Link it to continue with your existing account and data.",

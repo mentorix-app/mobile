@@ -158,6 +158,12 @@ abstract class AppLocalizations {
   /// **'Continue with Apple'**
   String get signInWithApple;
 
+  /// No description provided for @loginTelegramHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Already training via Telegram? Sign in with Google or Apple, then link Telegram on the next step.'**
+  String get loginTelegramHint;
+
   /// No description provided for @telegramOfferTitle.
   ///
   /// In en, this message translates to:

@@ -37,8 +37,11 @@ class FakeAuthRepository implements AuthRepository {
   @override
   bool get isGoogleSignInAvailable => true;
 
+  /// Apple есть только на iOS и macOS; по умолчанию кнопки Apple нет.
+  bool appleAvailable = false;
+
   @override
-  bool get isAppleSignInAvailable => false;
+  bool get isAppleSignInAvailable => appleAvailable;
 
   @override
   Future<bool> restoreSession() async {

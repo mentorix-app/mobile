@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mentorix_app/core/router/route_names.dart';
 import 'package:mentorix_app/core/theme/app_spacing.dart';
@@ -45,9 +46,10 @@ class TelegramOfferScreen extends StatelessWidget {
                       style: textTheme.bodyMedium,
                     ),
                     const SizedBox(height: AppSpacing.xl),
-                    FilledButton(
+                    FilledButton.icon(
                       onPressed: () => context.push(RouteNames.telegramCode),
-                      child: Text(l10n.telegramLinkAction),
+                      icon: const FaIcon(FontAwesomeIcons.telegram, size: 20),
+                      label: Text(l10n.telegramLinkAction),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     TextButton(

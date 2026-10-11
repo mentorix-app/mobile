@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mentorix_app/core/theme/app_spacing.dart';
+import 'package:mentorix_app/core/theme/app_theme_extension.dart';
 import 'package:mentorix_app/core/widgets/app_snack_bar.dart';
 import 'package:mentorix_app/features/auth/presentation/auth_failure_message.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/login_cubit.dart';
@@ -51,17 +53,29 @@ class LoginScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.xl),
                       if (cubit.isGoogleAvailable)
-                        FilledButton(
+                        FilledButton.icon(
                           onPressed: busy ? null : cubit.signInWithGoogle,
-                          child: Text(l10n.signInWithGoogle),
+                          icon: const FaIcon(FontAwesomeIcons.google, size: 18),
+                          label: Text(l10n.signInWithGoogle),
                         ),
                       if (cubit.isAppleAvailable) ...[
                         const SizedBox(height: AppSpacing.md),
-                        OutlinedButton(
+                        OutlinedButton.icon(
                           onPressed: busy ? null : cubit.signInWithApple,
-                          child: Text(l10n.signInWithApple),
+                          icon: const FaIcon(FontAwesomeIcons.apple, size: 20),
+                          label: Text(l10n.signInWithApple),
                         ),
                       ],
+                      // Входа через Telegram в API нет: Telegram привязывается
+                      // к учётной записи Google/Apple на следующем шаге.
+                      const SizedBox(height: AppSpacing.xl),
+                      Text(
+                        l10n.loginTelegramHint,
+                        textAlign: TextAlign.center,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: context.themeExt.mutedForeground,
+                        ),
+                      ),
                       if (busy) ...[
                         const SizedBox(height: AppSpacing.lg),
                         const LinearProgressIndicator(),

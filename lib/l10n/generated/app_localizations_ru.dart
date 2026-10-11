@@ -39,6 +39,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get signInWithApple => 'Продолжить с Apple';
 
   @override
+  String get loginTelegramHint =>
+      'Занимались через Telegram? Войдите через Google или Apple, а Telegram привяжете на следующем шаге.';
+
+  @override
   String get telegramOfferTitle => 'Вы уже занимаетесь через Telegram?';
 
   @override

@@ -26,6 +26,15 @@ Client id продублированы в `ios/Runner/Info.plist` (`GIDClientID`
 
 Проверки перед коммитом: `flutter analyze --no-pub` и `flutter test`.
 
+## Нативный сплеш
+
+Экран запуска (до первого кадра Flutter) — фон темы и логотип, настройка в
+`flutter_native_splash.yaml`. После смены логотипа или цвета фона (macOS):
+
+```sh
+tool/generate_splash_assets.sh && dart run flutter_native_splash:create
+```
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

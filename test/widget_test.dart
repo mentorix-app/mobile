@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mentorix_app/app.dart';
 import 'package:mentorix_app/core/config/telegram_config.dart';
@@ -65,6 +66,7 @@ void main() {
     UserProfile profile = testProfile,
     bool inviteDone = true,
     String botName = 'mentorix_test_bot',
+    bool appleAvailable = false,
   }) async {
     SharedPreferences.setMockInitialValues({
       ...stored,
@@ -72,7 +74,9 @@ void main() {
     });
     final prefs = await SharedPreferences.getInstance();
 
-    final repository = FakeAuthRepository()..profile = profile;
+    final repository = FakeAuthRepository()
+      ..profile = profile
+      ..appleAvailable = appleAvailable;
     final launcher = FakeExternalLinkLauncher();
     final session = SessionCubit(repository, SessionExpiredNotifier());
     switch (sessionState) {
@@ -246,6 +250,65 @@ void main() {
 
       expect(find.byType(LoginScreen), findsOneWidget);
       expect(app.repository.logoutCalls, 1);
+    });
+  });
+
+  group('иконки брендов на кнопках', () {
+    Finder brandIcon(FaIconData icon) => find.byWidgetPredicate(
+      (widget) => widget is FaIcon && widget.icon == icon.data,
+    );
+
+    testWidgets('вход: Google и Apple рядом с названием', (tester) async {
+      final app = await pumpApp(
+        tester,
+        sessionState: _Session.unauthenticated,
+        appleAvailable: true,
+      );
+
+      expect(brandIcon(FontAwesomeIcons.google), findsOneWidget);
+      expect(brandIcon(FontAwesomeIcons.apple), findsOneWidget);
+      expect(find.text(app.l10n.signInWithGoogle), findsOneWidget);
+      expect(find.text(app.l10n.signInWithApple), findsOneWidget);
+    });
+
+    testWidgets('вход без Apple (Android): иконки Apple нет', (tester) async {
+      await pumpApp(tester, sessionState: _Session.unauthenticated);
+
+      expect(brandIcon(FontAwesomeIcons.google), findsOneWidget);
+      expect(brandIcon(FontAwesomeIcons.apple), findsNothing);
+    });
+
+    testWidgets('экран входа объясняет, как войти, если занимались в Telegram', (
+      tester,
+    ) async {
+      final app = await pumpApp(
+        tester,
+        sessionState: _Session.unauthenticated,
+      );
+
+      // Входа через Telegram в API нет — вместо кнопки подсказка.
+      expect(find.text(app.l10n.loginTelegramHint), findsOneWidget);
+      expect(brandIcon(FontAwesomeIcons.telegram), findsNothing);
+    });
+
+    testWidgets('предложение привязать Telegram: иконка на кнопке', (
+      tester,
+    ) async {
+      await pumpApp(tester, profile: unlinkedProfile, inviteDone: false);
+
+      expect(brandIcon(FontAwesomeIcons.telegram), findsOneWidget);
+    });
+
+    testWidgets('ввод кода: иконка на кнопке «Открыть бота»', (tester) async {
+      final app = await pumpApp(
+        tester,
+        profile: unlinkedProfile,
+        inviteDone: false,
+      );
+      await tester.tap(find.text(app.l10n.telegramLinkAction));
+      await tester.pumpAndSettle();
+
+      expect(brandIcon(FontAwesomeIcons.telegram), findsOneWidget);
     });
   });
 

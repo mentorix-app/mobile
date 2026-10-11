@@ -12,6 +12,7 @@
   "loginSubtitle": "Войдите, чтобы продолжить",
   "signInWithGoogle": "Продолжить с Google",
   "signInWithApple": "Продолжить с Apple",
+  "loginTelegramHint": "Занимались через Telegram? Войдите через Google или Apple, а Telegram привяжете на следующем шаге.",
 
   "telegramOfferTitle": "Вы уже занимаетесь через Telegram?",
   "telegramOfferBody": "Привяжите его, чтобы продолжить со старой учётной записью и данными.",

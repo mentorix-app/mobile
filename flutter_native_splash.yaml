@@ -1,0 +1,29 @@
+# Нативный сплеш: белого экрана до первого кадра Flutter нет, вместо него —
+# фон темы и логотип (тот же, что рисует SplashScreen).
+#
+# Перегенерация:
+#   tool/generate_splash_assets.sh && dart run flutter_native_splash:create
+#
+# Цвета — токен `background` из globals.css: светлая #FFFFFF, тёмная #0A0A0A.
+# Тема выбирается по системной: приложение к этому моменту ещё не загружено.
+flutter_native_splash:
+  color: "#FFFFFF"
+  color_dark: "#0A0A0A"
+
+  # PNG «4x»: 960 px по ширине = 240 dp, как у SvgPicture в SplashScreen.
+  image: assets/splash/full-logo.png
+  image_dark: assets/splash/full-logo-dark.png
+
+  android_gravity: center
+  ios_content_mode: center
+
+  web: false
+
+  # Android 12+ показывает иконку в круге и не умеет произвольные картинки.
+  android_12:
+    color: "#FFFFFF"
+    color_dark: "#0A0A0A"
+    image: assets/splash/android12.png
+    image_dark: assets/splash/android12.png
+    icon_background_color: "#FFFFFF"
+    icon_background_color_dark: "#0A0A0A"
