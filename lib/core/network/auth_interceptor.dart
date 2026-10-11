@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:mentorix_app/core/config/api_endpoints.dart';
 import 'package:mentorix_app/core/network/auth_tokens.dart';
 import 'package:mentorix_app/core/network/session_expired_exception.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
@@ -39,8 +40,6 @@ class AuthInterceptor extends QueuedInterceptor {
 
   /// Ключ в `RequestOptions.extra`: запрос уже повторялся, повторять нельзя.
   static const retriedKey = 'auth_retried';
-
-  static const refreshPath = '/auth/refresh';
 
   final TokenStorage _tokens;
   final Dio _plainDio;
@@ -165,7 +164,7 @@ class AuthInterceptor extends QueuedInterceptor {
     final Response<Map<String, dynamic>> response;
     try {
       response = await _plainDio.post<Map<String, dynamic>>(
-        refreshPath,
+        ApiEndpoints.authRefresh,
         data: {'refresh_token': refreshToken},
         // Публичный эндпоинт: сам refresh перехватчик не обрабатывает.
         options: Options(extra: {skipAuthKey: true}),

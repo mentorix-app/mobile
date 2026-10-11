@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mentorix_app/core/config/api_endpoints.dart';
 import 'package:mentorix_app/core/network/auth_interceptor.dart';
 import 'package:mentorix_app/core/network/auth_tokens.dart';
 import 'package:mentorix_app/core/network/session_expired_exception.dart';
@@ -34,7 +35,7 @@ void main() {
     Map<String, FakeResponder> routes = const {},
   }) {
     adapter = FakeHttpAdapter((options) async {
-      if (options.path == '/auth/refresh') return refreshResponder(options);
+      if (options.path == ApiEndpoints.authRefresh) return refreshResponder(options);
       final route = routes[options.path];
       if (route != null) return route(options);
 
@@ -119,7 +120,7 @@ void main() {
 
         expect(responses.map((r) => r.statusCode), [200, 200, 200]);
         expect(
-          adapter.requestsTo('/auth/refresh'),
+          adapter.requestsTo(ApiEndpoints.authRefresh),
           hasLength(1),
           reason: 'параллельные 401 не должны запускать несколько refresh',
         );
@@ -144,7 +145,7 @@ void main() {
 
       await apiDio.get<Object?>('/a');
 
-      final refresh = adapter.requestsTo('/auth/refresh').single;
+      final refresh = adapter.requestsTo(ApiEndpoints.authRefresh).single;
       expect(refresh.data, {'refresh_token': 'old-refresh'});
       expect(refresh.contentType, Headers.jsonContentType);
     });
@@ -175,7 +176,7 @@ void main() {
       expect(await tokens.readAccessToken(), isNull);
       expect(await tokens.readRefreshToken(), isNull);
       expect(await tokens.readUserId(), isNull);
-      expect(adapter.requestsTo('/auth/refresh'), hasLength(1));
+      expect(adapter.requestsTo(ApiEndpoints.authRefresh), hasLength(1));
 
       await Future<void>.delayed(Duration.zero);
       expect(
@@ -204,7 +205,7 @@ void main() {
         ),
       );
 
-      expect(adapter.requestsTo('/auth/refresh'), hasLength(1));
+      expect(adapter.requestsTo(ApiEndpoints.authRefresh), hasLength(1));
       expect(adapter.requestsTo('/a'), hasLength(2));
       // Токены остаются: конец сессии определяет только 401 на refresh.
       expect(await tokens.readRefreshToken(), 'new-refresh');
@@ -248,7 +249,7 @@ void main() {
         ),
       );
 
-      expect(adapter.requestsTo('/auth/refresh'), hasLength(1));
+      expect(adapter.requestsTo(ApiEndpoints.authRefresh), hasLength(1));
       expect(await tokens.readRefreshToken(), 'old-refresh');
     });
   });
@@ -266,7 +267,7 @@ void main() {
       final response = await apiDio.get<Object?>('/a');
 
       expect(response.statusCode, 200);
-      expect(adapter.requestsTo('/auth/refresh'), hasLength(1));
+      expect(adapter.requestsTo(ApiEndpoints.authRefresh), hasLength(1));
 
       final sent = adapter.requestsTo('/a').toList();
       expect(sent, hasLength(1), reason: 'старый токен не отправлялся вовсе');
@@ -285,7 +286,7 @@ void main() {
       final response = await apiDio.get<Object?>('/a');
 
       expect(response.statusCode, 200);
-      expect(adapter.requestsTo('/auth/refresh'), isEmpty);
+      expect(adapter.requestsTo(ApiEndpoints.authRefresh), isEmpty);
     });
   });
 
@@ -323,7 +324,7 @@ void main() {
         final response = await apiDio.get<Object?>('/a');
 
         expect(response.statusCode, 200);
-        expect(adapter.requestsTo('/auth/refresh'), hasLength(1));
+        expect(adapter.requestsTo(ApiEndpoints.authRefresh), hasLength(1));
 
         final sent = adapter.requestsTo('/a').single;
         expect(sent.headers['Authorization'], 'Bearer old-access');
@@ -348,7 +349,7 @@ void main() {
       await apiDio.get<Object?>('/c');
 
       expect(
-        adapter.requestsTo('/auth/refresh'),
+        adapter.requestsTo(ApiEndpoints.authRefresh),
         hasLength(1),
         reason: 'без паузы каждый запрос очереди ждал бы таймаут refresh',
       );
@@ -416,7 +417,7 @@ void main() {
         setUpClients(
           refreshResponder: (_) async => jsonBody(tokenJson()),
           routes: {
-            '/auth/google': (_) async =>
+            ApiEndpoints.authGoogle: (_) async =>
                 jsonBody({'message': 'invalid id_token'}, status: 401),
           },
         );
@@ -427,14 +428,14 @@ void main() {
           throwsA(isA<SocialTokenRejectedFailure>()),
         );
 
-        expect(adapter.requestsTo('/auth/refresh'), isEmpty);
+        expect(adapter.requestsTo(ApiEndpoints.authRefresh), isEmpty);
         expect(
-          adapter.requestsTo('/auth/google'),
+          adapter.requestsTo(ApiEndpoints.authGoogle),
           hasLength(1),
           reason: 'повторов нет',
         );
         expect(
-          adapter.requestsTo('/auth/google').single.headers['Authorization'],
+          adapter.requestsTo(ApiEndpoints.authGoogle).single.headers['Authorization'],
           isNull,
           reason: 'Bearer на публичный эндпоинт не подставляется',
         );
@@ -447,7 +448,7 @@ void main() {
       setUpClients(
         refreshResponder: (_) async => jsonBody(tokenJson()),
         routes: {
-          '/auth/apple': (_) async =>
+          ApiEndpoints.authApple: (_) async =>
               jsonBody({'message': 'invalid id_token'}, status: 401),
         },
       );
@@ -458,7 +459,7 @@ void main() {
         throwsA(isA<SocialTokenRejectedFailure>()),
       );
 
-      expect(adapter.requestsTo('/auth/refresh'), isEmpty);
+      expect(adapter.requestsTo(ApiEndpoints.authRefresh), isEmpty);
       expect(sessionExpiredEvents, 0);
     });
 
@@ -466,7 +467,7 @@ void main() {
       setUpClients(
         refreshResponder: (_) async => jsonBody(tokenJson()),
         routes: {
-          '/auth/google': (_) async => jsonBody(tokenJson()),
+          ApiEndpoints.authGoogle: (_) async => jsonBody(tokenJson()),
         },
       );
 
@@ -475,7 +476,7 @@ void main() {
       ).signInWithGoogle('provider-token');
 
       expect(result.refreshToken, 'new-refresh');
-      expect(adapter.requestsTo('/auth/refresh'), isEmpty);
+      expect(adapter.requestsTo(ApiEndpoints.authRefresh), isEmpty);
     });
 
     test('logout при почти истёкшем access_token не вызывает refresh', () async {
@@ -483,7 +484,7 @@ void main() {
         refreshResponder: (_) async => jsonBody(tokenJson()),
         now: () => now,
         routes: {
-          '/auth/logout': (_) async => ResponseBody.fromString('', 204),
+          ApiEndpoints.authLogout: (_) async => ResponseBody.fromString('', 204),
         },
       );
       // Истекает через 30 секунд: обычный запрос обновил бы токен заранее.
@@ -492,11 +493,11 @@ void main() {
       await AuthRemoteDataSource(apiDio: apiDio).logout('old-refresh');
 
       expect(
-        adapter.requestsTo('/auth/refresh'),
+        adapter.requestsTo(ApiEndpoints.authRefresh),
         isEmpty,
         reason: 'refresh сделал бы старый refresh-токен в теле недействительным',
       );
-      final sent = adapter.requestsTo('/auth/logout').single;
+      final sent = adapter.requestsTo(ApiEndpoints.authLogout).single;
       expect(sent.data, {'refresh_token': 'old-refresh'});
       expect(sent.contentType, Headers.jsonContentType);
       expect(sent.headers['Authorization'], isNull);
@@ -512,7 +513,7 @@ void main() {
 
       await apiDio.get<Object?>('/a');
 
-      expect(adapter.requestsTo('/auth/refresh'), hasLength(1));
+      expect(adapter.requestsTo(ApiEndpoints.authRefresh), hasLength(1));
     });
   });
 

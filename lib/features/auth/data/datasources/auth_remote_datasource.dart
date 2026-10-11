@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:mentorix_app/core/config/api_endpoints.dart';
 import 'package:mentorix_app/core/logging/app_logger.dart';
 import 'package:mentorix_app/core/network/auth_interceptor.dart';
 import 'package:mentorix_app/core/network/auth_tokens.dart';
@@ -25,7 +26,7 @@ class AuthRemoteDataSource {
     endpoint: AuthErrorMapper.socialSignIn,
     () async {
       final response = await _dio.post<Object?>(
-        '/auth/google',
+        ApiEndpoints.authGoogle,
         data: {'id_token': idToken},
         options: _public,
       );
@@ -38,7 +39,7 @@ class AuthRemoteDataSource {
     endpoint: AuthErrorMapper.socialSignIn,
     () async {
       final response = await _dio.post<Object?>(
-        '/auth/apple',
+        ApiEndpoints.authApple,
         data: {'id_token': idToken, 'name': ?name},
         options: _public,
       );
@@ -50,31 +51,31 @@ class AuthRemoteDataSource {
   /// сервер вернёт 204, но сессию не завершит.
   Future<void> logout(String refreshToken) => _guard(() async {
     await _dio.post<Object?>(
-      '/auth/logout',
+      ApiEndpoints.authLogout,
       data: {'refresh_token': refreshToken},
       options: _public,
     );
   });
 
   Future<void> logoutAll() => _guard(() async {
-    await _dio.post<Object?>('/auth/logout-all');
+    await _dio.post<Object?>(ApiEndpoints.authLogoutAll);
   });
 
   Future<UserProfileModel> getMe() => _guard(() async {
-    final response = await _dio.get<Object?>('/auth/me');
+    final response = await _dio.get<Object?>(ApiEndpoints.authMe);
     return UserProfileModel.fromJson(_object(response));
   });
 
   /// Описания тела ответа у PATCH в контракте нет — ответ не разбирается.
   Future<void> updateName(String name) => _guard(() async {
-    await _dio.patch<Object?>('/auth/me', data: {'name': name});
+    await _dio.patch<Object?>(ApiEndpoints.authMe, data: {'name': name});
   });
 
   Future<AuthTokens> linkTelegram(String code) => _guard(
     endpoint: AuthErrorMapper.telegramLink,
     () async {
       final response = await _dio.post<Object?>(
-        '/auth/telegram/link',
+        ApiEndpoints.authTelegramLink,
         data: {'code': code},
       );
       return AuthTokens.fromJson(_object(response));
@@ -85,7 +86,7 @@ class AuthRemoteDataSource {
     endpoint: AuthErrorMapper.inviteAccept,
     () async {
       final response = await _dio.post<Object?>(
-        '/client/invites/accept',
+        ApiEndpoints.clientInviteAccept,
         data: {'token': token},
       );
       return InviteAcceptanceModel.fromJson(_object(response));
