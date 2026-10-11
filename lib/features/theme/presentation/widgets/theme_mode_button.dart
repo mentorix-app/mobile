@@ -3,8 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
-/// Временный переключатель темы: система → светлая → тёмная → система.
-/// Уйдёт на экран настроек, когда он появится.
 class ThemeModeButton extends StatelessWidget {
   const ThemeModeButton({super.key});
 
@@ -15,10 +13,7 @@ class ThemeModeButton extends StatelessWidget {
     return BlocBuilder<ThemeCubit, ThemeMode>(
       builder: (context, mode) {
         final (icon, label) = switch (mode) {
-          ThemeMode.system => (
-            Icons.brightness_auto_outlined,
-            l10n.themeModeSystem,
-          ),
+          ThemeMode.system => (Icons.brightness_auto_outlined, l10n.themeModeSystem),
           ThemeMode.light => (Icons.light_mode_outlined, l10n.themeModeLight),
           ThemeMode.dark => (Icons.dark_mode_outlined, l10n.themeModeDark),
         };
@@ -26,13 +21,11 @@ class ThemeModeButton extends StatelessWidget {
         return IconButton(
           icon: Icon(icon),
           tooltip: label,
-          onPressed: () => context.read<ThemeCubit>().setThemeMode(
-            switch (mode) {
-              ThemeMode.system => ThemeMode.light,
-              ThemeMode.light => ThemeMode.dark,
-              ThemeMode.dark => ThemeMode.system,
-            },
-          ),
+          onPressed: () => context.read<ThemeCubit>().setThemeMode(switch (mode) {
+            ThemeMode.system => ThemeMode.light,
+            ThemeMode.light => ThemeMode.dark,
+            ThemeMode.dark => ThemeMode.system,
+          }),
         );
       },
     );

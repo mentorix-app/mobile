@@ -13,13 +13,9 @@ import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart'
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureDependencies();
-  // Логотип сплеша должен быть в кэше к первому кадру, иначе он «мигает».
   await precacheSplashLogos();
-
   final session = GetIt.I<SessionCubit>();
-  // Не ждём: приложение сразу показывает заставку, роутер сам уведёт дальше.
   unawaited(session.start());
-
   runApp(
     MultiBlocProvider(
       providers: [

@@ -5,7 +5,6 @@ import 'package:mentorix_app/core/theme/app_theme.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
-/// Ожидает `ThemeCubit` выше по дереву (в `main.dart` — через `MultiBlocProvider`).
 class MentorixApp extends StatelessWidget {
   const MentorixApp({super.key, required this.router});
 
