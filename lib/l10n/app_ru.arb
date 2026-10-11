@@ -3,5 +3,51 @@
   "appTitle": "Mentorix",
   "themeModeSystem": "Системная тема",
   "themeModeLight": "Светлая тема",
-  "themeModeDark": "Тёмная тема"
+  "themeModeDark": "Тёмная тема",
+
+  "retryAction": "Повторить",
+  "continueAction": "Продолжить",
+
+  "loginTitle": "Вход",
+  "loginSubtitle": "Войдите, чтобы продолжить",
+  "signInWithGoogle": "Продолжить с Google",
+  "signInWithApple": "Продолжить с Apple",
+
+  "telegramOfferTitle": "Вы уже занимаетесь через Telegram?",
+  "telegramOfferBody": "Привяжите его, чтобы продолжить со старой учётной записью и данными.",
+  "telegramLinkAction": "Привязать Telegram",
+  "telegramSkipAction": "Нет, пропустить",
+  "telegramCodeTitle": "Введите код",
+  "telegramCodeHint": "8 символов от бота",
+
+  "inviteTitle": "Приглашение тренера",
+  "inviteBody": "Вставьте ссылку или код приглашения, который прислал тренер.",
+  "inviteHint": "Ссылка или код",
+  "inviteAcceptAction": "Принять приглашение",
+  "inviteSkipAction": "Позже",
+  "inviteAccepted": "Вы привязаны к тренеру: {trainer}",
+  "inviteAcceptedNoName": "Приглашение принято",
+
+  "homeTitle": "Главная",
+  "homeSignedInAs": "Вы вошли как {identity}",
+  "logoutAction": "Выйти",
+
+  "errorNetwork": "Нет соединения или сервер просыпается. Проверьте связь и повторите.",
+  "errorServerUnavailable": "Сервис временно недоступен. Попробуйте позже.",
+  "errorTooManyRequests": "Слишком много попыток. Подождите немного и повторите.",
+  "errorSessionExpired": "Сессия закончилась. Войдите снова.",
+  "errorSocialRejected": "Вход не принят. Попробуйте ещё раз.",
+  "errorSocialUnavailable": "Этот способ входа сейчас недоступен.",
+  "errorInvalidRequest": "Не удалось обработать запрос. Проверьте введённые данные.",
+  "errorTelegramCodeInvalid": "Код неверный, просрочен или уже использован.",
+  "errorAccountNotFound": "Учётной записи больше нет.",
+  "errorTelegramConflict": "Эти записи нельзя объединить, либо к ним уже привязан другой Telegram.",
+  "errorInviteNotFound": "Приглашение не найдено. Проверьте ссылку или код.",
+  "errorInviteExpired": "Срок приглашения истёк. Попросите у тренера новое.",
+  "errorInviteConsumed": "Это приглашение уже использовал другой человек.",
+  "errorInviteClientLimit": "У тренера сейчас нет свободных мест.",
+  "errorInviteConflict": "Сейчас это приглашение принять нельзя.",
+  "errorInviteNotAllowed": "С вашей учётной записью это приглашение принять нельзя.",
+  "errorAdminAccount": "Учётная запись администратора не может принимать приглашения.",
+  "errorUnknown": "Что-то пошло не так. Попробуйте ещё раз."
 }

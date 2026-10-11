@@ -2,6 +2,24 @@
 
 A new Flutter project.
 
+## Запуск
+
+Адрес API и client id Google берутся из файла конфигурации при сборке
+(`--dart-define-from-file`). Client id не секретные, поэтому `config/stage.json`
+лежит в репозитории.
+
+```sh
+flutter run --dart-define-from-file=config/stage.json
+```
+
+То же для сборок: `flutter build apk --dart-define-from-file=config/stage.json`.
+
+Пока в `config/stage.json` стоят плейсхолдеры `YOUR_GOOGLE_…`, приложение
+запускается, но вход через Google сообщает, что способ недоступен. Реальные
+значения (web-клиент и iOS-клиент из Google Cloud) подставляются в тот же файл.
+
+Проверки перед коммитом: `flutter analyze --no-pub` и `flutter test`.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

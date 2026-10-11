@@ -9,5 +9,65 @@
     "description": "Theme mode that follows the device setting"
   },
   "themeModeLight": "Light theme",
-  "themeModeDark": "Dark theme"
+  "themeModeDark": "Dark theme",
+
+  "retryAction": "Try again",
+  "continueAction": "Continue",
+
+  "loginTitle": "Sign in",
+  "loginSubtitle": "Sign in to continue",
+  "signInWithGoogle": "Continue with Google",
+  "signInWithApple": "Continue with Apple",
+
+  "telegramOfferTitle": "Do you already train via Telegram?",
+  "telegramOfferBody": "Link it to continue with your existing account and data.",
+  "telegramLinkAction": "Link Telegram",
+  "telegramSkipAction": "No, skip",
+  "telegramCodeTitle": "Enter the code",
+  "telegramCodeHint": "8-character code from the bot",
+
+  "inviteTitle": "Trainer invitation",
+  "inviteBody": "Paste the invitation link or code you received from your trainer.",
+  "inviteHint": "Link or code",
+  "inviteAcceptAction": "Accept invitation",
+  "inviteSkipAction": "Later",
+  "inviteAccepted": "You are linked to {trainer}",
+  "@inviteAccepted": {
+    "placeholders": {
+      "trainer": {
+        "type": "String"
+      }
+    }
+  },
+  "inviteAcceptedNoName": "Invitation accepted",
+
+  "homeTitle": "Home",
+  "homeSignedInAs": "Signed in as {identity}",
+  "@homeSignedInAs": {
+    "placeholders": {
+      "identity": {
+        "type": "String"
+      }
+    }
+  },
+  "logoutAction": "Sign out",
+
+  "errorNetwork": "No connection or the server is waking up. Check your connection and try again.",
+  "errorServerUnavailable": "The service is temporarily unavailable. Try again later.",
+  "errorTooManyRequests": "Too many attempts. Wait a bit and try again.",
+  "errorSessionExpired": "Your session has expired. Please sign in again.",
+  "errorSocialRejected": "Sign-in was not accepted. Try again.",
+  "errorSocialUnavailable": "This sign-in method is not available right now.",
+  "errorInvalidRequest": "The request could not be processed. Check the entered data.",
+  "errorTelegramCodeInvalid": "The code is incorrect, expired or already used.",
+  "errorAccountNotFound": "The account no longer exists.",
+  "errorTelegramConflict": "These accounts cannot be merged, or another Telegram is already linked.",
+  "errorInviteNotFound": "Invitation not found. Check the link or code.",
+  "errorInviteExpired": "This invitation has expired. Ask your trainer for a new one.",
+  "errorInviteConsumed": "This invitation was already used by someone else.",
+  "errorInviteClientLimit": "Your trainer has no free spots at the moment.",
+  "errorInviteConflict": "This invitation cannot be accepted right now.",
+  "errorInviteNotAllowed": "This invitation cannot be accepted with your account.",
+  "errorAdminAccount": "Administrator accounts cannot accept invitations.",
+  "errorUnknown": "Something went wrong. Try again."
 }

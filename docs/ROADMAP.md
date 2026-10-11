@@ -11,6 +11,10 @@
   `flutter analyze --no-pub` чистый, `flutter test` зелёный (20 тестов).
 - В этап 1 вошли правки по итогам первой проверки: `ThemeCubit` (BUGS № 1) и константы
   ассетов (BUGS № 2) — см. «Правки по итогам проверки» ниже.
+- Этап 3 «Авторизация» **закоммичен, проверка на устройстве ещё не проведена**;
+  `flutter analyze --no-pub` чистый, `flutter test` зелёный (71 тест). Реальный вход
+  пока невозможен: нужны client id Google — см. «Что сделать руками» в этапе 3.
+- Идентификатор приложения сменён на `com.mentorix.mobile` (отдельный коммит).
 - Следующий этап: 2 «Язык» (тема уже сделана).
 
 ## Таблица этапов
@@ -19,8 +23,7 @@
 |---|---|---|
 | 1 | Каркас: токены `globals.css`, тема, Inter, `get_it`, `go_router`, локали ru/en, `ThemeCubit` | ✅ 2026-10-11 |
 | 2 | Язык: `LocaleCubit`, хранение в `shared_preferences`, экран настроек (`ThemeCubit` сделан в этапе 1) | ⬜ |
-| 3 | Сеть и хранилище: `dio`-клиент, интерсептор токена, `flutter_secure_storage`, флаг установки | ⬜ |
-| 4 | Авторизация: сессия, `refreshListenable` роутера, экраны входа | ⬜ |
+| 3 | Авторизация: сеть (два `Dio`), `TokenStorage`, `AuthInterceptor`, сессия, вход Google и Apple, привязка Telegram, приглашение (объединяет бывшие этапы «Сеть и хранилище» и «Авторизация») | 🟡 на проверке |
 
 ---
 
@@ -133,24 +136,143 @@
   убрать.
 - Новые строки сразу в оба ARB.
 
-## Этап 3. Сеть и хранилище
+## Этап 3. Авторизация
 
-План (уточнить перед началом):
+Контракт — `docs/auth_api.md`, stage — `https://mentorix-api-stage.onrender.com`.
 
-- `lib/core/network/` — `dio`-клиент, интерсептор подстановки токена, обновление токена
-  в одном месте с защитой от параллельных обновлений.
-- `flutter_secure_storage` для токенов с настройками из раздела 5 `CLAUDE.md`.
-- Флаг установки в `shared_preferences`: нет флага — очистить secure storage.
-- Обработка `KeyStoreException` как «токена нет».
-- `AppErrorCode` и локализованные сообщения.
+### Что сделано
 
-## Этап 4. Авторизация
+**Сеть и хранилище (`lib/core/`)**
+- `network/dio_factory.dart` — два `Dio`: `plain` (вход, logout, refresh, повтор) и `api`
+  с `AuthInterceptor`. `contentType: application/json` задан явно, таймауты 60 секунд.
+- `network/auth_interceptor.dart` — `QueuedInterceptor`: Bearer, упреждающий refresh
+  за 60 секунд до `expires_at`, на 401 один общий refresh, повтор один раз через `plain`,
+  при 401 на refresh — очистка токенов и событие в `SessionExpiredNotifier`.
+- `storage/token_storage.dart` — `flutter_secure_storage`: `access_token`, `refresh_token`,
+  `expires_at`, `user_id`; флаг установки и обработка сбоя Keystore по разделу 5 `CLAUDE.md`.
+- `config/api_config.dart` (`--dart-define=API_BASE_URL`), `config/social_auth_config.dart`
+  (плейсхолдеры client id), `logging/app_logger.dart`, `widgets/app_snack_bar.dart`.
+- `router/` — `RouteNames`, `OnboardingFlow`, редирект по сессии.
 
-План (уточнить перед началом):
+**Фича `lib/features/auth/`**
+- `domain` — `UserProfile`, `InviteAcceptance`, `SocialCredential`, sealed `AuthFailure`,
+  `AuthRepository`, `SocialAuthProvider`.
+- `data` — `AuthRemoteDataSource` (все эндпоинты из документа), модели с `fromJson`,
+  `AuthErrorMapper`, `InviteConflictParser`, `GoogleAuthProvider`, `AppleAuthProvider`,
+  `PendingAppleNameStorage`, `AuthRepositoryImpl`.
+- `presentation` — `SessionCubit`, `LoginCubit`, `TelegramLinkCubit`, `InviteCubit`;
+  экраны: заставка, вход, предложение Telegram, ввод кода, приглашение; `HomeScreen` —
+  заглушка с именем и кнопкой выхода.
 
-- `AuthCubit` глобально, `refreshListenable` роутера — только при смене факта наличия сессии.
-- Экраны входа, redirect для защищённых маршрутов.
-- Экран «страница не найдена».
+### Решения
+
+| Вопрос | Решение |
+|---|---|
+| Ошибки | sealed `AuthFailure`, перевод только в `presentation`. `enum AppErrorCode` не используется; правило в `CLAUDE.md` обновлено под это решение |
+| 409 у приглашения | разбор по `message` только в `InviteConflictParser`; когда появится `code` — меняется один файл |
+| 429 | ничего не повторяется, показывается сообщение |
+| Параллельные 401 | очередь `QueuedInterceptor` + сравнение токена запроса с текущим: запрос, чей 401 пришёл после чужого refresh, просто повторяется с новым токеном |
+| Упреждающий refresh | порог 60 секунд до `expires_at` (константа в `AuthInterceptor`) |
+| Формат `expires_at` | в контракте не описан: разбирается ISO-8601, unix-секунды и миллисекунды, при неудаче `null` (тогда обновление только по 401) |
+| `user_id` | в контракте тип не указан, хранится как строка |
+| Нет сети при старте | `SessionUnknown(failure)` + «Повторить», токены не стираются и на вход не выбрасывают |
+| `SessionCubit` | единственный экземпляр (`registerLazySingleton`) — исключение из «кубиты — factory»: на сессию смотрят роутер и экраны |
+| Порядок экранов | профиль → если `telegram_linked == false` и предложение не закрыто, Telegram → приглашение → главный. Пройденные шаги хранятся в `shared_preferences` по `user_id` |
+| Главный экран | недоступен, пока не закрыт шаг приглашения (его можно отложить кнопкой «Позже») |
+| Telegram → профиль | после `telegram/link` оба токена и `user_id` заменяются, кеш профиля сброшен, `/auth/me` запрашивается заново; если `/auth/me` упал, повтор не шлёт использованный код |
+| Apple | только iOS/macOS; на Android кнопка скрыта (нужен веб-поток со Service ID, которого нет). Имя хранится в secure storage до успешного ответа бэкенда |
+| `PATCH /auth/me` | в контракте нет описания ответа: после запроса профиль загружается заново |
+| Подписка | поле `subscription` не разбирается: структура для не-клиентов в контракте не описана |
+| Логи | `AppLogger` пишет метод, путь, статус и `message`; тела, заголовки и токены — никогда |
+
+### Что сделать руками
+
+**Уже сделано**
+- Идентификатор приложения `com.mentorix.mobile` (Android `applicationId`/`namespace`,
+  iOS bundle id) — отдельным коммитом.
+- Android: `INTERNET` в основном `AndroidManifest.xml` (раньше был только в debug).
+- iOS: `Runner.entitlements` с `com.apple.developer.applesignin = [Default]`,
+  `CODE_SIGN_ENTITLEMENTS` у Runner в Debug, Release и Profile; `pod install` выполнен.
+  App ID `com.mentorix.mobile` с Sign In with Apple создан в Apple Developer.
+- Конфиг: `config/stage.json` + `--dart-define-from-file` (раздел «Запуск» в `README.md`).
+
+**Осталось**
+- Подставить реальные client id в `config/stage.json` (сейчас плейсхолдеры `YOUR_GOOGLE_…`).
+- На бэкенде: `com.mentorix.mobile` — допустимый `aud` для Apple `identityToken`,
+  web-клиент Google — допустимый `aud` для Google `id_token`.
+
+**Google Cloud**
+- Экран согласия OAuth.
+- OAuth-клиенты: **Web** (его ID — `GOOGLE_SERVER_CLIENT_ID`, именно под ним Google
+  выпускает `id_token`; бэкенд должен принимать его как `aud`), **iOS**
+  (`com.mentorix.mobile`), **Android** (`com.mentorix.mobile` и SHA-1 отладочного и
+  релизного ключей).
+- iOS `Info.plist`: URL scheme с `REVERSED_CLIENT_ID` iOS-клиента (`CFBundleURLTypes`);
+  при необходимости `GIDClientID` / `GIDServerClientID` — по README `google_sign_in`.
+  Не добавлено: client id ещё нет.
+- Android: проверить `minSdk` и требования `google_sign_in_android` по README пакета.
+
+**Apple**
+- Проверить подпись и capability в Xcode (Signing & Capabilities → Team) на реальном
+  устройстве: на симуляторе вход Apple может не работать.
+
+### Сценарии проверки
+
+Без client id (плейсхолдеры в конфиге):
+1. Холодный старт без сессии: заставка → экран входа.
+2. «Продолжить с Google»: сообщение «способ входа недоступен», приложение не падает.
+3. На iOS видна кнопка Apple, на Android — только Google.
+4. Переключатель темы и язык работают на экране входа так же, как на главном.
+
+С настоящими client id и stage-бэкендом:
+5. Вход через Google → профиль → (если Telegram не привязан) предложение Telegram →
+   «Нет, пропустить» → приглашение → «Позже» → главный экран с именем или почтой.
+6. Перезапуск приложения: сразу главный экран, без повторного входа и шагов онбординга.
+7. «Выйти» → экран входа; перезапуск → экран входа.
+8. Telegram: код от бота → `Продолжить` → переход к приглашению; повторный вход под
+   привязанной записью не предлагает Telegram снова.
+9. Приглашение: ссылка целиком, `inv_…` и голый токен — все три принимаются; ошибки
+   (несуществующее, просроченное, чужое) показывают понятные сообщения на ru и en.
+10. Stage «спит»: первый запрос после простоя ждёт до минуты и не падает по таймауту.
+11. Самолётный режим на старте с сохранённой сессией: сообщение и «Повторить», выхода
+    на вход нет.
+
+Автоматически покрыто (71 тест): три параллельных 401 → один refresh и три повтора
+с новым токеном; refresh вернул 401 → токены очищены, сессия завершена один раз;
+повтор не зацикливается; 429 и сбой сети не стирают сессию; упреждающий refresh;
+порядок экранов; кеш профиля и токены после привязки Telegram; имя Apple.
+
+### Вопросы к бэкенду
+
+В `docs/auth_api.md` не хватает или неоднозначно:
+
+1. **Формат `expires_at`**: ISO-8601, unix-секунды или миллисекунды? Часовой пояс?
+   Сейчас клиент разбирает все варианты.
+2. **Тип `user_id`**: число или строка (UUID)? Может ли оно меняться ещё где-то, кроме
+   `telegram/link`?
+3. **`token_type`**: всегда `Bearer`? Клиент подставляет `Bearer` константой.
+4. **Ответ `PATCH /auth/me`**: возвращается ли обновлённый профиль или 204? Сейчас
+   после запроса делается лишний `GET /auth/me`.
+5. **`MeResponse`**: формат `created_at`; значения и тип `roles`; структура `subscription`
+   у тренера (у клиента `null`).
+6. **`already_linked`** у приглашения: что именно значит (уже привязан к этому тренеру
+   или вообще к какому-то) и что показывать пользователю.
+7. **Как узнать, что клиент уже привязан к тренеру?** В `/auth/me` такого поля нет, поэтому
+   при входе на новом устройстве пользователь снова видит шаг приглашения (его можно
+   отложить). Нужно поле в профиле или отдельный эндпоинт.
+8. **Аудитории `id_token`**: какие client id принимает бэкенд для Google (web / iOS /
+   Android) и Apple (bundle id и/или Service ID)? Проверяется ли `nonce` у Apple?
+9. **Apple на Android**: нужен ли вход, и если да — Service ID и redirect URI.
+10. **409 у `telegram/link`**: два случая («записи нельзя объединить» и «уже привязан
+    другой Telegram») различаются только текстом `message`. Сейчас они показываются
+    одним сообщением; нужен `code`, как и для 409 у приглашений.
+11. **Стабильные коды ошибок**: поле `code` в теле ошибки вместо разбора `message`
+    (сейчас — `invite already consumed`, `client limit reached`).
+12. **429**: есть ли заголовок `Retry-After`? Хотим показывать время ожидания.
+13. **401 в `/auth/me` и защищённых запросах**: всегда ли 401 означает «обновить токен»
+    (а 403 — «нет прав»)? Есть ли другие причины 401, при которых refresh бесполезен?
+14. **Срок refresh-токена**: «30 дней с последнего обновления» — скользящий? После
+    `logout-all` на другом устройстве следующий запрос получит 401 на refresh?
 
 ---
 
