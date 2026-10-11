@@ -8,6 +8,8 @@ import 'package:mentorix_app/core/config/telegram_config.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
 import 'package:mentorix_app/core/router/app_router.dart';
 import 'package:mentorix_app/core/router/onboarding_flow.dart';
+import 'package:mentorix_app/core/widgets/brand_svg_icon.dart';
+import 'package:mentorix_app/generated/assets.dart';
 import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/invite_cubit.dart';
@@ -254,8 +256,13 @@ void main() {
   });
 
   group('иконки брендов на кнопках', () {
+    // Telegram — Font Awesome, Google и Apple — SVG из assets/icons.
     Finder brandIcon(FaIconData icon) => find.byWidgetPredicate(
       (widget) => widget is FaIcon && widget.icon == icon.data,
+    );
+
+    Finder svgIcon(String asset) => find.byWidgetPredicate(
+      (widget) => widget is BrandSvgIcon && widget.asset == asset,
     );
 
     testWidgets('вход: Google и Apple рядом с названием', (tester) async {
@@ -265,8 +272,8 @@ void main() {
         appleAvailable: true,
       );
 
-      expect(brandIcon(FontAwesomeIcons.google), findsOneWidget);
-      expect(brandIcon(FontAwesomeIcons.apple), findsOneWidget);
+      expect(svgIcon(Assets.iconsGoogle), findsOneWidget);
+      expect(svgIcon(Assets.iconsApple), findsOneWidget);
       expect(find.text(app.l10n.signInWithGoogle), findsOneWidget);
       expect(find.text(app.l10n.signInWithApple), findsOneWidget);
     });
@@ -289,11 +296,27 @@ void main() {
       expect(find.text(app.l10n.errorSocialUnavailable), findsNothing);
     });
 
+    testWidgets('Google — цветной логотип без перекраски, Apple — в цвет кнопки', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        sessionState: _Session.unauthenticated,
+        appleAvailable: true,
+      );
+
+      final google = tester.widget<BrandSvgIcon>(svgIcon(Assets.iconsGoogle));
+      final apple = tester.widget<BrandSvgIcon>(svgIcon(Assets.iconsApple));
+
+      expect(google.tinted, isFalse, reason: 'правила Google: только цветной G');
+      expect(apple.tinted, isTrue, reason: 'в файле Apple белый, а кнопка светлая');
+    });
+
     testWidgets('вход без Apple (Android): иконки Apple нет', (tester) async {
       await pumpApp(tester, sessionState: _Session.unauthenticated);
 
-      expect(brandIcon(FontAwesomeIcons.google), findsOneWidget);
-      expect(brandIcon(FontAwesomeIcons.apple), findsNothing);
+      expect(svgIcon(Assets.iconsGoogle), findsOneWidget);
+      expect(svgIcon(Assets.iconsApple), findsNothing);
     });
 
     testWidgets('экран входа объясняет, как войти, если занимались в Telegram', (

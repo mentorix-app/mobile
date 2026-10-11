@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mentorix_app/core/theme/app_spacing.dart';
 import 'package:mentorix_app/core/theme/app_theme_extension.dart';
 import 'package:mentorix_app/core/widgets/app_snack_bar.dart';
+import 'package:mentorix_app/core/widgets/brand_svg_icon.dart';
 import 'package:mentorix_app/features/auth/presentation/auth_failure_message.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/login_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/login_state.dart';
+import 'package:mentorix_app/generated/assets.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -55,14 +56,23 @@ class LoginScreen extends StatelessWidget {
                       if (cubit.isGoogleAvailable)
                         FilledButton.icon(
                           onPressed: busy ? null : cubit.signInWithGoogle,
-                          icon: const FaIcon(FontAwesomeIcons.google, size: 18),
+                          // Цветной логотип G: правила Google запрещают
+                          // одноцветную иконку на кнопке входа.
+                          icon: const BrandSvgIcon(
+                            asset: Assets.iconsGoogle,
+                            size: 18,
+                          ),
                           label: Text(l10n.signInWithGoogle),
                         ),
                       if (cubit.isAppleAvailable) ...[
                         const SizedBox(height: AppSpacing.md),
                         OutlinedButton.icon(
                           onPressed: busy ? null : cubit.signInWithApple,
-                          icon: const FaIcon(FontAwesomeIcons.apple, size: 20),
+                          icon: const BrandSvgIcon(
+                            asset: Assets.iconsApple,
+                            size: 20,
+                            tinted: true,
+                          ),
                           label: Text(l10n.signInWithApple),
                         ),
                       ],

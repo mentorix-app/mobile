@@ -360,9 +360,15 @@
 - iOS кеширует launch-экран: если после обновления виден старый — удалить
   приложение, перезагрузить устройство и поставить заново.
 
-**Иконки брендов** — `font_awesome_flutter`: Google и Apple на кнопках входа,
-Telegram на «Привязать Telegram» и «Открыть бота». Правило проекта «иконки — SVG
-через `flutter_svg`» для брендовых иконок заменено этим решением.
+**Иконки брендов.** Google и Apple на кнопках входа — SVG из `assets/icons/`
+(`google.svg`, `apple.svg`) через `BrandSvgIcon`; Telegram на «Привязать Telegram» и
+«Открыть бота» — `font_awesome_flutter` (SVG для него нет).
+- `google.svg` — цветной логотип G (четыре фирменных цвета). Правила Google
+  запрещают одноцветную иконку на кнопке входа, поэтому он не перекрашивается;
+  тест следит, что файл остаётся цветным.
+- `apple.svg` в файле белый, поэтому на светлой кнопке был бы невидим:
+  `BrandSvgIcon(tinted: true)` перекрашивает его в цвет текста кнопки (`IconTheme`).
+- Иконки Google и Apple на первом этапе были из Font Awesome; заменены по запросу.
 
 **Вход через Telegram.** Кнопки нет, потому что в API такого входа нет: Telegram
 только **привязывается** к учётной записи (`POST /auth/telegram/link`, нужен Bearer),
@@ -376,10 +382,24 @@ Telegram на «Привязать Telegram» и «Открыть бота». П
     deep link `t.me/<bot>?start=login_…` с обменом кода на токены, OAuth)? Сейчас
     Telegram только привязывается после входа через Google или Apple.
 
-**Замечено в рабочей копии (не мои файлы, в коммит не вошли):**
-`assets/icons/google.svg` и `assets/icons/apple.svg` (появились до этих правок;
-в `lib/generated/assets.dart` их нет) и `.vscode/launch.json` (конфигурация запуска
-`--dart-define-from-file=config/stage.json`).
+**Название приложения** под иконкой — «Mentorix»: `android:label` в
+`AndroidManifest.xml` и `CFBundleDisplayName` в `Info.plist` (правилось вручную,
+не генератором). `CFBundleName` остался `mentorix_app` — внутреннее имя бандла,
+пользователю не показывается; при желании приводится так же.
+
+### Подпись iOS (2026-10-11)
+
+Состояние `ios/Runner.xcodeproj/project.pbxproj`, проверено: у Runner во всех трёх
+конфигурациях `DEVELOPMENT_TEAM = TSQ6DL62KG` и
+`CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements`, некорректных значений в
+`ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS` нет.
+- **`CODE_SIGN_STYLE = Automatic` у Runner явно не записан** (он есть только у
+  RunnerTests), в `TargetAttributes` нет и `ProvisioningStyle`. Xcode по умолчанию
+  подписывает автоматически, но если нужен явный стиль — включить «Automatically
+  manage signing» в Xcode: он запишет значение сам.
+- Настройки подписи попали в историю в `45243a9` вместе с остальными правками
+  pbxproj (`git add -A`); поэтому правило в `CLAUDE.md`: Xcode-файлы коммитить по
+  именам и не откатывать без вопроса.
 
 ### Иконка приложения и запуск без конфига (2026-10-11)
 
