@@ -6,7 +6,13 @@ import 'package:mentorix_app/core/storage/token_storage.dart';
 
 /// Подставляет Bearer и обновляет сессию.
 ///
-/// * Токен почти истёк — обновляется **до** запроса.
+/// * Запрос с `extra[skipAuthKey] == true` (публичные эндпоинты: вход, refresh,
+///   logout) проходит мимо перехватчика целиком: без Bearer, без упреждающего
+///   refresh, без обработки 401. Флаг ставит датасорс, по путям перехватчик
+///   не угадывает.
+/// * Токен почти истёк — обновляется **до** запроса. Если это обновление упало
+///   не с 401 (сеть, 5xx, 429), запрос всё равно уходит с текущим токеном:
+///   он ещё действует, а 401 разберёт [onError].
 /// * 401 — один refresh на всех: запросы, получившие 401 со старым токеном,
 ///   после чужого refresh просто повторяются с новым, без второго refresh.
 /// * Повтор идёт через [plainDio] (без перехватчиков) и только один раз.
@@ -21,11 +27,15 @@ class AuthInterceptor extends QueuedInterceptor {
     required Dio plainDio,
     required SessionExpiredNotifier sessionExpired,
     this.refreshLeeway = const Duration(seconds: 60),
+    this.proactiveRefreshCooldown = const Duration(seconds: 30),
     DateTime Function()? now,
   }) : _tokens = tokens,
        _plainDio = plainDio,
        _sessionExpired = sessionExpired,
        _now = now ?? DateTime.now;
+
+  /// Ключ в `RequestOptions.extra`: запрос публичный, перехватчик его не трогает.
+  static const skipAuthKey = 'skipAuth';
 
   /// Ключ в `RequestOptions.extra`: запрос уже повторялся, повторять нельзя.
   static const retriedKey = 'auth_retried';
@@ -38,20 +48,34 @@ class AuthInterceptor extends QueuedInterceptor {
 
   /// За сколько до `expires_at` токен считается истёкшим.
   final Duration refreshLeeway;
+
+  /// После неудачного упреждающего refresh (не 401) следующие запросы не пытаются
+  /// обновлять токен это время. Иначе при пропавшей связи каждый запрос из очереди
+  /// ждал бы свой таймаут refresh.
+  final Duration proactiveRefreshCooldown;
   final DateTime Function() _now;
 
   Future<AuthTokens>? _refreshing;
+  DateTime? _proactiveRefreshRetryAfter;
 
   @override
   Future<void> onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    if (options.extra[skipAuthKey] == true) return handler.next(options);
+
     try {
       var accessToken = await _tokens.readAccessToken();
 
-      if (accessToken != null && await _isAboutToExpire()) {
-        accessToken = (await _refreshShared()).accessToken;
+      if (accessToken != null && await _shouldRefreshBeforeRequest()) {
+        try {
+          accessToken = (await _refreshShared()).accessToken;
+        } on DioException {
+          // Сеть, 5xx или 429: токен ещё действует (refresh начинается за
+          // refreshLeeway до истечения). Шлём с текущим, 401 разберёт onError.
+          _proactiveRefreshRetryAfter = _now().add(proactiveRefreshCooldown);
+        }
       }
 
       if (accessToken != null) {
@@ -66,8 +90,6 @@ class AuthInterceptor extends QueuedInterceptor {
           error: const SessionExpiredException(),
         ),
       );
-    } on DioException catch (e) {
-      handler.reject(e.copyWith(requestOptions: options));
     }
   }
 
@@ -78,7 +100,9 @@ class AuthInterceptor extends QueuedInterceptor {
   ) async {
     final options = err.requestOptions;
 
-    if (err.response?.statusCode != 401 || options.extra[retriedKey] == true) {
+    if (options.extra[skipAuthKey] == true ||
+        err.response?.statusCode != 401 ||
+        options.extra[retriedKey] == true) {
       return handler.next(err);
     }
 
@@ -112,7 +136,10 @@ class AuthInterceptor extends QueuedInterceptor {
     }
   }
 
-  Future<bool> _isAboutToExpire() async {
+  Future<bool> _shouldRefreshBeforeRequest() async {
+    final retryAfter = _proactiveRefreshRetryAfter;
+    if (retryAfter != null && _now().isBefore(retryAfter)) return false;
+
     final expiresAt = await _tokens.readExpiresAt();
     if (expiresAt == null) return false;
     return !_now().toUtc().isBefore(expiresAt.subtract(refreshLeeway));
@@ -140,6 +167,8 @@ class AuthInterceptor extends QueuedInterceptor {
       response = await _plainDio.post<Map<String, dynamic>>(
         refreshPath,
         data: {'refresh_token': refreshToken},
+        // Публичный эндпоинт: сам refresh перехватчик не обрабатывает.
+        options: Options(extra: {skipAuthKey: true}),
       );
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {

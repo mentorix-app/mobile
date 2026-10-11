@@ -8,6 +8,8 @@ import 'package:mentorix_app/core/network/auth_tokens.dart';
 import 'package:mentorix_app/core/network/session_expired_exception.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
 import 'package:mentorix_app/core/storage/token_storage.dart';
+import 'package:mentorix_app/features/auth/data/datasources/auth_remote_datasource.dart';
+import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_http_adapter.dart';
@@ -29,9 +31,12 @@ void main() {
     required Future<ResponseBody> Function(RequestOptions) refreshResponder,
     String validAccessToken = 'new-access',
     DateTime Function()? now,
+    Map<String, FakeResponder> routes = const {},
   }) {
     adapter = FakeHttpAdapter((options) async {
       if (options.path == '/auth/refresh') return refreshResponder(options);
+      final route = routes[options.path];
+      if (route != null) return route(options);
 
       // Даём запросам «долететь» параллельно.
       await Future<void>.delayed(const Duration(milliseconds: 10));
@@ -281,6 +286,233 @@ void main() {
 
       expect(response.statusCode, 200);
       expect(adapter.requestsTo('/auth/refresh'), isEmpty);
+    });
+  });
+
+  group('упреждающий refresh не удался не по 401', () {
+    final now = DateTime.utc(2030, 1, 1, 12);
+
+    Future<ResponseBody> connectionLost(RequestOptions options) async =>
+        throw DioException(
+          requestOptions: options,
+          type: DioExceptionType.connectionError,
+        );
+
+    Future<ResponseBody> serverError(RequestOptions _) async =>
+        jsonBody({'message': 'boom'}, status: 500);
+
+    Future<ResponseBody> tooManyRequests(RequestOptions _) async =>
+        jsonBody({'message': 'slow down'}, status: 429);
+
+    final failures = {
+      'обрыв связи': connectionLost,
+      '5xx': serverError,
+      '429': tooManyRequests,
+    };
+
+    for (final entry in failures.entries) {
+      test('${entry.key}: запрос всё равно уходит со старым токеном', () async {
+        setUpClients(
+          refreshResponder: entry.value,
+          validAccessToken: 'old-access',
+          now: () => now,
+        );
+        // Истекает через 30 секунд — внутри запаса в 60 секунд, но ещё действует.
+        await signedInWith(expiresAt: now.add(const Duration(seconds: 30)));
+
+        final response = await apiDio.get<Object?>('/a');
+
+        expect(response.statusCode, 200);
+        expect(adapter.requestsTo('/auth/refresh'), hasLength(1));
+
+        final sent = adapter.requestsTo('/a').single;
+        expect(sent.headers['Authorization'], 'Bearer old-access');
+
+        // Сессия цела: токены на месте, о конце сессии не сообщали.
+        expect(await tokens.readAccessToken(), 'old-access');
+        expect(await tokens.readRefreshToken(), 'old-refresh');
+        expect(sessionExpiredEvents, 0);
+      });
+    }
+
+    test('после неудачи следующие запросы не ждут новый refresh (пауза)', () async {
+      setUpClients(
+        refreshResponder: connectionLost,
+        validAccessToken: 'old-access',
+        now: () => now,
+      );
+      await signedInWith(expiresAt: now.add(const Duration(seconds: 30)));
+
+      await apiDio.get<Object?>('/a');
+      await apiDio.get<Object?>('/b');
+      await apiDio.get<Object?>('/c');
+
+      expect(
+        adapter.requestsTo('/auth/refresh'),
+        hasLength(1),
+        reason: 'без паузы каждый запрос очереди ждал бы таймаут refresh',
+      );
+      expect(adapter.requestsTo('/c').single.headers['Authorization'],
+          'Bearer old-access');
+    });
+
+    test('если старый токен всё же не принят — обычная обработка 401', () async {
+      // Первый refresh падает по сети, а сервер уже не принимает старый токен:
+      // сработает onError, и второй refresh (после паузы это уже реактивный
+      // путь) обновит сессию.
+      var refreshCalls = 0;
+      setUpClients(
+        refreshResponder: (options) async {
+          refreshCalls++;
+          if (refreshCalls == 1) return connectionLost(options);
+          return jsonBody(tokenJson());
+        },
+        now: () => now,
+      );
+      await signedInWith(expiresAt: now.add(const Duration(seconds: 30)));
+
+      final response = await apiDio.get<Object?>('/a');
+
+      expect(response.statusCode, 200);
+      expect(refreshCalls, 2);
+      final sent = adapter.requestsTo('/a').toList();
+      expect(sent.first.headers['Authorization'], 'Bearer old-access');
+      expect(sent.last.headers['Authorization'], 'Bearer new-access');
+      expect(await tokens.readRefreshToken(), 'new-refresh');
+    });
+
+    test('401 на упреждающем refresh: запрос отклонён, сессия завершена', () async {
+      setUpClients(
+        refreshResponder: (_) async =>
+            jsonBody({'message': 'invalid refresh token'}, status: 401),
+        now: () => now,
+      );
+      await signedInWith(expiresAt: now.add(const Duration(seconds: 30)));
+
+      await expectLater(
+        apiDio.get<Object?>('/a'),
+        throwsA(
+          isA<DioException>().having(
+            (e) => e.error,
+            'error',
+            isA<SessionExpiredException>(),
+          ),
+        ),
+      );
+
+      expect(adapter.requestsTo('/a'), isEmpty, reason: 'до сервера не дошёл');
+      expect(await tokens.readRefreshToken(), isNull);
+      await Future<void>.delayed(Duration.zero);
+      expect(sessionExpiredEvents, 1);
+    });
+  });
+
+  group('публичные эндпоинты (skipAuth)', () {
+    final now = DateTime.utc(2030, 1, 1, 12);
+
+    test(
+      '401 от /auth/google: refresh не вызывается, ошибка — «вход не удался»',
+      () async {
+        setUpClients(
+          refreshResponder: (_) async => jsonBody(tokenJson()),
+          routes: {
+            '/auth/google': (_) async =>
+                jsonBody({'message': 'invalid id_token'}, status: 401),
+          },
+        );
+        await signedInWith();
+
+        await expectLater(
+          AuthRemoteDataSource(apiDio: apiDio).signInWithGoogle('provider-token'),
+          throwsA(isA<SocialTokenRejectedFailure>()),
+        );
+
+        expect(adapter.requestsTo('/auth/refresh'), isEmpty);
+        expect(
+          adapter.requestsTo('/auth/google'),
+          hasLength(1),
+          reason: 'повторов нет',
+        );
+        expect(
+          adapter.requestsTo('/auth/google').single.headers['Authorization'],
+          isNull,
+          reason: 'Bearer на публичный эндпоинт не подставляется',
+        );
+        expect(await tokens.readRefreshToken(), 'old-refresh');
+        expect(sessionExpiredEvents, 0);
+      },
+    );
+
+    test('401 от /auth/apple: то же самое', () async {
+      setUpClients(
+        refreshResponder: (_) async => jsonBody(tokenJson()),
+        routes: {
+          '/auth/apple': (_) async =>
+              jsonBody({'message': 'invalid id_token'}, status: 401),
+        },
+      );
+      await signedInWith();
+
+      await expectLater(
+        AuthRemoteDataSource(apiDio: apiDio).signInWithApple('provider-token'),
+        throwsA(isA<SocialTokenRejectedFailure>()),
+      );
+
+      expect(adapter.requestsTo('/auth/refresh'), isEmpty);
+      expect(sessionExpiredEvents, 0);
+    });
+
+    test('вход без сохранённой сессии не завершает «сессию»', () async {
+      setUpClients(
+        refreshResponder: (_) async => jsonBody(tokenJson()),
+        routes: {
+          '/auth/google': (_) async => jsonBody(tokenJson()),
+        },
+      );
+
+      final result = await AuthRemoteDataSource(
+        apiDio: apiDio,
+      ).signInWithGoogle('provider-token');
+
+      expect(result.refreshToken, 'new-refresh');
+      expect(adapter.requestsTo('/auth/refresh'), isEmpty);
+    });
+
+    test('logout при почти истёкшем access_token не вызывает refresh', () async {
+      setUpClients(
+        refreshResponder: (_) async => jsonBody(tokenJson()),
+        now: () => now,
+        routes: {
+          '/auth/logout': (_) async => ResponseBody.fromString('', 204),
+        },
+      );
+      // Истекает через 30 секунд: обычный запрос обновил бы токен заранее.
+      await signedInWith(expiresAt: now.add(const Duration(seconds: 30)));
+
+      await AuthRemoteDataSource(apiDio: apiDio).logout('old-refresh');
+
+      expect(
+        adapter.requestsTo('/auth/refresh'),
+        isEmpty,
+        reason: 'refresh сделал бы старый refresh-токен в теле недействительным',
+      );
+      final sent = adapter.requestsTo('/auth/logout').single;
+      expect(sent.data, {'refresh_token': 'old-refresh'});
+      expect(sent.contentType, Headers.jsonContentType);
+      expect(sent.headers['Authorization'], isNull);
+    });
+
+    test('обычный запрос в той же ситуации refresh вызывает', () async {
+      // Контроль: без skipAuth упреждающий refresh в этом сценарии срабатывает.
+      setUpClients(
+        refreshResponder: (_) async => jsonBody(tokenJson()),
+        now: () => now,
+      );
+      await signedInWith(expiresAt: now.add(const Duration(seconds: 30)));
+
+      await apiDio.get<Object?>('/a');
+
+      expect(adapter.requestsTo('/auth/refresh'), hasLength(1));
     });
   });
 

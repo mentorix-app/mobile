@@ -24,10 +24,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Имена экземпляров `Dio` в `get_it`.
 abstract final class DioNames {
-  /// Без перехватчиков: вход, refresh, logout, повтор запросов.
+  /// Без перехватчиков: только refresh и повтор запросов внутри `AuthInterceptor`.
   static const plain = 'plain';
 
-  /// С `AuthInterceptor`: все запросы с Bearer.
+  /// С `AuthInterceptor`: все запросы приложения; публичные помечены `skipAuth`.
   static const api = 'api';
 }
 
@@ -69,7 +69,6 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(
       remote: AuthRemoteDataSource(
-        plainDio: getIt<Dio>(instanceName: DioNames.plain),
         apiDio: getIt<Dio>(instanceName: DioNames.api),
       ),
       tokens: getIt<TokenStorage>(),

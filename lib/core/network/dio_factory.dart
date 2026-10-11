@@ -15,11 +15,13 @@ BaseOptions _baseOptions() => BaseOptions(
   sendTimeout: ApiConfig.sendTimeout,
 );
 
-/// Клиент без перехватчиков: вход, refresh, logout и повтор запросов.
-/// Токен сам не подставляет и сам себя не обновляет — иначе цикл.
+/// Клиент без перехватчиков: только refresh и повтор запросов внутри
+/// [AuthInterceptor]. Токен сам не подставляет и сам себя не обновляет — иначе цикл.
 Dio createPlainDio() => Dio(_baseOptions());
 
-/// Основной клиент: Bearer и обновление сессии делает [AuthInterceptor].
+/// Основной клиент для всех запросов приложения: Bearer и обновление сессии
+/// делает [AuthInterceptor]. Публичные эндпоинты (вход, logout) помечаются
+/// `extra: {AuthInterceptor.skipAuthKey: true}` — перехватчик их не трогает.
 Dio createApiDio({
   required Dio plainDio,
   required TokenStorage tokens,
