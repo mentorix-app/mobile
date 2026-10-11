@@ -1,3 +1,4 @@
+import 'package:mentorix_app/core/network/session_expired_notifier.dart';
 import 'package:mentorix_app/core/storage/token_storage.dart';
 import 'package:mentorix_app/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:mentorix_app/features/auth/data/storage/pending_apple_name_storage.dart';
@@ -11,17 +12,20 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     required AuthRemoteDataSource remote,
     required TokenStorage tokens,
+    required SessionExpiredNotifier sessionExpired,
     required PendingAppleNameStorage pendingAppleName,
     required SocialAuthProvider google,
     required SocialAuthProvider apple,
   }) : _remote = remote,
        _tokens = tokens,
+       _sessionExpired = sessionExpired,
        _pendingAppleName = pendingAppleName,
        _google = google,
        _apple = apple;
 
   final AuthRemoteDataSource _remote;
   final TokenStorage _tokens;
+  final SessionExpiredNotifier _sessionExpired;
   final PendingAppleNameStorage _pendingAppleName;
   final SocialAuthProvider _google;
   final SocialAuthProvider _apple;
@@ -74,14 +78,14 @@ class AuthRepositoryImpl implements AuthRepository {
     final cached = _cachedProfile;
     if (!forceRefresh && cached != null) return cached;
 
-    final profile = await _remote.getMe();
+    final profile = await _endSessionIfAccountGone(_remote.getMe);
     _cachedProfile = profile;
     return profile;
   }
 
   @override
   Future<UserProfile> updateName(String name) async {
-    await _remote.updateName(name);
+    await _endSessionIfAccountGone(() => _remote.updateName(name));
     // Тело ответа PATCH в контракте не описано — берём актуальный профиль.
     return getProfile(forceRefresh: true);
   }
@@ -120,6 +124,19 @@ class AuthRepositoryImpl implements AuthRepository {
       // см. logout
     } finally {
       await clearLocalSession();
+    }
+  }
+
+  /// 404 на `/auth/me` — учётной записи больше нет (после переноса на старую
+  /// запись прежние токены отвечают именно так, а не 401). Это конец сессии,
+  /// как при 401 на refresh: токены очищаются, `SessionCubit` уводит на вход.
+  Future<T> _endSessionIfAccountGone<T>(Future<T> Function() action) async {
+    try {
+      return await action();
+    } on AccountNotFoundFailure {
+      await clearLocalSession();
+      _sessionExpired.notify();
+      rethrow;
     }
   }
 

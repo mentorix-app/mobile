@@ -16,6 +16,12 @@ abstract final class AppLogger {
     );
   }
 
+  /// Предупреждение о неверной конфигурации (например, плейсхолдер вместо
+  /// реального значения): приложение работает, но функция недоступна.
+  static void warning(String message) {
+    developer.log(message, name: 'mentorix', level: 900);
+  }
+
   /// Логирует ошибку запроса без заголовков и тел: метод, путь, статус,
   /// `message` из ответа бэкенда.
   static void dioError(DioException e, [StackTrace? stackTrace]) {

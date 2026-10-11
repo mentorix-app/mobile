@@ -16,10 +16,13 @@ flutter run --dart-define-from-file=config/stage.json
 
 В `config/stage.json` лежат client id Google: `GOOGLE_SERVER_CLIENT_ID` — web-клиент
 (он же `serverClientId` на обеих платформах), `GOOGLE_IOS_CLIENT_ID` — iOS-клиент.
-Те же значения продублированы в `ios/Runner/Info.plist` (`GIDClientID`,
+Client id продублированы в `ios/Runner/Info.plist` (`GIDClientID`,
 `GIDServerClientID`, URL scheme), совпадение проверяет тест. При смене client id
 меняются оба файла. Если в файле плейсхолдеры `YOUR_GOOGLE_…`, вход через Google
 сообщает, что способ недоступен.
+
+`TELEGRAM_BOT_NAME` — имя Telegram-бота без `@`. Пока там плейсхолдер
+`YOUR_TELEGRAM_BOT_NAME`, кнопка «Открыть бота» неактивна.
 
 Проверки перед коммитом: `flutter analyze --no-pub` и `flutter test`.
 

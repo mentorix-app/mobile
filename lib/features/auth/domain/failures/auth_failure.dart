@@ -66,8 +66,14 @@ final class AccountNotFoundFailure extends AuthFailure {
 }
 
 /// 409: записи нельзя объединить либо к этой уже привязан другой Telegram.
+///
+/// Два случая различаются только текстом ответа, поэтому он сохраняется в
+/// [message] и показывается как есть (исключение из правила «текст бэкенда
+/// пользователю не показывается»), пока у бэкенда нет поля `code`.
 final class TelegramLinkConflictFailure extends AuthFailure {
-  const TelegramLinkConflictFailure();
+  const TelegramLinkConflictFailure({this.message});
+
+  final String? message;
 }
 
 // --- приглашения -----------------------------------------------------------
@@ -104,4 +110,33 @@ final class InviteNotAllowedFailure extends AuthFailure {
 /// 403: учётная запись администратора.
 final class AdminAccountFailure extends AuthFailure {
   const AdminAccountFailure();
+}
+
+/// Код привязки Telegram одноразовый: после любого ответа сервера, кроме 429 и
+/// 401, он потрачен. Ошибка без ответа сервера (нет связи) код не тратит.
+///
+/// Список исчерпывающий: новый подтип не компилируется, пока для него не решено,
+/// тратится ли код.
+extension TelegramCodeSpending on AuthFailure {
+  bool get spendsTelegramCode => switch (this) {
+    TelegramCodeInvalidFailure() ||
+    AccountNotFoundFailure() ||
+    TelegramLinkConflictFailure() ||
+    ServerUnavailableFailure() ||
+    InvalidRequestFailure() ||
+    UnknownFailure() => true,
+    NetworkFailure() ||
+    TooManyRequestsFailure() ||
+    SessionExpiredFailure() ||
+    SocialTokenRejectedFailure() ||
+    SocialSignInCancelledFailure() ||
+    SocialSignInUnavailableFailure() ||
+    InviteNotFoundFailure() ||
+    InviteExpiredFailure() ||
+    InviteAlreadyConsumedFailure() ||
+    InviteClientLimitReachedFailure() ||
+    InviteConflictFailure() ||
+    InviteNotAllowedFailure() ||
+    AdminAccountFailure() => false,
+  };
 }

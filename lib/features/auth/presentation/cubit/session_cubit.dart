@@ -33,11 +33,17 @@ class SessionCubit extends Cubit<SessionState> {
       final profile = await _repository.getProfile(forceRefresh: true);
       if (isClosed) return;
       emit(SessionAuthenticated(profile));
-    } on SessionExpiredFailure {
-      await _repository.clearLocalSession();
-      if (isClosed) return;
-      emit(const SessionUnauthenticated());
     } on AuthFailure catch (failure) {
+      // 401 на refresh и 404 на /auth/me (учётную запись перенесли) — конец
+      // сессии: токены очищаются, пользователь попадает на экран входа.
+      if (failure is SessionExpiredFailure ||
+          failure is AccountNotFoundFailure) {
+        await _repository.clearLocalSession();
+        if (isClosed) return;
+        emit(const SessionUnauthenticated());
+        return;
+      }
+
       // Нет связи или сервер спит: токены целы, предлагаем повторить.
       if (isClosed) return;
       emit(SessionUnknown(failure: failure));

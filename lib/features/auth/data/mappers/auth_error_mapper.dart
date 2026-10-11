@@ -59,14 +59,25 @@ abstract final class AuthErrorMapper {
   static AuthFailure? socialSignIn(int status, String? message) =>
       status == 401 ? const SocialTokenRejectedFailure() : null;
 
+  /// `/auth/me`. 404 здесь — учётной записи больше нет: после переноса на
+  /// старую запись прежние токены отвечают 404 (а не 401). Только для этого
+  /// эндпоинта: на `telegram/link` и `invites/accept` 404 значит своё.
+  static AuthFailure? profile(int status, String? message) =>
+      status == 404 ? const AccountNotFoundFailure() : null;
+
   /// `/auth/telegram/link`.
-  static AuthFailure? telegramLink(int status, String? message) =>
-      switch (status) {
-        400 => const TelegramCodeInvalidFailure(),
-        404 => const AccountNotFoundFailure(),
-        409 => const TelegramLinkConflictFailure(),
-        _ => null,
-      };
+  static AuthFailure? telegramLink(int status, String? message) {
+    final text = message?.trim();
+
+    return switch (status) {
+      400 => const TelegramCodeInvalidFailure(),
+      404 => const AccountNotFoundFailure(),
+      409 => TelegramLinkConflictFailure(
+        message: text == null || text.isEmpty ? null : text,
+      ),
+      _ => null,
+    };
+  }
 
   /// `/client/invites/accept`.
   static AuthFailure? inviteAccept(int status, String? message) =>

@@ -25,6 +25,11 @@
   "telegramSkipAction": "No, skip",
   "telegramCodeTitle": "Enter the code",
   "telegramCodeHint": "8-character code from the bot",
+  "telegramStep1": "Open the bot and tap Start.",
+  "telegramStep2": "The bot will send you a code valid for 10 minutes.",
+  "telegramStep3": "Come back here and enter the code.",
+  "telegramOpenBotAction": "Open bot",
+  "telegramCodeSpentHint": "The code was already used or has expired. Get a new one in the bot.",
 
   "inviteTitle": "Trainer invitation",
   "inviteBody": "Paste the invitation link or code you received from your trainer.",
@@ -69,5 +74,6 @@
   "errorInviteConflict": "This invitation cannot be accepted right now.",
   "errorInviteNotAllowed": "This invitation cannot be accepted with your account.",
   "errorAdminAccount": "Administrator accounts cannot accept invitations.",
-  "errorUnknown": "Something went wrong. Try again."
+  "errorUnknown": "Something went wrong. Try again.",
+  "errorOpenTelegram": "Could not open Telegram."
 }

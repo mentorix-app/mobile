@@ -4,13 +4,19 @@ import 'package:go_router/go_router.dart';
 import 'package:mentorix_app/core/router/route_names.dart';
 import 'package:mentorix_app/core/theme/app_spacing.dart';
 import 'package:mentorix_app/core/widgets/app_snack_bar.dart';
+import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 import 'package:mentorix_app/features/auth/presentation/auth_failure_message.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/telegram_link_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/telegram_link_state.dart';
+import 'package:mentorix_app/features/auth/presentation/widgets/telegram_code_spent_notice.dart';
+import 'package:mentorix_app/features/auth/presentation/widgets/telegram_link_steps.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
-/// Ввод 8-символьного кода от бота. Регистр и пробелы по краям серверу
-/// не важны, поэтому поле их не режет.
+/// Привязка Telegram: три шага, кнопка «Открыть бота» и ввод 8-символьного кода.
+/// Регистр и пробелы по краям серверу не важны, поэтому поле их не режет.
+///
+/// Код одноразовый: после ответа сервера на него (кроме 429 и 401) поле
+/// очищается и показывается подсказка получить новый код в боте.
 class TelegramCodeScreen extends StatefulWidget {
   const TelegramCodeScreen({super.key});
 
@@ -35,61 +41,97 @@ class _TelegramCodeScreenState extends State<TelegramCodeScreen> {
     return BlocConsumer<TelegramLinkCubit, TelegramLinkState>(
       listener: (context, state) => switch (state) {
         TelegramLinkSuccess() => context.go(RouteNames.invite),
-        TelegramLinkFailed(:final failure) => AppSnackBar.showError(
+        TelegramLinkFailed(:final failure, :final codeSpent) => _onFailed(
           context,
-          failure.message(l10n),
+          l10n,
+          failure,
+          codeSpent,
         ),
         _ => null,
       },
       builder: (context, state) {
+        final cubit = context.read<TelegramLinkCubit>();
         final busy = state is TelegramLinkInProgress;
+        final spentFailure = state is TelegramLinkFailed && state.codeSpent
+            ? state.failure
+            : null;
 
         return Scaffold(
           appBar: AppBar(),
           body: SafeArea(
             child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        l10n.telegramCodeTitle,
-                        textAlign: TextAlign.center,
-                        style: textTheme.headlineMedium,
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      TextField(
-                        controller: _controller,
-                        enabled: !busy,
-                        autofocus: true,
-                        autocorrect: false,
-                        enableSuggestions: false,
-                        textCapitalization: TextCapitalization.characters,
-                        textInputAction: TextInputAction.done,
-                        decoration: InputDecoration(
-                          hintText: l10n.telegramCodeHint,
+              child: SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          l10n.telegramCodeTitle,
+                          textAlign: TextAlign.center,
+                          style: textTheme.headlineMedium,
                         ),
-                        onSubmitted: (_) => _submit(context),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      ValueListenableBuilder<TextEditingValue>(
-                        valueListenable: _controller,
-                        builder: (context, value, _) => FilledButton(
-                          onPressed: busy || value.text.trim().isEmpty
-                              ? null
-                              : () => _submit(context),
-                          child: Text(l10n.continueAction),
-                        ),
-                      ),
-                      if (busy) ...[
+                        if (spentFailure != null)
+                          // Пока поле пустое: как только вводят новый код,
+                          // сообщение про старый уже не нужно.
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: _controller,
+                            builder: (context, value, _) =>
+                                value.text.isEmpty
+                                ? Padding(
+                                    padding: const EdgeInsets.only(
+                                      top: AppSpacing.lg,
+                                    ),
+                                    child: TelegramCodeSpentNotice(
+                                      failure: spentFailure,
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
                         const SizedBox(height: AppSpacing.lg),
-                        const LinearProgressIndicator(),
+                        const TelegramLinkSteps(),
+                        const SizedBox(height: AppSpacing.sm),
+                        OutlinedButton(
+                          // Имя бота — из config/stage.json; пока плейсхолдер,
+                          // кнопка неактивна.
+                          onPressed: cubit.isBotConfigured && !busy
+                              ? () => _openBot(context, l10n)
+                              : null,
+                          child: Text(l10n.telegramOpenBotAction),
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                        TextField(
+                          controller: _controller,
+                          enabled: !busy,
+                          autofocus: true,
+                          autocorrect: false,
+                          enableSuggestions: false,
+                          textCapitalization: TextCapitalization.characters,
+                          textInputAction: TextInputAction.done,
+                          decoration: InputDecoration(
+                            hintText: l10n.telegramCodeHint,
+                          ),
+                          onSubmitted: (_) => _submit(context),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: _controller,
+                          builder: (context, value, _) => FilledButton(
+                            onPressed: busy || value.text.trim().isEmpty
+                                ? null
+                                : () => _submit(context),
+                            child: Text(l10n.continueAction),
+                          ),
+                        ),
+                        if (busy) ...[
+                          const SizedBox(height: AppSpacing.lg),
+                          const LinearProgressIndicator(),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -104,5 +146,26 @@ class _TelegramCodeScreenState extends State<TelegramCodeScreen> {
     final code = _controller.text.trim();
     if (code.isEmpty) return;
     context.read<TelegramLinkCubit>().submit(code);
+  }
+
+  Future<void> _openBot(BuildContext context, AppLocalizations l10n) async {
+    final opened = await context.read<TelegramLinkCubit>().openBot();
+    if (opened || !context.mounted) return;
+    AppSnackBar.showError(context, l10n.errorOpenTelegram);
+  }
+
+  /// Код потрачен — поле очищается, причину и подсказку показывает экран.
+  /// Код ещё действует (429, 401, нет связи) — поле остаётся, ошибка в снекбаре.
+  void _onFailed(
+    BuildContext context,
+    AppLocalizations l10n,
+    AuthFailure failure,
+    bool codeSpent,
+  ) {
+    if (codeSpent) {
+      _controller.clear();
+      return;
+    }
+    AppSnackBar.showError(context, failure.message(l10n));
   }
 }

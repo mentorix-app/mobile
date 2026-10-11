@@ -58,6 +58,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get telegramCodeHint => '8-character code from the bot';
 
   @override
+  String get telegramStep1 => 'Open the bot and tap Start.';
+
+  @override
+  String get telegramStep2 =>
+      'The bot will send you a code valid for 10 minutes.';
+
+  @override
+  String get telegramStep3 => 'Come back here and enter the code.';
+
+  @override
+  String get telegramOpenBotAction => 'Open bot';
+
+  @override
+  String get telegramCodeSpentHint =>
+      'The code was already used or has expired. Get a new one in the bot.';
+
+  @override
   String get inviteTitle => 'Trainer invitation';
 
   @override
@@ -160,4 +177,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorUnknown => 'Something went wrong. Try again.';
+
+  @override
+  String get errorOpenTelegram => 'Could not open Telegram.';
 }

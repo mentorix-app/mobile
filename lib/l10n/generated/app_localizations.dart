@@ -194,6 +194,36 @@ abstract class AppLocalizations {
   /// **'8-character code from the bot'**
   String get telegramCodeHint;
 
+  /// No description provided for @telegramStep1.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the bot and tap Start.'**
+  String get telegramStep1;
+
+  /// No description provided for @telegramStep2.
+  ///
+  /// In en, this message translates to:
+  /// **'The bot will send you a code valid for 10 minutes.'**
+  String get telegramStep2;
+
+  /// No description provided for @telegramStep3.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back here and enter the code.'**
+  String get telegramStep3;
+
+  /// No description provided for @telegramOpenBotAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Open bot'**
+  String get telegramOpenBotAction;
+
+  /// No description provided for @telegramCodeSpentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The code was already used or has expired. Get a new one in the bot.'**
+  String get telegramCodeSpentHint;
+
   /// No description provided for @inviteTitle.
   ///
   /// In en, this message translates to:
@@ -361,6 +391,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Something went wrong. Try again.'**
   String get errorUnknown;
+
+  /// No description provided for @errorOpenTelegram.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open Telegram.'**
+  String get errorOpenTelegram;
 }
 
 class _AppLocalizationsDelegate

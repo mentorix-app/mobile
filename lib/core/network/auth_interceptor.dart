@@ -1,3 +1,5 @@
+import 'dart:io' show HttpDate;
+
 import 'package:dio/dio.dart';
 import 'package:mentorix_app/core/config/api_endpoints.dart';
 import 'package:mentorix_app/core/network/auth_tokens.dart';
@@ -13,7 +15,9 @@ import 'package:mentorix_app/core/storage/token_storage.dart';
 ///   не угадывает.
 /// * Токен почти истёк — обновляется **до** запроса. Если это обновление упало
 ///   не с 401 (сеть, 5xx, 429), запрос всё равно уходит с текущим токеном:
-///   он ещё действует, а 401 разберёт [onError].
+///   он ещё действует, а 401 разберёт [onError]. Новые попытки упреждающего
+///   refresh после неудачи — не раньше чем через 30 секунд (сеть, 5xx); при 429 —
+///   через `Retry-After` из ответа или через 5 минут.
 /// * 401 — один refresh на всех: запросы, получившие 401 со старым токеном,
 ///   после чужого refresh просто повторяются с новым, без второго refresh.
 /// * Повтор идёт через [plainDio] (без перехватчиков) и только один раз.
@@ -29,6 +33,7 @@ class AuthInterceptor extends QueuedInterceptor {
     required SessionExpiredNotifier sessionExpired,
     this.refreshLeeway = const Duration(seconds: 60),
     this.proactiveRefreshCooldown = const Duration(seconds: 30),
+    this.rateLimitedCooldown = const Duration(minutes: 5),
     DateTime Function()? now,
   }) : _tokens = tokens,
        _plainDio = plainDio,
@@ -50,8 +55,12 @@ class AuthInterceptor extends QueuedInterceptor {
 
   /// После неудачного упреждающего refresh (не 401) следующие запросы не пытаются
   /// обновлять токен это время. Иначе при пропавшей связи каждый запрос из очереди
-  /// ждал бы свой таймаут refresh.
+  /// ждал бы свой таймаут refresh. Для сети и 5xx.
   final Duration proactiveRefreshCooldown;
+
+  /// То же для 429, если в ответе нет `Retry-After`: лимит refresh — десятки
+  /// попыток за 15 минут, повторять через 30 секунд только тратит его.
+  final Duration rateLimitedCooldown;
   final DateTime Function() _now;
 
   Future<AuthTokens>? _refreshing;
@@ -70,10 +79,10 @@ class AuthInterceptor extends QueuedInterceptor {
       if (accessToken != null && await _shouldRefreshBeforeRequest()) {
         try {
           accessToken = (await _refreshShared()).accessToken;
-        } on DioException {
+        } on DioException catch (e) {
           // Сеть, 5xx или 429: токен ещё действует (refresh начинается за
           // refreshLeeway до истечения). Шлём с текущим, 401 разберёт onError.
-          _proactiveRefreshRetryAfter = _now().add(proactiveRefreshCooldown);
+          _proactiveRefreshRetryAfter = _now().add(_cooldownAfter(e));
         }
       }
 
@@ -132,6 +141,30 @@ class AuthInterceptor extends QueuedInterceptor {
       );
     } on DioException catch (e) {
       handler.next(e);
+    }
+  }
+
+  /// 429 — по `Retry-After` из ответа (секунды или HTTP-дата), иначе
+  /// [rateLimitedCooldown]; сеть и 5xx — [proactiveRefreshCooldown].
+  Duration _cooldownAfter(DioException e) {
+    if (e.response?.statusCode != 429) return proactiveRefreshCooldown;
+    return _retryAfter(e.response) ?? rateLimitedCooldown;
+  }
+
+  Duration? _retryAfter(Response<dynamic>? response) {
+    final raw = response?.headers.value('retry-after')?.trim();
+    if (raw == null || raw.isEmpty) return null;
+
+    final seconds = int.tryParse(raw);
+    if (seconds != null) {
+      return seconds < 0 ? null : Duration(seconds: seconds);
+    }
+
+    try {
+      final until = HttpDate.parse(raw).difference(_now().toUtc());
+      return until.isNegative ? Duration.zero : until;
+    } on Object {
+      return null;
     }
   }
 

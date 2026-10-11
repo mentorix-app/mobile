@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show HttpDate;
 
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -31,9 +32,11 @@ void main() {
   void setUpClients({
     required Future<ResponseBody> Function(RequestOptions) refreshResponder,
     String validAccessToken = 'new-access',
+    Set<String>? acceptedTokens,
     DateTime Function()? now,
     Map<String, FakeResponder> routes = const {},
   }) {
+    final accepted = acceptedTokens ?? {validAccessToken};
     adapter = FakeHttpAdapter((options) async {
       if (options.path == ApiEndpoints.authRefresh) return refreshResponder(options);
       final route = routes[options.path];
@@ -41,8 +44,9 @@ void main() {
 
       // Даём запросам «долететь» параллельно.
       await Future<void>.delayed(const Duration(milliseconds: 10));
-      final authorized =
-          options.headers['Authorization'] == 'Bearer $validAccessToken';
+      final authorized = accepted.any(
+        (token) => options.headers['Authorization'] == 'Bearer $token',
+      );
       return authorized
           ? jsonBody({'ok': true})
           : jsonBody({'message': 'unauthorized'}, status: 401);
@@ -405,6 +409,128 @@ void main() {
       expect(await tokens.readRefreshToken(), isNull);
       await Future<void>.delayed(Duration.zero);
       expect(sessionExpiredEvents, 1);
+    });
+  });
+
+  group('пауза после неудачного упреждающего refresh', () {
+    late DateTime clock;
+
+    int refreshCalls() => adapter.requestsTo(ApiEndpoints.authRefresh).length;
+
+    /// Первый refresh отвечает [firstRefresh], дальше — успешно. Токен почти
+    /// истёк всё время, поэтому единственное, что сдерживает refresh, — пауза.
+    Future<void> prepare(FakeResponder firstRefresh) async {
+      clock = DateTime.utc(2030, 1, 1, 12);
+      var calls = 0;
+      setUpClients(
+        refreshResponder: (options) async {
+          calls++;
+          return calls == 1 ? firstRefresh(options) : jsonBody(tokenJson());
+        },
+        acceptedTokens: {'old-access', 'new-access'},
+        now: () => clock,
+      );
+      await signedInWith(expiresAt: clock.add(const Duration(seconds: 30)));
+    }
+
+    /// Запрос сразу после неудачи; потом [before] — refresh ещё не пробуют;
+    /// потом ещё [after] — пробуют снова.
+    Future<void> expectPause({
+      required Duration before,
+      required Duration after,
+    }) async {
+      await apiDio.get<Object?>('/first');
+      expect(refreshCalls(), 1);
+
+      clock = clock.add(before);
+      await apiDio.get<Object?>('/during-pause');
+      expect(refreshCalls(), 1, reason: 'пауза ещё идёт');
+
+      clock = clock.add(after);
+      await apiDio.get<Object?>('/after-pause');
+      expect(refreshCalls(), 2, reason: 'пауза прошла — пробуем снова');
+    }
+
+    Future<ResponseBody> connectionLost(RequestOptions options) async =>
+        throw DioException(
+          requestOptions: options,
+          type: DioExceptionType.connectionError,
+        );
+
+    test('обрыв связи: 30 секунд', () async {
+      await prepare(connectionLost);
+
+      await expectPause(
+        before: const Duration(seconds: 29),
+        after: const Duration(seconds: 2),
+      );
+    });
+
+    test('5xx: 30 секунд', () async {
+      await prepare((_) async => jsonBody({'message': 'boom'}, status: 503));
+
+      await expectPause(
+        before: const Duration(seconds: 29),
+        after: const Duration(seconds: 2),
+      );
+    });
+
+    test('429 без Retry-After: 5 минут', () async {
+      await prepare((_) async => jsonBody({'message': 'slow'}, status: 429));
+
+      await expectPause(
+        before: const Duration(minutes: 4, seconds: 59),
+        after: const Duration(seconds: 2),
+      );
+    });
+
+    test('429 с Retry-After в секундах: берётся значение из заголовка', () async {
+      await prepare(
+        (_) async => jsonBody(
+          {'message': 'slow'},
+          status: 429,
+          headers: {'retry-after': '120'},
+        ),
+      );
+
+      await expectPause(
+        before: const Duration(seconds: 119),
+        after: const Duration(seconds: 2),
+      );
+    });
+
+    test('429 с Retry-After датой: берётся момент из заголовка', () async {
+      await prepare(
+        (_) async => jsonBody(
+          {'message': 'slow'},
+          status: 429,
+          headers: {
+            'retry-after': HttpDate.format(
+              clock.add(const Duration(seconds: 90)),
+            ),
+          },
+        ),
+      );
+
+      await expectPause(
+        before: const Duration(seconds: 89),
+        after: const Duration(seconds: 2),
+      );
+    });
+
+    test('429 с непонятным Retry-After: пауза по умолчанию, 5 минут', () async {
+      await prepare(
+        (_) async => jsonBody(
+          {'message': 'slow'},
+          status: 429,
+          headers: {'retry-after': 'скоро'},
+        ),
+      );
+
+      await expectPause(
+        before: const Duration(minutes: 4, seconds: 59),
+        after: const Duration(seconds: 2),
+      );
     });
   });
 

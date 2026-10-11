@@ -25,6 +25,10 @@ class FakeAuthRepository implements AuthRepository {
   AuthFailure? restoreFailure;
   AuthFailure? profileFailure;
 
+  /// Если задан — `linkTelegram` бросает его (код при этом считается принятым
+  /// сервером к отправке: он попадает в [linkedCodes]).
+  AuthFailure? linkFailure;
+
   int clearCalls = 0;
   int logoutCalls = 0;
   final List<String> linkedCodes = [];
@@ -62,6 +66,8 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<void> linkTelegram(String code) async {
     linkedCodes.add(code);
+    final failure = linkFailure;
+    if (failure != null) throw failure;
     // После привязки /auth/me вернёт telegram_linked: true.
     profile = testProfile;
   }

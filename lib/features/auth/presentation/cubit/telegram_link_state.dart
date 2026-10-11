@@ -27,10 +27,14 @@ class TelegramLinkSkipped extends TelegramLinkState {
 }
 
 class TelegramLinkFailed extends TelegramLinkState {
-  const TelegramLinkFailed(this.failure);
+  const TelegramLinkFailed(this.failure, {this.codeSpent = false});
 
   final AuthFailure failure;
 
+  /// Сервер ответил на отправку кода (кроме 429 и 401): код одноразовый и
+  /// потрачен, повторять его бессмысленно — нужен новый из бота.
+  final bool codeSpent;
+
   @override
-  List<Object?> get props => [failure];
+  List<Object?> get props => [failure, codeSpent];
 }

@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mentorix_app/core/network/dio_factory.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
+import 'package:mentorix_app/core/platform/external_link_launcher.dart';
 import 'package:mentorix_app/core/router/app_router.dart';
 import 'package:mentorix_app/core/router/onboarding_flow.dart';
 import 'package:mentorix_app/core/storage/token_storage.dart';
@@ -72,6 +73,7 @@ Future<void> configureDependencies() async {
         apiDio: getIt<Dio>(instanceName: DioNames.api),
       ),
       tokens: getIt<TokenStorage>(),
+      sessionExpired: getIt<SessionExpiredNotifier>(),
       pendingAppleName: PendingAppleNameStorage(getIt<FlutterSecureStorage>()),
       google: GoogleAuthProvider(),
       apple: AppleAuthProvider(),
@@ -89,11 +91,15 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<LoginCubit>(
     () => LoginCubit(getIt<AuthRepository>(), getIt<SessionCubit>()),
   );
+  getIt.registerLazySingleton<ExternalLinkLauncher>(
+    () => const UrlLauncherExternalLinkLauncher(),
+  );
   getIt.registerFactory<TelegramLinkCubit>(
     () => TelegramLinkCubit(
       getIt<AuthRepository>(),
       getIt<SessionCubit>(),
       getIt<OnboardingFlow>(),
+      getIt<ExternalLinkLauncher>(),
     ),
   );
   getIt.registerFactory<InviteCubit>(

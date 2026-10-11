@@ -58,6 +58,22 @@ class AppLocalizationsRu extends AppLocalizations {
   String get telegramCodeHint => '8 символов от бота';
 
   @override
+  String get telegramStep1 => 'Откройте бота и нажмите «Старт».';
+
+  @override
+  String get telegramStep2 => 'Бот пришлёт код, он действует 10 минут.';
+
+  @override
+  String get telegramStep3 => 'Вернитесь сюда и введите код.';
+
+  @override
+  String get telegramOpenBotAction => 'Открыть бота';
+
+  @override
+  String get telegramCodeSpentHint =>
+      'Код уже использован или истёк. Получите новый в боте.';
+
+  @override
   String get inviteTitle => 'Приглашение тренера';
 
   @override
@@ -156,4 +172,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get errorUnknown => 'Что-то пошло не так. Попробуйте ещё раз.';
+
+  @override
+  String get errorOpenTelegram => 'Не удалось открыть Telegram.';
 }

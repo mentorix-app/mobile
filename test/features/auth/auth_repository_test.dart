@@ -1,6 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mentorix_app/core/network/auth_tokens.dart';
+import 'package:mentorix_app/core/network/session_expired_notifier.dart';
 import 'package:mentorix_app/core/storage/token_storage.dart';
 import 'package:mentorix_app/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:mentorix_app/features/auth/data/models/invite_acceptance_model.dart';
@@ -14,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeRemote implements AuthRemoteDataSource {
   int getMeCalls = 0;
+  AuthFailure? getMeFailure;
   String meUserId = 'user-1';
   AuthFailure? appleFailure;
   String? lastAppleName;
@@ -29,6 +31,8 @@ class _FakeRemote implements AuthRemoteDataSource {
   @override
   Future<UserProfileModel> getMe() async {
     getMeCalls++;
+    final failure = getMeFailure;
+    if (failure != null) throw failure;
     return UserProfileModel(
       userId: meUserId,
       email: 'a@b.c',
@@ -97,6 +101,8 @@ class _FakeProvider implements SocialAuthProvider {
 void main() {
   late TokenStorage tokens;
   late _FakeRemote remote;
+  late SessionExpiredNotifier sessionExpired;
+  late int sessionExpiredEvents;
 
   AuthRepositoryImpl createRepository({
     List<SocialCredential> apple = const [],
@@ -104,6 +110,7 @@ void main() {
     return AuthRepositoryImpl(
       remote: remote,
       tokens: tokens,
+      sessionExpired: sessionExpired,
       pendingAppleName: PendingAppleNameStorage(const FlutterSecureStorage()),
       google: _FakeProvider([const SocialCredential(idToken: 'g')]),
       apple: _FakeProvider([...apple]),
@@ -118,6 +125,9 @@ void main() {
       await SharedPreferences.getInstance(),
     );
     remote = _FakeRemote();
+    sessionExpired = SessionExpiredNotifier();
+    sessionExpiredEvents = 0;
+    sessionExpired.stream.listen((_) => sessionExpiredEvents++);
   });
 
   group('привязка Telegram', () {
@@ -196,6 +206,51 @@ void main() {
 
       expect(remote.appleCalled, isTrue);
       expect(remote.lastAppleName, isNull);
+    });
+  });
+
+  group('учётной записи больше нет (404 на /auth/me)', () {
+    test('токены очищены, о конце сессии сообщено, ошибка наружу', () async {
+      await tokens.save(
+        const AuthTokens(
+          accessToken: 'old-access',
+          refreshToken: 'old-refresh',
+          userId: 'user-1',
+        ),
+      );
+      remote.getMeFailure = const AccountNotFoundFailure();
+      final repository = createRepository();
+
+      await expectLater(
+        repository.getProfile(forceRefresh: true),
+        throwsA(isA<AccountNotFoundFailure>()),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(await tokens.readAccessToken(), isNull);
+      expect(await tokens.readRefreshToken(), isNull);
+      expect(sessionExpiredEvents, 1);
+    });
+
+    test('прочие ошибки профиля сессию не завершают', () async {
+      await tokens.save(
+        const AuthTokens(
+          accessToken: 'a',
+          refreshToken: 'r',
+          userId: 'user-1',
+        ),
+      );
+      remote.getMeFailure = const NetworkFailure();
+      final repository = createRepository();
+
+      await expectLater(
+        repository.getProfile(forceRefresh: true),
+        throwsA(isA<NetworkFailure>()),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(await tokens.readRefreshToken(), 'r');
+      expect(sessionExpiredEvents, 0);
     });
   });
 

@@ -30,12 +30,17 @@ class FakeHttpAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-ResponseBody jsonBody(Object body, {int status = 200}) {
+ResponseBody jsonBody(
+  Object body, {
+  int status = 200,
+  Map<String, String> headers = const {},
+}) {
   return ResponseBody.fromString(
     jsonEncode(body),
     status,
     headers: {
       Headers.contentTypeHeader: [Headers.jsonContentType],
+      for (final entry in headers.entries) entry.key: [entry.value],
     },
   );
 }

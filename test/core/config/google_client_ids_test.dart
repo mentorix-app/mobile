@@ -24,11 +24,12 @@ void main() {
     return match!.group(1)!;
   }
 
-  test('в config/stage.json заданы все три ключа', () {
+  test('в config/stage.json заданы все ключи', () {
     for (final key in const [
       'API_BASE_URL',
       'GOOGLE_SERVER_CLIENT_ID',
       'GOOGLE_IOS_CLIENT_ID',
+      'TELEGRAM_BOT_NAME',
     ]) {
       expect(stage[key], isA<String>(), reason: key);
       expect((stage[key] as String).isNotEmpty, isTrue, reason: key);

@@ -83,6 +83,53 @@ void main() {
       expect(map(409), isA<TelegramLinkConflictFailure>());
     });
 
+    test('/auth/me: 404 — учётной записи больше нет', () {
+      final failure = AuthErrorMapper.map(
+        _error(404),
+        endpoint: AuthErrorMapper.profile,
+      );
+
+      expect(failure, isA<AccountNotFoundFailure>());
+    });
+
+    test('404 на других эндпоинтах значит своё', () {
+      // На /auth/me 404 — конец сессии, на этих — нет: разбор у каждого свой.
+      expect(
+        AuthErrorMapper.map(
+          _error(404),
+          endpoint: AuthErrorMapper.inviteAccept,
+        ),
+        isA<InviteNotFoundFailure>(),
+      );
+      expect(
+        AuthErrorMapper.map(_error(404)),
+        isA<UnknownFailure>(),
+        reason: 'без разбора эндпоинта 404 — не конец сессии',
+      );
+    });
+
+    test('Telegram 409: текст message сохраняется в ошибке', () {
+      final failure = AuthErrorMapper.map(
+        _error(409, data: {'message': '  telegram already linked  '}),
+        endpoint: AuthErrorMapper.telegramLink,
+      );
+
+      expect(failure, isA<TelegramLinkConflictFailure>());
+      expect(
+        (failure as TelegramLinkConflictFailure).message,
+        'telegram already linked',
+      );
+    });
+
+    test('Telegram 409 без message: текста нет', () {
+      final failure = AuthErrorMapper.map(
+        _error(409, data: {'message': '   '}),
+        endpoint: AuthErrorMapper.telegramLink,
+      );
+
+      expect((failure as TelegramLinkConflictFailure).message, isNull);
+    });
+
     test('вход: 401 — токен провайдера не принят', () {
       final failure = AuthErrorMapper.map(
         _error(401),
@@ -130,6 +177,34 @@ void main() {
       );
 
       expect(failure, isA<SessionExpiredFailure>());
+    });
+  });
+
+  _spendingTests();
+}
+
+void _spendingTests() {
+  group('какие ошибки тратят код Telegram', () {
+    test('ответ сервера, кроме 429 и 401, код тратит', () {
+      for (final failure in const <AuthFailure>[
+        TelegramCodeInvalidFailure(), // 400
+        AccountNotFoundFailure(), // 404
+        TelegramLinkConflictFailure(), // 409
+        ServerUnavailableFailure(), // 503
+        UnknownFailure(), // 5xx и прочее
+      ]) {
+        expect(failure.spendsTelegramCode, isTrue, reason: '$failure');
+      }
+    });
+
+    test('429, 401 и обрыв связи код не тратят', () {
+      for (final failure in const <AuthFailure>[
+        TooManyRequestsFailure(), // 429
+        SessionExpiredFailure(), // 401
+        NetworkFailure(), // ответа сервера не было
+      ]) {
+        expect(failure.spendsTelegramCode, isFalse, reason: '$failure');
+      }
     });
   });
 }

@@ -3,10 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mentorix_app/app.dart';
+import 'package:mentorix_app/core/config/telegram_config.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
 import 'package:mentorix_app/core/router/app_router.dart';
 import 'package:mentorix_app/core/router/onboarding_flow.dart';
 import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
+import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/invite_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/login_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_cubit.dart';
@@ -24,6 +26,7 @@ import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/auth_fakes.dart';
+import 'helpers/fake_external_link_launcher.dart';
 
 class _Harness {
   _Harness({
@@ -31,12 +34,14 @@ class _Harness {
     required this.prefs,
     required this.repository,
     required this.session,
+    required this.launcher,
   });
 
   final BuildContext context;
   final SharedPreferences prefs;
   final FakeAuthRepository repository;
   final SessionCubit session;
+  final FakeExternalLinkLauncher launcher;
 
   AppLocalizations get l10n => AppLocalizations.of(context);
 }
@@ -59,6 +64,7 @@ void main() {
     _Session sessionState = _Session.authenticated,
     UserProfile profile = testProfile,
     bool inviteDone = true,
+    String botName = 'mentorix_test_bot',
   }) async {
     SharedPreferences.setMockInitialValues({
       ...stored,
@@ -67,6 +73,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
 
     final repository = FakeAuthRepository()..profile = profile;
+    final launcher = FakeExternalLinkLauncher();
     final session = SessionCubit(repository, SessionExpiredNotifier());
     switch (sessionState) {
       case _Session.unknown:
@@ -81,7 +88,13 @@ void main() {
     GetIt.I
       ..registerFactory<LoginCubit>(() => LoginCubit(repository, session))
       ..registerFactory<TelegramLinkCubit>(
-        () => TelegramLinkCubit(repository, session, flow),
+        () => TelegramLinkCubit(
+          repository,
+          session,
+          flow,
+          launcher,
+          botName: botName,
+        ),
       )
       ..registerFactory<InviteCubit>(
         () => InviteCubit(repository, session, flow),
@@ -113,6 +126,7 @@ void main() {
       prefs: prefs,
       repository: repository,
       session: session,
+      launcher: launcher,
     );
   }
 
@@ -290,6 +304,189 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(HomeScreen), findsOneWidget);
+    });
+  });
+
+  group('код Telegram одноразовый', () {
+    /// Открывает экран ввода кода (профиль без Telegram → предложение → код).
+    Future<_Harness> openCodeScreen(
+      WidgetTester tester, {
+      String botName = 'mentorix_test_bot',
+    }) async {
+      final app = await pumpApp(
+        tester,
+        profile: unlinkedProfile,
+        inviteDone: false,
+        botName: botName,
+      );
+      await tester.tap(find.text(app.l10n.telegramLinkAction));
+      await tester.pumpAndSettle();
+      expect(find.byType(TelegramCodeScreen), findsOneWidget);
+      return app;
+    }
+
+    Future<void> submitCode(WidgetTester tester, _Harness app) async {
+      await tester.enterText(find.byType(TextField), 'ABCD1234');
+      await tester.pump();
+      await tester.tap(find.text(app.l10n.continueAction));
+      await tester.pumpAndSettle();
+    }
+
+    String fieldText(WidgetTester tester) =>
+        tester.widget<TextField>(find.byType(TextField)).controller!.text;
+
+    // Сервер ответил на код — он потрачен: поле очищается, подсказка + кнопка.
+    final spent = <String, AuthFailure>{
+      '400 — неверный, просрочен или использован':
+          const TelegramCodeInvalidFailure(),
+      '404 — учётной записи больше нет': const AccountNotFoundFailure(),
+      '409 — нельзя объединить': const TelegramLinkConflictFailure(),
+      '503 — привязка недоступна': const ServerUnavailableFailure(),
+      '5xx — прочая ошибка сервера': const UnknownFailure(),
+    };
+
+    for (final entry in spent.entries) {
+      testWidgets('${entry.key}: поле очищено, подсказка и кнопка', (
+        tester,
+      ) async {
+        final app = await openCodeScreen(tester);
+        app.repository.linkFailure = entry.value;
+
+        await submitCode(tester, app);
+
+        expect(app.repository.linkedCodes, ['ABCD1234']);
+        expect(fieldText(tester), isEmpty, reason: 'код потрачен');
+        expect(find.text(app.l10n.telegramCodeSpentHint), findsOneWidget);
+        expect(find.text(app.l10n.telegramOpenBotAction), findsOneWidget);
+        expect(
+          tester
+              .widget<OutlinedButton>(
+                find.widgetWithText(
+                  OutlinedButton,
+                  app.l10n.telegramOpenBotAction,
+                ),
+              )
+              .onPressed,
+          isNotNull,
+        );
+      });
+    }
+
+    testWidgets('409: текст из message показывается рядом с подсказкой', (
+      tester,
+    ) async {
+      final app = await openCodeScreen(tester);
+      app.repository.linkFailure = const TelegramLinkConflictFailure(
+        message: 'telegram is already linked to another account',
+      );
+
+      await submitCode(tester, app);
+
+      expect(
+        find.text('telegram is already linked to another account'),
+        findsOneWidget,
+      );
+      expect(find.text(app.l10n.telegramCodeSpentHint), findsOneWidget);
+      expect(fieldText(tester), isEmpty);
+    });
+
+    testWidgets('409 без message: только локализованный текст и подсказка', (
+      tester,
+    ) async {
+      final app = await openCodeScreen(tester);
+      app.repository.linkFailure = const TelegramLinkConflictFailure();
+
+      await submitCode(tester, app);
+
+      expect(find.text(app.l10n.errorTelegramConflict), findsOneWidget);
+      expect(find.text(app.l10n.telegramCodeSpentHint), findsOneWidget);
+    });
+
+    // Код ещё действует: поле остаётся, подсказки «получите новый» нет.
+    final alive = <String, AuthFailure>{
+      '429 — слишком много попыток': const TooManyRequestsFailure(),
+      '401 — сессия закончилась': const SessionExpiredFailure(),
+      'нет связи — ответа сервера не было': const NetworkFailure(),
+    };
+
+    for (final entry in alive.entries) {
+      testWidgets('${entry.key}: поле не очищается', (tester) async {
+        final app = await openCodeScreen(tester);
+        app.repository.linkFailure = entry.value;
+
+        await submitCode(tester, app);
+
+        expect(fieldText(tester), 'ABCD1234', reason: 'код ещё действует');
+        expect(find.text(app.l10n.telegramCodeSpentHint), findsNothing);
+      });
+    }
+
+    testWidgets('429: ошибка в снекбаре, повтор не отправляется сам', (
+      tester,
+    ) async {
+      final app = await openCodeScreen(tester);
+      app.repository.linkFailure = const TooManyRequestsFailure();
+
+      await submitCode(tester, app);
+
+      expect(find.text(app.l10n.errorTooManyRequests), findsOneWidget);
+      expect(app.repository.linkedCodes, hasLength(1));
+    });
+
+    testWidgets('подсказка исчезает, когда вводят новый код', (tester) async {
+      final app = await openCodeScreen(tester);
+      app.repository.linkFailure = const TelegramCodeInvalidFailure();
+      await submitCode(tester, app);
+      expect(find.text(app.l10n.telegramCodeSpentHint), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'N');
+      await tester.pump();
+
+      expect(find.text(app.l10n.telegramCodeSpentHint), findsNothing);
+    });
+
+    testWidgets('«Открыть бота» открывает https://t.me/<bot>?start=link', (
+      tester,
+    ) async {
+      final app = await openCodeScreen(tester);
+
+      await tester.tap(find.text(app.l10n.telegramOpenBotAction));
+      await tester.pumpAndSettle();
+
+      expect(app.launcher.opened.single.toString(),
+          'https://t.me/mentorix_test_bot?start=link');
+    });
+
+    testWidgets('бот не открылся — сообщение об ошибке', (tester) async {
+      final app = await openCodeScreen(tester);
+      app.launcher.result = false;
+
+      await tester.tap(find.text(app.l10n.telegramOpenBotAction));
+      await tester.pumpAndSettle();
+
+      expect(find.text(app.l10n.errorOpenTelegram), findsOneWidget);
+    });
+
+    testWidgets('имя бота — плейсхолдер: кнопка неактивна', (tester) async {
+      final app = await openCodeScreen(
+        tester,
+        botName: TelegramConfig.botNamePlaceholder,
+      );
+
+      final button = tester.widget<OutlinedButton>(
+        find.widgetWithText(OutlinedButton, app.l10n.telegramOpenBotAction),
+      );
+
+      expect(button.onPressed, isNull);
+      expect(app.launcher.opened, isEmpty);
+    });
+
+    testWidgets('на экране три шага инструкции', (tester) async {
+      final app = await openCodeScreen(tester);
+
+      expect(find.text(app.l10n.telegramStep1), findsOneWidget);
+      expect(find.text(app.l10n.telegramStep2), findsOneWidget);
+      expect(find.text(app.l10n.telegramStep3), findsOneWidget);
     });
   });
 }

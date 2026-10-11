@@ -61,15 +61,21 @@ class AuthRemoteDataSource {
     await _dio.post<Object?>(ApiEndpoints.authLogoutAll);
   });
 
-  Future<UserProfileModel> getMe() => _guard(() async {
-    final response = await _dio.get<Object?>(ApiEndpoints.authMe);
-    return UserProfileModel.fromJson(_object(response));
-  });
+  Future<UserProfileModel> getMe() => _guard(
+    endpoint: AuthErrorMapper.profile,
+    () async {
+      final response = await _dio.get<Object?>(ApiEndpoints.authMe);
+      return UserProfileModel.fromJson(_object(response));
+    },
+  );
 
   /// Описания тела ответа у PATCH в контракте нет — ответ не разбирается.
-  Future<void> updateName(String name) => _guard(() async {
-    await _dio.patch<Object?>(ApiEndpoints.authMe, data: {'name': name});
-  });
+  Future<void> updateName(String name) => _guard(
+    endpoint: AuthErrorMapper.profile,
+    () async {
+      await _dio.patch<Object?>(ApiEndpoints.authMe, data: {'name': name});
+    },
+  );
 
   Future<AuthTokens> linkTelegram(String code) => _guard(
     endpoint: AuthErrorMapper.telegramLink,
