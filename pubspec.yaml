@@ -96,6 +96,9 @@ flutter:
 
   assets:
     - assets/icons/
+    # PNG логотипа для нативного сплеша и Flutter-сплеша: один и тот же файл,
+    # поэтому переход между ними не меняет ни размер, ни положение логотипа.
+    - assets/splash/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
