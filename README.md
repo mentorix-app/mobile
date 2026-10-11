@@ -14,9 +14,12 @@ flutter run --dart-define-from-file=config/stage.json
 
 То же для сборок: `flutter build apk --dart-define-from-file=config/stage.json`.
 
-Пока в `config/stage.json` стоят плейсхолдеры `YOUR_GOOGLE_…`, приложение
-запускается, но вход через Google сообщает, что способ недоступен. Реальные
-значения (web-клиент и iOS-клиент из Google Cloud) подставляются в тот же файл.
+В `config/stage.json` лежат client id Google: `GOOGLE_SERVER_CLIENT_ID` — web-клиент
+(он же `serverClientId` на обеих платформах), `GOOGLE_IOS_CLIENT_ID` — iOS-клиент.
+Те же значения продублированы в `ios/Runner/Info.plist` (`GIDClientID`,
+`GIDServerClientID`, URL scheme), совпадение проверяет тест. При смене client id
+меняются оба файла. Если в файле плейсхолдеры `YOUR_GOOGLE_…`, вход через Google
+сообщает, что способ недоступен.
 
 Проверки перед коммитом: `flutter analyze --no-pub` и `flutter test`.
 

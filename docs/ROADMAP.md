@@ -196,10 +196,18 @@
   App ID `com.mentorix.mobile` с Sign In with Apple создан в Apple Developer.
 - Конфиг: `config/stage.json` + `--dart-define-from-file` (раздел «Запуск» в `README.md`).
 
+- Google client id (2026-10-11): web-клиент и iOS-клиент в `config/stage.json`;
+  `GIDClientID`, `GIDServerClientID` и URL scheme в `ios/Runner/Info.plist`.
+  `serverClientId` — web-клиент на обеих платформах, поэтому `aud` в `id_token`
+  одинаковый (iOS-клиент попадает в `azp`). Тесты: `google_auth_provider_test`
+  (какие id уходят в SDK) и `google_client_ids_test` (stage.json и Info.plist совпадают).
+
 **Осталось**
-- Подставить реальные client id в `config/stage.json` (сейчас плейсхолдеры `YOUR_GOOGLE_…`).
-- На бэкенде: `com.mentorix.mobile` — допустимый `aud` для Apple `identityToken`,
-  web-клиент Google — допустимый `aud` для Google `id_token`.
+- Проверить вход через Google на устройстве и на симуляторе iOS (сценарии 5–8 ниже).
+- На бэкенде: web-клиент Google должен быть допустимым `aud` для `id_token`, а
+  `com.mentorix.mobile` — для Apple `identityToken`.
+- Android: в Google Cloud у Android-клиента должны быть пакет `com.mentorix.mobile`
+  и SHA-1 использованного ключа подписи (отладочного и релизного).
 
 **Google Cloud**
 - Экран согласия OAuth.
@@ -207,9 +215,7 @@
   выпускает `id_token`; бэкенд должен принимать его как `aud`), **iOS**
   (`com.mentorix.mobile`), **Android** (`com.mentorix.mobile` и SHA-1 отладочного и
   релизного ключей).
-- iOS `Info.plist`: URL scheme с `REVERSED_CLIENT_ID` iOS-клиента (`CFBundleURLTypes`);
-  при необходимости `GIDClientID` / `GIDServerClientID` — по README `google_sign_in`.
-  Не добавлено: client id ещё нет.
+- iOS `Info.plist`: сделано (URL scheme, `GIDClientID`, `GIDServerClientID`).
 - Android: проверить `minSdk` и требования `google_sign_in_android` по README пакета.
 
 **Apple**

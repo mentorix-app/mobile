@@ -22,8 +22,25 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- Google Sign-In: iOS client id в обратном порядке (REVERSED_CLIENT_ID) -->
+				<string>com.googleusercontent.apps.437977573630-19gdn5igg4t37erfeul4k91uv7v7k8ir</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<!-- Google Sign-In. Значения совпадают с config/stage.json (проверяет тест). -->
+	<key>GIDClientID</key>
+	<string>437977573630-19gdn5igg4t37erfeul4k91uv7v7k8ir.apps.googleusercontent.com</string>
+	<key>GIDServerClientID</key>
+	<string>437977573630-17jnb6tpoqt2j6jtd335ktt0chfu54u6.apps.googleusercontent.com</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

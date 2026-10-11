@@ -1,5 +1,5 @@
 {
   "API_BASE_URL": "https://mentorix-api-stage.onrender.com",
-  "GOOGLE_SERVER_CLIENT_ID": "YOUR_GOOGLE_SERVER_CLIENT_ID",
-  "GOOGLE_IOS_CLIENT_ID": "YOUR_GOOGLE_IOS_CLIENT_ID"
+  "GOOGLE_SERVER_CLIENT_ID": "437977573630-17jnb6tpoqt2j6jtd335ktt0chfu54u6.apps.googleusercontent.com",
+  "GOOGLE_IOS_CLIENT_ID": "437977573630-19gdn5igg4t37erfeul4k91uv7v7k8ir.apps.googleusercontent.com"
 }
