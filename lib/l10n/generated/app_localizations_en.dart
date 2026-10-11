@@ -10,4 +10,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get appTitle => 'Mentorix';
+
+  @override
+  String get themeModeSystem => 'System theme';
+
+  @override
+  String get themeModeLight => 'Light theme';
+
+  @override
+  String get themeModeDark => 'Dark theme';
 }

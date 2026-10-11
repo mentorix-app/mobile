@@ -1,4 +1,7 @@
 {
   "@@locale": "ru",
-  "appTitle": "Mentorix"
+  "appTitle": "Mentorix",
+  "themeModeSystem": "Системная тема",
+  "themeModeLight": "Светлая тема",
+  "themeModeDark": "Тёмная тема"
 }

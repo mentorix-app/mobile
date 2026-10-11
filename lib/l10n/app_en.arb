@@ -3,5 +3,11 @@
   "appTitle": "Mentorix",
   "@appTitle": {
     "description": "Application name, shown in the task switcher"
-  }
+  },
+  "themeModeSystem": "System theme",
+  "@themeModeSystem": {
+    "description": "Theme mode that follows the device setting"
+  },
+  "themeModeLight": "Light theme",
+  "themeModeDark": "Dark theme"
 }

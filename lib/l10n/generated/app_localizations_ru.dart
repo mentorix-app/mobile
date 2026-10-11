@@ -10,4 +10,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get appTitle => 'Mentorix';
+
+  @override
+  String get themeModeSystem => 'Системная тема';
+
+  @override
+  String get themeModeLight => 'Светлая тема';
+
+  @override
+  String get themeModeDark => 'Тёмная тема';
 }
