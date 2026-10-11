@@ -137,6 +137,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This sign-in method is not available right now.';
 
   @override
+  String get errorGoogleNotConfigured =>
+      'Google sign-in is not configured: run with --dart-define-from-file=config/stage.json';
+
+  @override
   String get errorInvalidRequest =>
       'The request could not be processed. Check the entered data.';
 

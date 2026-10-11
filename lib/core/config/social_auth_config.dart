@@ -27,6 +27,11 @@ abstract final class SocialAuthConfig {
     defaultValue: googleIosClientIdPlaceholder,
   );
 
+  /// Предупреждение в лог, когда Google client id не задан.
+  static const googleNotConfiguredWarning =
+      'Google sign-in не настроен: запусти с '
+      '--dart-define-from-file=config/stage.json';
+
   /// Задан ли реальный client id, а не пустая строка или плейсхолдер.
   static bool isRealClientId(String value, String placeholder) =>
       value.isNotEmpty && value != placeholder;

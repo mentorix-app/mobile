@@ -134,6 +134,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get errorSocialUnavailable => 'Этот способ входа сейчас недоступен.';
 
   @override
+  String get errorGoogleNotConfigured =>
+      'Google sign-in не настроен: запусти с --dart-define-from-file=config/stage.json';
+
+  @override
   String get errorInvalidRequest =>
       'Не удалось обработать запрос. Проверьте введённые данные.';
 

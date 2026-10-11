@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
 /// Локализованный текст для пользователя. Сырой текст бэкенда сюда не попадает.
 extension AuthFailureMessage on AuthFailure {
-  String message(AppLocalizations l10n) => switch (this) {
+  /// [debug] по умолчанию — `kDebugMode`: в debug-сборке «не настроено»
+  /// объясняет, как запустить приложение, в release остаётся общий текст.
+  String message(AppLocalizations l10n, {bool? debug}) => switch (this) {
     NetworkFailure() => l10n.errorNetwork,
     ServerUnavailableFailure() => l10n.errorServerUnavailable,
     TooManyRequestsFailure() => l10n.errorTooManyRequests,
@@ -11,6 +14,10 @@ extension AuthFailureMessage on AuthFailure {
     InvalidRequestFailure() => l10n.errorInvalidRequest,
     UnknownFailure() => l10n.errorUnknown,
     SocialTokenRejectedFailure() => l10n.errorSocialRejected,
+    SocialSignInNotConfiguredFailure() =>
+      (debug ?? kDebugMode)
+          ? l10n.errorGoogleNotConfigured
+          : l10n.errorSocialUnavailable,
     SocialSignInUnavailableFailure() => l10n.errorSocialUnavailable,
     // Отказ пользователя ошибкой не показывается; строка — на случай вызова.
     SocialSignInCancelledFailure() => l10n.errorUnknown,

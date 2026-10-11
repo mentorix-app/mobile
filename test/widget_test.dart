@@ -271,6 +271,24 @@ void main() {
       expect(find.text(app.l10n.signInWithApple), findsOneWidget);
     });
 
+    testWidgets('Google не настроен: в debug пользователь видит, как запустить', (
+      tester,
+    ) async {
+      final app = await pumpApp(
+        tester,
+        sessionState: _Session.unauthenticated,
+      );
+      app.repository.signInFailure = const SocialSignInNotConfiguredFailure();
+
+      await tester.tap(find.text(app.l10n.signInWithGoogle));
+      await tester.pumpAndSettle();
+
+      // kDebugMode в тестах включён: показывается подсказка запуска, а не
+      // общее «способ недоступен».
+      expect(find.text(app.l10n.errorGoogleNotConfigured), findsOneWidget);
+      expect(find.text(app.l10n.errorSocialUnavailable), findsNothing);
+    });
+
     testWidgets('вход без Apple (Android): иконки Apple нет', (tester) async {
       await pumpApp(tester, sessionState: _Session.unauthenticated);
 

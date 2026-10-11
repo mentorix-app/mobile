@@ -1,0 +1,17 @@
+# Иконка приложения. Исходники — assets/app_icon/, их делает
+#   python3 tool/generate_app_icons.py
+# из assets/icons/mini-logo.svg. Применить:
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+
+  # Квадрат во весь холст, без прозрачности: iOS сам скругляет углы
+  # и отклоняет иконки с альфа-каналом.
+  image_path: "assets/app_icon/icon.png"
+  remove_alpha_ios: true
+
+  # Adaptive-иконка Android 8+: фон — цвет плитки логотипа, передний план —
+  # знак, вписанный в безопасную зону.
+  adaptive_icon_background: "#263449"
+  adaptive_icon_foreground: "assets/app_icon/foreground.png"

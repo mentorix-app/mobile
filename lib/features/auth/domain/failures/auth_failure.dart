@@ -47,8 +47,14 @@ final class SocialSignInCancelledFailure extends AuthFailure {
   const SocialSignInCancelledFailure();
 }
 
-/// Провайдер не настроен (плейсхолдеры client id), не поддерживается
-/// на платформе или не вернул токен.
+/// Client id провайдера не задан (пуст или плейсхолдер): приложение запущено
+/// без `--dart-define-from-file=config/stage.json`. Это ошибка запуска, а не
+/// сбой провайдера или бэкенда, поэтому отделена от [SocialSignInUnavailableFailure].
+final class SocialSignInNotConfiguredFailure extends AuthFailure {
+  const SocialSignInNotConfiguredFailure();
+}
+
+/// Провайдер не поддерживается на платформе или не вернул токен.
 final class SocialSignInUnavailableFailure extends AuthFailure {
   const SocialSignInUnavailableFailure();
 }
@@ -130,6 +136,7 @@ extension TelegramCodeSpending on AuthFailure {
     SessionExpiredFailure() ||
     SocialTokenRejectedFailure() ||
     SocialSignInCancelledFailure() ||
+    SocialSignInNotConfiguredFailure() ||
     SocialSignInUnavailableFailure() ||
     InviteNotFoundFailure() ||
     InviteExpiredFailure() ||

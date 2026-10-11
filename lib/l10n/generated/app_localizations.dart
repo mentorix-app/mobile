@@ -326,6 +326,12 @@ abstract class AppLocalizations {
   /// **'This sign-in method is not available right now.'**
   String get errorSocialUnavailable;
 
+  /// No description provided for @errorGoogleNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Google sign-in is not configured: run with --dart-define-from-file=config/stage.json'**
+  String get errorGoogleNotConfigured;
+
   /// No description provided for @errorInvalidRequest.
   ///
   /// In en, this message translates to:

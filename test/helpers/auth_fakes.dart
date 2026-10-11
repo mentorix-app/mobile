@@ -29,6 +29,9 @@ class FakeAuthRepository implements AuthRepository {
   /// сервером к отправке: он попадает в [linkedCodes]).
   AuthFailure? linkFailure;
 
+  /// Если задан — вход через Google и Apple бросает его.
+  AuthFailure? signInFailure;
+
   int clearCalls = 0;
   int logoutCalls = 0;
   final List<String> linkedCodes = [];
@@ -51,10 +54,16 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> signInWithGoogle() async {}
+  Future<void> signInWithGoogle() async {
+    final failure = signInFailure;
+    if (failure != null) throw failure;
+  }
 
   @override
-  Future<void> signInWithApple() async {}
+  Future<void> signInWithApple() async {
+    final failure = signInFailure;
+    if (failure != null) throw failure;
+  }
 
   @override
   Future<UserProfile> getProfile({bool forceRefresh = false}) async {

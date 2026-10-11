@@ -64,6 +64,7 @@
   "errorSessionExpired": "Your session has expired. Please sign in again.",
   "errorSocialRejected": "Sign-in was not accepted. Try again.",
   "errorSocialUnavailable": "This sign-in method is not available right now.",
+  "errorGoogleNotConfigured": "Google sign-in is not configured: run with --dart-define-from-file=config/stage.json",
   "errorInvalidRequest": "The request could not be processed. Check the entered data.",
   "errorTelegramCodeInvalid": "The code is incorrect, expired or already used.",
   "errorAccountNotFound": "The account no longer exists.",

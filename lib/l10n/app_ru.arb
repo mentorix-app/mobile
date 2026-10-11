@@ -44,6 +44,7 @@
   "errorSessionExpired": "Сессия закончилась. Войдите снова.",
   "errorSocialRejected": "Вход не принят. Попробуйте ещё раз.",
   "errorSocialUnavailable": "Этот способ входа сейчас недоступен.",
+  "errorGoogleNotConfigured": "Google sign-in не настроен: запусти с --dart-define-from-file=config/stage.json",
   "errorInvalidRequest": "Не удалось обработать запрос. Проверьте введённые данные.",
   "errorTelegramCodeInvalid": "Код неверный, просрочен или уже использован.",
   "errorAccountNotFound": "Учётной записи больше нет.",

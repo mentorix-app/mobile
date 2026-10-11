@@ -14,6 +14,11 @@ flutter run --dart-define-from-file=config/stage.json
 
 То же для сборок: `flutter build apk --dart-define-from-file=config/stage.json`.
 
+Готовые конфигурации запуска уже в репозитории: VS Code — `.vscode/launch.json`
+(«mentorix (stage)» и варианты profile и release), Android Studio —
+`.run/main.dart (stage).run.xml`. Без `--dart-define-from-file` приложение
+запускается, но вход через Google сообщает, что он не настроен.
+
 В `config/stage.json` лежат client id Google: `GOOGLE_SERVER_CLIENT_ID` — web-клиент
 (он же `serverClientId` на обеих платформах), `GOOGLE_IOS_CLIENT_ID` — iOS-клиент.
 Client id продублированы в `ios/Runner/Info.plist` (`GIDClientID`,
@@ -33,6 +38,15 @@ Client id продублированы в `ios/Runner/Info.plist` (`GIDClientID`
 
 ```sh
 tool/generate_splash_assets.sh && dart run flutter_native_splash:create
+```
+
+## Иконка приложения
+
+Исходники — `assets/app_icon/`, их делает скрипт из `assets/icons/mini-logo.svg`
+(macOS). После смены логотипа:
+
+```sh
+python3 tool/generate_app_icons.py && dart run flutter_launcher_icons
 ```
 
 ## Getting Started

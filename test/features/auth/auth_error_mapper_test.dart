@@ -4,6 +4,9 @@ import 'package:mentorix_app/core/network/session_expired_exception.dart';
 import 'package:mentorix_app/features/auth/data/mappers/auth_error_mapper.dart';
 import 'package:mentorix_app/features/auth/data/mappers/invite_conflict_parser.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
+import 'package:mentorix_app/features/auth/presentation/auth_failure_message.dart';
+import 'package:mentorix_app/l10n/generated/app_localizations_en.dart';
+import 'package:mentorix_app/l10n/generated/app_localizations_ru.dart';
 
 DioException _error(int status, {Object? data, DioExceptionType? type}) {
   final options = RequestOptions(path: '/x');
@@ -181,6 +184,7 @@ void main() {
   });
 
   _spendingTests();
+  _notConfiguredMessageTests();
 }
 
 void _spendingTests() {
@@ -205,6 +209,42 @@ void _spendingTests() {
       ]) {
         expect(failure.spendsTelegramCode, isFalse, reason: '$failure');
       }
+    });
+  });
+}
+
+void _notConfiguredMessageTests() {
+  group('сообщение «Google не настроен»', () {
+    const failure = SocialSignInNotConfiguredFailure();
+
+    test('debug: подсказка, как запустить, на обоих языках', () {
+      expect(
+        failure.message(AppLocalizationsRu(), debug: true),
+        'Google sign-in не настроен: запусти с '
+        '--dart-define-from-file=config/stage.json',
+      );
+      expect(
+        failure.message(AppLocalizationsEn(), debug: true),
+        contains('--dart-define-from-file=config/stage.json'),
+      );
+    });
+
+    test('release: общий текст, без подробностей запуска', () {
+      final release = failure.message(AppLocalizationsRu(), debug: false);
+
+      expect(release, AppLocalizationsRu().errorSocialUnavailable);
+      expect(release, isNot(contains('dart-define')));
+    });
+
+    test('в тестах kDebugMode включён: по умолчанию debug-текст', () {
+      expect(
+        failure.message(AppLocalizationsRu()),
+        AppLocalizationsRu().errorGoogleNotConfigured,
+      );
+    });
+
+    test('«не настроено» код Telegram не тратит', () {
+      expect(failure.spendsTelegramCode, isFalse);
     });
   });
 }

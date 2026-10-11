@@ -381,6 +381,33 @@ Telegram на «Привязать Telegram» и «Открыть бота». П
 в `lib/generated/assets.dart` их нет) и `.vscode/launch.json` (конфигурация запуска
 `--dart-define-from-file=config/stage.json`).
 
+### Иконка приложения и запуск без конфига (2026-10-11)
+
+**Иконка** — `flutter_launcher_icons` (dev-зависимость), конфиг
+`flutter_launcher_icons.yaml`. Источник — знак из `assets/icons/mini-logo.svg`:
+- `assets/app_icon/icon.png` — 1024×1024 без прозрачности (iOS скругляет сам и
+  отклоняет иконки с альфа-каналом), фон `#263449` на весь квадрат;
+- `assets/app_icon/foreground.png` — прозрачный знак для adaptive-иконки Android,
+  вписан в безопасную зону с учётом `inset 16%`, который добавляет пакет.
+- Перегенерация: `python3 tool/generate_app_icons.py && dart run flutter_launcher_icons`.
+- Название под иконкой: Android `android:label="mentorix_app"`, iOS
+  `CFBundleDisplayName = "Mentorix App"` — не менялись, стоит привести к «Mentorix».
+- Monochrome-иконка (Android 13, «Themed icons») не делалась.
+
+**Запуск без конфига.** Если `GOOGLE_SERVER_CLIENT_ID` пуст или плейсхолдер:
+- при создании провайдера и при каждой попытке входа в лог пишется
+  «Google sign-in не настроен: запусти с --dart-define-from-file=config/stage.json»;
+- вход бросает `SocialSignInNotConfiguredFailure` (отдельно от
+  `SocialSignInUnavailableFailure`, чтобы ошибка запуска не путалась с ошибкой
+  бэкенда или SDK);
+- в debug пользователь видит эту подсказку, в release — общее «способ входа недоступен».
+- Для Apple проверять нечего: у входа через Apple нет client id в конфиге (на iOS
+  `aud` — bundle id, на Android Apple не реализован), только capability в Xcode.
+
+**Конфигурации запуска** лежат в репозитории и не в `.gitignore`:
+`.vscode/launch.json` (stage, stage profile, stage release) и
+`.run/main.dart (stage).run.xml` для Android Studio.
+
 ---
 
 ## Идеи на будущее

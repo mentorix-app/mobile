@@ -15,25 +15,37 @@ class GoogleAuthProvider implements SocialAuthProvider {
     GoogleSignIn? googleSignIn,
     String? serverClientId,
     String? iosClientId,
+    void Function(String message)? onWarning,
   }) : _googleSignIn = googleSignIn ?? GoogleSignIn.instance,
        _serverClientId = serverClientId ?? SocialAuthConfig.googleServerClientId,
-       _iosClientId = iosClientId ?? SocialAuthConfig.googleIosClientId;
+       _iosClientId = iosClientId ?? SocialAuthConfig.googleIosClientId,
+       _warn = onWarning ?? AppLogger.warning {
+    // Заметно сразу при запуске, а не только после нажатия на кнопку.
+    if (!_isConfigured) _warn(SocialAuthConfig.googleNotConfiguredWarning);
+  }
 
   final GoogleSignIn _googleSignIn;
   final String _serverClientId;
   final String _iosClientId;
+  final void Function(String message) _warn;
   Future<void>? _initialization;
+
+  /// Web-клиент обязателен на обеих платформах: без него `aud` в токене
+  /// не совпадёт с тем, что ждёт бэкенд (на Android токена не будет вовсе).
+  bool get _isConfigured => SocialAuthConfig.isRealClientId(
+    _serverClientId,
+    SocialAuthConfig.googleServerClientIdPlaceholder,
+  );
 
   @override
   bool get isAvailable => true;
 
   @override
   Future<SocialCredential> signIn() async {
-    final isConfigured = SocialAuthConfig.isRealClientId(
-      _serverClientId,
-      SocialAuthConfig.googleServerClientIdPlaceholder,
-    );
-    if (!isConfigured) throw const SocialSignInUnavailableFailure();
+    if (!_isConfigured) {
+      _warn(SocialAuthConfig.googleNotConfiguredWarning);
+      throw const SocialSignInNotConfiguredFailure();
+    }
 
     try {
       await _ensureInitialized();

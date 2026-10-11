@@ -79,19 +79,58 @@ void main() {
     expect(google.authenticateCalls, 2);
   });
 
-  test('плейсхолдер вместо web-клиента: вход недоступен, SDK не трогаем', () async {
-    final provider = GoogleAuthProvider(
-      googleSignIn: google,
-      serverClientId: SocialAuthConfig.googleServerClientIdPlaceholder,
-      iosClientId: _iosClientId,
-    );
+  group('client id не задан', () {
+    for (final entry in {
+      'плейсхолдер': SocialAuthConfig.googleServerClientIdPlaceholder,
+      'пустая строка': '',
+    }.entries) {
+      test('${entry.key}: «не настроено», SDK не трогаем, есть предупреждение',
+          () async {
+        final warnings = <String>[];
+        final provider = GoogleAuthProvider(
+          googleSignIn: google,
+          serverClientId: entry.value,
+          iosClientId: _iosClientId,
+          onWarning: warnings.add,
+        );
 
-    await expectLater(
-      provider.signIn(),
-      throwsA(isA<SocialSignInUnavailableFailure>()),
-    );
+        // Предупреждение появляется сразу при создании, до нажатия на кнопку.
+        expect(warnings, [SocialAuthConfig.googleNotConfiguredWarning]);
 
-    expect(google.initializeCalls, 0);
+        await expectLater(
+          provider.signIn(),
+          throwsA(isA<SocialSignInNotConfiguredFailure>()),
+        );
+
+        expect(warnings, hasLength(2), reason: 'и при каждой попытке входа');
+        expect(google.initializeCalls, 0);
+      });
+    }
+
+    test('текст предупреждения подсказывает, как запустить', () {
+      expect(
+        SocialAuthConfig.googleNotConfiguredWarning,
+        'Google sign-in не настроен: запусти с '
+        '--dart-define-from-file=config/stage.json',
+      );
+    });
+
+    test('client id заданы — предупреждений нет', () async {
+      final warnings = <String>[];
+      final provider = GoogleAuthProvider(
+        googleSignIn: google,
+        serverClientId: _webClientId,
+        iosClientId: _iosClientId,
+        onWarning: warnings.add,
+      );
+
+      await expectLater(
+        provider.signIn(),
+        throwsA(isA<SocialSignInCancelledFailure>()),
+      );
+
+      expect(warnings, isEmpty);
+    });
   });
 
   test('плейсхолдер iOS-клиента не уходит в SDK как clientId', () async {
