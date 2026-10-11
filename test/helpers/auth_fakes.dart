@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:mentorix_app/features/auth/domain/entities/invite_acceptance.dart';
 import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
@@ -32,6 +34,13 @@ class FakeAuthRepository implements AuthRepository {
   /// Если задан — вход через Google и Apple бросает его.
   AuthFailure? signInFailure;
 
+  /// Если задан — `acceptInvite` бросает его.
+  AuthFailure? inviteFailure;
+
+  /// Если задан — вход и привязка Telegram ждут его завершения (экран остаётся
+  /// в состоянии загрузки).
+  Completer<void>? gate;
+
   int clearCalls = 0;
   int logoutCalls = 0;
   final List<String> linkedCodes = [];
@@ -55,6 +64,7 @@ class FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> signInWithGoogle() async {
+    await gate?.future;
     final failure = signInFailure;
     if (failure != null) throw failure;
   }
@@ -78,6 +88,7 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<void> linkTelegram(String code) async {
     linkedCodes.add(code);
+    await gate?.future;
     final failure = linkFailure;
     if (failure != null) throw failure;
     // После привязки /auth/me вернёт telegram_linked: true.
@@ -87,6 +98,9 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<InviteAcceptance> acceptInvite(String tokenOrLink) async {
     acceptedInvites.add(tokenOrLink);
+    await gate?.future;
+    final failure = inviteFailure;
+    if (failure != null) throw failure;
     return const InviteAcceptance(
       trainerId: 'trainer-1',
       trainerDisplayName: 'Coach',

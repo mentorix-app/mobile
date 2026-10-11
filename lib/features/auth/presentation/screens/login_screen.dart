@@ -20,10 +20,7 @@ class LoginScreen extends StatelessWidget {
 
     return BlocConsumer<LoginCubit, LoginState>(
       listener: (context, state) => switch (state) {
-        LoginFailed(:final failure) => AppSnackBar.showError(
-          context,
-          failure.message(l10n),
-        ),
+        LoginFailed(:final failure) => AppSnackBar.showError(context, failure.message(l10n)),
         _ => null,
       },
       builder: (context, state) {
@@ -41,55 +38,31 @@ class LoginScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        l10n.loginTitle,
-                        textAlign: TextAlign.center,
-                        style: textTheme.headlineLarge,
-                      ),
+                      Text(l10n.loginTitle, textAlign: TextAlign.center, style: textTheme.headlineLarge),
                       const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        l10n.loginSubtitle,
-                        textAlign: TextAlign.center,
-                        style: textTheme.bodyMedium,
-                      ),
+                      Text(l10n.loginSubtitle, textAlign: TextAlign.center, style: textTheme.bodyMedium),
                       const SizedBox(height: AppSpacing.xl),
                       if (cubit.isGoogleAvailable)
                         FilledButton.icon(
                           onPressed: busy ? null : cubit.signInWithGoogle,
-                          // Цветной логотип G: правила Google запрещают
-                          // одноцветную иконку на кнопке входа.
-                          icon: const BrandSvgIcon(
-                            asset: Assets.iconsGoogle,
-                            size: 18,
-                          ),
+                          icon: const BrandSvgIcon(asset: Assets.iconsGoogle, size: 18),
                           label: Text(l10n.signInWithGoogle),
                         ),
                       if (cubit.isAppleAvailable) ...[
                         const SizedBox(height: AppSpacing.md),
                         OutlinedButton.icon(
                           onPressed: busy ? null : cubit.signInWithApple,
-                          icon: const BrandSvgIcon(
-                            asset: Assets.iconsApple,
-                            size: 20,
-                            tinted: true,
-                          ),
+                          icon: const BrandSvgIcon(asset: Assets.iconsApple, size: 20, tinted: true),
                           label: Text(l10n.signInWithApple),
                         ),
                       ],
-                      // Входа через Telegram в API нет: Telegram привязывается
-                      // к учётной записи Google/Apple на следующем шаге.
                       const SizedBox(height: AppSpacing.xl),
                       Text(
                         l10n.loginTelegramHint,
                         textAlign: TextAlign.center,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: context.themeExt.mutedForeground,
-                        ),
+                        style: textTheme.bodySmall?.copyWith(color: context.themeExt.mutedForeground),
                       ),
-                      if (busy) ...[
-                        const SizedBox(height: AppSpacing.lg),
-                        const LinearProgressIndicator(),
-                      ],
+                      SizedBox(height: AppSpacing.xs, child: busy ? const LinearProgressIndicator() : null),
                     ],
                   ),
                 ),

@@ -18,6 +18,10 @@ import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 ///
 /// Код одноразовый: после ответа сервера на него (кроме 429 и 401) поле
 /// очищается и показывается подсказка получить новый код в боте.
+///
+/// Раскладка прижата к верху, а не центрирована, и всё динамическое
+/// (индикатор, сообщение об ошибке) лежит **ниже** поля и кнопок: клавиатура,
+/// загрузка и сообщения не двигают то, во что целится палец.
 class TelegramCodeScreen extends StatefulWidget {
   const TelegramCodeScreen({super.key});
 
@@ -60,80 +64,82 @@ class _TelegramCodeScreenState extends State<TelegramCodeScreen> {
         return Scaffold(
           appBar: AppBar(),
           body: SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Align(
+                alignment: Alignment.topCenter,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 400),
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          l10n.telegramCodeTitle,
-                          textAlign: TextAlign.center,
-                          style: textTheme.headlineMedium,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        l10n.telegramCodeTitle,
+                        textAlign: TextAlign.center,
+                        style: textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      const TelegramLinkSteps(),
+                      const SizedBox(height: AppSpacing.sm),
+                      OutlinedButton.icon(
+                        // Имя бота — из config/stage.json; пока плейсхолдер,
+                        // кнопка неактивна.
+                        onPressed: cubit.isBotConfigured && !busy
+                            ? () => _openBot(context, l10n)
+                            : null,
+                        icon: const FaIcon(FontAwesomeIcons.telegram, size: 20),
+                        label: Text(l10n.telegramOpenBotAction),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      TextField(
+                        controller: _controller,
+                        enabled: !busy,
+                        autofocus: true,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        textCapitalization: TextCapitalization.characters,
+                        textInputAction: TextInputAction.done,
+                        decoration: InputDecoration(
+                          hintText: l10n.telegramCodeHint,
                         ),
-                        if (spentFailure != null)
-                          // Пока поле пустое: как только вводят новый код,
-                          // сообщение про старый уже не нужно.
-                          ValueListenableBuilder<TextEditingValue>(
-                            valueListenable: _controller,
-                            builder: (context, value, _) =>
-                                value.text.isEmpty
-                                ? Padding(
-                                    padding: const EdgeInsets.only(
-                                      top: AppSpacing.lg,
-                                    ),
-                                    child: TelegramCodeSpentNotice(
-                                      failure: spentFailure,
-                                    ),
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
-                        const SizedBox(height: AppSpacing.lg),
-                        const TelegramLinkSteps(),
-                        const SizedBox(height: AppSpacing.sm),
-                        OutlinedButton.icon(
-                          // Имя бота — из config/stage.json; пока плейсхолдер,
-                          // кнопка неактивна.
-                          onPressed: cubit.isBotConfigured && !busy
-                              ? () => _openBot(context, l10n)
-                              : null,
-                          icon: const FaIcon(FontAwesomeIcons.telegram, size: 20),
-                          label: Text(l10n.telegramOpenBotAction),
+                        onSubmitted: (_) => _submit(context),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _controller,
+                        builder: (context, value, _) => FilledButton(
+                          onPressed: busy || value.text.trim().isEmpty
+                              ? null
+                              : () => _submit(context),
+                          child: Text(l10n.continueAction),
                         ),
-                        const SizedBox(height: AppSpacing.xl),
-                        TextField(
-                          controller: _controller,
-                          enabled: !busy,
-                          autofocus: true,
-                          autocorrect: false,
-                          enableSuggestions: false,
-                          textCapitalization: TextCapitalization.characters,
-                          textInputAction: TextInputAction.done,
-                          decoration: InputDecoration(
-                            hintText: l10n.telegramCodeHint,
-                          ),
-                          onSubmitted: (_) => _submit(context),
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
+                      ),
+                      // Место под индикатор есть всегда, иначе загрузка
+                      // сдвигала бы всё, что ниже.
+                      const SizedBox(height: AppSpacing.lg),
+                      SizedBox(
+                        height: AppSpacing.xs,
+                        child: busy ? const LinearProgressIndicator() : null,
+                      ),
+                      if (spentFailure != null)
+                        // Только пока поле пустое: когда вводят новый код,
+                        // сообщение про старый не нужно. Оно в самом низу,
+                        // поэтому его появление и исчезновение ничего выше
+                        // не двигает.
                         ValueListenableBuilder<TextEditingValue>(
                           valueListenable: _controller,
-                          builder: (context, value, _) => FilledButton(
-                            onPressed: busy || value.text.trim().isEmpty
-                                ? null
-                                : () => _submit(context),
-                            child: Text(l10n.continueAction),
-                          ),
+                          builder: (context, value, _) => value.text.isEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: AppSpacing.lg,
+                                  ),
+                                  child: TelegramCodeSpentNotice(
+                                    failure: spentFailure,
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
                         ),
-                        if (busy) ...[
-                          const SizedBox(height: AppSpacing.lg),
-                          const LinearProgressIndicator(),
-                        ],
-                      ],
-                    ),
+                    ],
                   ),
                 ),
               ),

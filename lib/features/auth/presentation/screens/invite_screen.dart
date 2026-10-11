@@ -11,6 +11,9 @@ import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
 /// Третий шаг: ссылка или код приглашения тренера. Строка уходит на сервер
 /// как есть — он принимает токен, `inv_<токен>` и ссылку целиком.
+///
+/// Раскладка прижата к верху, а не центрирована: клавиатура и индикатор
+/// загрузки не двигают поле и кнопки.
 class InviteScreen extends StatefulWidget {
   const InviteScreen({super.key});
 
@@ -51,13 +54,18 @@ class _InviteScreenState extends State<InviteScreen> {
 
         return Scaffold(
           body: SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.xl * 2,
+                AppSpacing.lg,
+                AppSpacing.lg,
+              ),
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
@@ -99,10 +107,13 @@ class _InviteScreenState extends State<InviteScreen> {
                             : () => context.read<InviteCubit>().skip(),
                         child: Text(l10n.inviteSkipAction),
                       ),
-                      if (busy) ...[
-                        const SizedBox(height: AppSpacing.lg),
-                        const LinearProgressIndicator(),
-                      ],
+                      // Место под индикатор есть всегда: загрузка ничего не
+                      // двигает.
+                      const SizedBox(height: AppSpacing.lg),
+                      SizedBox(
+                        height: AppSpacing.xs,
+                        child: busy ? const LinearProgressIndicator() : null,
+                      ),
                     ],
                   ),
                 ),
