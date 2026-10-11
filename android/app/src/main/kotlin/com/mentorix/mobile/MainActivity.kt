@@ -1,4 +1,4 @@
-package com.example.mentorix_app
+package com.mentorix.mobile
 
 import io.flutter.embedding.android.FlutterActivity
 
