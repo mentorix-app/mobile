@@ -22,6 +22,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../helpers/fake_http_adapter.dart';
+import '../../helpers/talker_capture.dart';
 
 const _redirect = 'https://api.test/auth/apple/callback';
 
@@ -166,21 +167,11 @@ void main() {
   }
 
   group('debug-журнал потока', () {
-    late List<String> printed;
-    late DebugPrintCallback originalDebugPrint;
+    setUp(resetTalker);
 
-    setUp(() {
-      printed = [];
-      originalDebugPrint = debugPrint;
-      debugPrint = (message, {wrapWidth}) => printed.add(message ?? '');
-    });
+    tearDown(() => DebugLog.debugModeOverride = null);
 
-    tearDown(() {
-      debugPrint = originalDebugPrint;
-      DebugLog.debugModeOverride = null;
-    });
-
-    List<String> flow() => printed
+    List<String> flow() => loggedMessages()
         .where((l) => l.startsWith('[mentorix.delete]'))
         .map((l) => l.replaceFirst('[mentorix.delete] ', ''))
         .toList();
@@ -226,7 +217,7 @@ void main() {
 
       await repository.deleteAccount();
 
-      final all = printed.join('\n');
+      final all = loggedMessages().join('\n');
       expect(all, isNot(contains('apple-id-token-1')));
       expect(all, isNot(contains('auth-code-1')));
       expect(all, isNot(contains('Bearer')));
@@ -260,7 +251,7 @@ void main() {
 
       await repository.deleteAccount();
 
-      expect(printed, isEmpty);
+      expect(loggedMessages(), isEmpty);
       expect(deletes(), hasLength(2));
       expect(await tokens.readRefreshToken(), isNull);
     });

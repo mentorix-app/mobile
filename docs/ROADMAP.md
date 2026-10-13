@@ -190,7 +190,7 @@
 | Имя из Apple | после `/auth/me` с пустым именем и известным именем Apple — `PATCH /auth/me` (не больше 100 символов) и повторный `/auth/me`; существующее имя не трогается; сбой PATCH только в debug-лог (`name fallback: PATCH sent / skipped (server has name) / failed`), вход не ломается, имя остаётся в `PendingAppleNameStorage`. Один раз за вход |
 | `PATCH /auth/me` | в контракте нет описания ответа: после запроса профиль загружается заново |
 | Подписка | поле `subscription` не разбирается: структура для не-клиентов в контракте не описана |
-| Логи | `ApiLogInterceptor` (debug) пишет на каждый запрос время (UTC), метод, путь, статус и `code`; `message`, тела, заголовки и токены — никогда. Весь debug-вывод идёт через `DebugLog` → `debugPrint` (см. «Debug-диагностика») |
+| Логи | Talker (`talker_flutter`, `talker_dio_logger`): `AppLogger` и `DebugLog` пишут в один `Talker`, запросы — `MaskedTalkerDioLogger` на обоих `Dio` (метод, путь, статус, время, заголовки, тела). Секреты маскируются `SecretMasker` (`***`). Только debug; экран логов — долгое нажатие на заголовок профиля (см. «Логи на Talker») |
 
 ### Что сделать руками
 
@@ -588,6 +588,40 @@ stage; ниже — исходный текст; ответ на «Что нуж
 - `kDebugMode` — константа, в тестах всегда `true`, поэтому release в тестах
   имитируется `DebugLog.debugModeOverride = false`.
 - `AppLogger.dioError` в debug молчит: ту же строку пишет интерцептор.
+
+### Логи на Talker (2026-10-13)
+
+Заменяет `debugPrint`-вывод из «Debug-диагностики» (её содержание — какие данные
+пишутся — сохранилось).
+
+**Сделано**
+- Пакеты `talker_flutter`, `talker_dio_logger`. Единственный `Talker` —
+  `AppTalker`; `AppLogger` (интерфейс прежний) и `DebugLog` пишут в него. Теги
+  `[mentorix.apple]`, `[mentorix.delete]` остались в тексте.
+- `ApiLogInterceptor` удалён: на обоих `Dio` — `MaskedTalkerDioLogger`
+  (метод, путь, статус, время ответа, заголовки, тела запроса и ответа).
+- Маскировка (`SecretMasker`, `***`): `Authorization` (а также `Cookie`,
+  `Set-Cookie`); в телах и вложенных JSON — `access_token`, `refresh_token`,
+  `id_token`, `apple_id_token`, `apple_authorization_code`; `code` — только в теле
+  запроса `/auth/telegram/link`.
+- Экран логов `TalkerScreen`: долгое нажатие на заголовок профиля
+  (`DebugLogsEntry`).
+- Только debug: в release нет `Talker`, логгера в цепочке `Dio` и жеста на
+  заголовке; `AppLogger` и `DebugLog` ничего не делают. Тесты через
+  `DebugLog.debugModeOverride = false`.
+
+**Решения**
+- Логгер пишет **копию** с замаскированными значениями: запись Talker хранит
+  ссылки и формирует текст позже, а `AuthInterceptor` меняет те же заголовки.
+  Настоящие запрос и ответ едут дальше без изменений.
+- `MaskedTalkerDioLogger` стоит в основном `Dio` **после** `AuthInterceptor`:
+  иначе в записи не было бы заголовка `Authorization`. Цена: 401, который
+  перехватчик обновил и повторил, в журнале основного `Dio` не виден — виден
+  refresh и повтор (их пишет журнал `plainDio`).
+- Дополнительно к списку из задачи маскируется поле `token` (одноразовый токен
+  приглашения тренера в `/client/invites/accept`) — это такой же секрет.
+- `code` в ответах не маскируется: это код ошибки, он нужен для отладки.
+- В release теперь нет и `developer.log`: раньше `AppLogger` писал туда ошибки.
 
 ---
 

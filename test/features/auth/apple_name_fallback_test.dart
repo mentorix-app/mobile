@@ -19,6 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../helpers/fake_http_adapter.dart';
+import '../../helpers/talker_capture.dart';
 
 class _FakeGoogle implements SocialAuthProvider {
   @override
@@ -38,8 +39,6 @@ void main() {
   late FakeHttpAdapter adapter;
   late SessionCubit session;
   late AuthRepositoryImpl repository;
-  late List<String> printed;
-  late DebugPrintCallback originalDebugPrint;
 
   /// Имя в профиле на «сервере»; PATCH меняет его, как настоящий бэкенд.
   var serverName = '';
@@ -137,19 +136,14 @@ void main() {
   Future<String?> pending() =>
       PendingAppleNameStorage(const FlutterSecureStorage()).read();
 
-  bool logged(String text) => printed.any((l) => l.contains('name fallback: $text'));
+  bool logged(String text) => loggedMessages().any((l) => l.contains('name fallback: $text'));
 
   String profileName() =>
       (session.state as SessionAuthenticated).profile.name;
 
-  setUp(() {
-    printed = [];
-    originalDebugPrint = debugPrint;
-    debugPrint = (message, {wrapWidth}) => printed.add(message ?? '');
-  });
+  setUp(resetTalker);
 
   tearDown(() async {
-    debugPrint = originalDebugPrint;
     DebugLog.debugModeOverride = null;
     await session.close();
   });
@@ -269,7 +263,7 @@ void main() {
     await session.authenticate();
 
     expect(patches(), isEmpty);
-    expect(printed.where((l) => l.contains('name fallback')), isEmpty);
+    expect(loggedMessages().where((l) => l.contains('name fallback')), isEmpty);
   });
 
   test('имя длиннее 100 символов обрезается: иначе PATCH ответит 400', () async {
@@ -289,6 +283,6 @@ void main() {
 
     expect(patches(), hasLength(1));
     expect(profileName(), 'Ivan Petrov');
-    expect(printed, isEmpty);
+    expect(loggedMessages(), isEmpty);
   });
 }

@@ -5,12 +5,14 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mentorix_app/app.dart';
 import 'package:mentorix_app/core/config/telegram_config.dart';
+import 'package:mentorix_app/core/logging/app_talker.dart';
 import 'package:mentorix_app/core/logging/debug_log.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
 import 'package:mentorix_app/core/router/app_router.dart';
 import 'package:mentorix_app/core/router/onboarding_flow.dart';
 import 'package:mentorix_app/core/storage/storage_keys.dart';
 import 'package:mentorix_app/core/widgets/brand_svg_icon.dart';
+import 'package:mentorix_app/core/widgets/debug_logs_entry.dart';
 import 'package:mentorix_app/generated/assets.dart';
 import 'package:mentorix_app/features/auth/domain/entities/linked_trainer.dart';
 import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
@@ -32,9 +34,11 @@ import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart'
 import 'package:mentorix_app/features/theme/presentation/widgets/theme_mode_button.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 import 'helpers/auth_fakes.dart';
 import 'helpers/fake_external_link_launcher.dart';
+import 'helpers/talker_capture.dart';
 
 class _Harness {
   _Harness({
@@ -471,6 +475,51 @@ void main() {
       expect(find.text(app.l10n.errorAccountDeletionFailed), findsOneWidget);
       expect(find.textContaining('provider_not_configured'), findsNothing);
       expect(find.textContaining('503'), findsNothing);
+    });
+
+    testWidgets('debug: долгое нажатие на заголовок открывает логи', (
+      tester,
+    ) async {
+      resetTalker();
+      final app = await openProfile(tester);
+      expect(find.byType(TalkerScreen), findsNothing);
+
+      await tester.longPress(find.text(app.l10n.profileTitle));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TalkerScreen), findsOneWidget);
+    });
+
+    testWidgets('обычное нажатие на заголовок логи не открывает', (
+      tester,
+    ) async {
+      resetTalker();
+      final app = await openProfile(tester);
+
+      await tester.tap(find.text(app.l10n.profileTitle));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TalkerScreen), findsNothing);
+    });
+
+    testWidgets('release: долгое нажатие ничего не открывает, Talker нет', (
+      tester,
+    ) async {
+      resetTalker();
+      DebugLog.debugModeOverride = false;
+      addTearDown(() => DebugLog.debugModeOverride = null);
+
+      final app = await openProfile(tester);
+      await tester.longPress(find.text(app.l10n.profileTitle));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TalkerScreen), findsNothing);
+      expect(find.byType(DebugLogsEntry), findsOneWidget);
+      expect(find.byType(GestureDetector).evaluate().where((e) {
+        final w = e.widget as GestureDetector;
+        return w.onLongPress != null;
+      }), isEmpty);
+      expect(AppTalker.isCreated, isFalse);
     });
 
     testWidgets('«Повторить» есть только у отказов Apple', (tester) async {

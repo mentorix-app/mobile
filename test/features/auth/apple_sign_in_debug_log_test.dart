@@ -17,6 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../helpers/fake_http_adapter.dart';
+import '../../helpers/talker_capture.dart';
 
 const _identityToken = 'SECRET-apple-identity-token';
 const _authCode = 'SECRET-apple-authorization-code';
@@ -36,8 +37,6 @@ class _NoGoogle implements SocialAuthProvider {
 /// Debug-журнал входа через Apple: что вернул Apple, ушло ли имя в тело
 /// `POST /auth/apple` и откуда оно взято. Токены в журнал не попадают.
 void main() {
-  late List<String> printed;
-  late DebugPrintCallback originalDebugPrint;
   late FakeHttpAdapter adapter;
 
   /// [pendingName] — имя, сохранённое после прошлой неудачной попытки.
@@ -81,18 +80,11 @@ void main() {
   }
 
   List<String> appleLines() =>
-      printed.where((l) => l.startsWith('[mentorix.apple]')).toList();
+      loggedMessages().where((l) => l.startsWith('[mentorix.apple]')).toList();
 
-  setUp(() {
-    printed = [];
-    originalDebugPrint = debugPrint;
-    debugPrint = (message, {wrapWidth}) => printed.add(message ?? '');
-  });
+  setUp(resetTalker);
 
-  tearDown(() {
-    debugPrint = originalDebugPrint;
-    DebugLog.debugModeOverride = null;
-  });
+  tearDown(() => DebugLog.debugModeOverride = null);
 
   test('Apple отдал имя: оно в журнале и в теле, источник — credential', () async {
     await signIn(givenName: 'Ivan', familyName: 'Petrov');
@@ -151,7 +143,7 @@ void main() {
   test('токены и код авторизации в журнал не попадают', () async {
     await signIn(givenName: 'Ivan', familyName: 'Petrov');
 
-    final all = printed.join('\n');
+    final all = loggedMessages().join('\n');
     expect(all, isNot(contains(_identityToken)));
     expect(all, isNot(contains(_authCode)));
     expect(all, isNot(contains('new-access')));
@@ -167,7 +159,7 @@ void main() {
 
     await signIn(givenName: 'Ivan', familyName: 'Petrov');
 
-    expect(printed, isEmpty);
+    expect(loggedMessages(), isEmpty);
     expect((adapter.requests.single.data as Map)['name'], 'Ivan Petrov');
   });
 }

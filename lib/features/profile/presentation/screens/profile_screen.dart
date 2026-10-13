@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mentorix_app/core/theme/app_spacing.dart';
 import 'package:mentorix_app/core/theme/app_theme_extension.dart';
+import 'package:mentorix_app/core/widgets/debug_logs_entry.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/account_deletion_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/account_deletion_state.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_cubit.dart';
@@ -41,7 +42,10 @@ class ProfileScreen extends StatelessWidget {
         return PopScope(
           canPop: !busy,
           child: Scaffold(
-            appBar: AppBar(title: Text(l10n.profileTitle)),
+            // Долгое нажатие на заголовок открывает логи (только debug).
+            appBar: AppBar(
+              title: DebugLogsEntry(child: Text(l10n.profileTitle)),
+            ),
             body: SafeArea(
               child: Align(
                 alignment: Alignment.topCenter,

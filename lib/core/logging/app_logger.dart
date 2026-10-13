@@ -1,64 +1,31 @@
-import 'dart:developer' as developer;
-
 import 'package:dio/dio.dart';
+import 'package:mentorix_app/core/logging/app_talker.dart';
 import 'package:mentorix_app/core/logging/debug_log.dart';
-import 'package:mentorix_app/core/network/api_error_codes.dart';
 
-/// Сырой текст ошибок пользователю не показывается — только сюда.
+/// Лог приложения поверх [AppTalker]. Интерфейс прежний, внутри — Talker.
 ///
-/// Токены, тела запросов и заголовки в лог не попадают никогда.
-///
-/// В debug-сборке строки идут через [DebugLog] (`debugPrint`) — они видны в
-/// консоли `flutter run`; в release — через `dart:developer`, как раньше.
+/// Работает только в debug-сборке; в release все методы ничего не делают.
+/// Токены, тела запросов и заголовки сюда не передаются: запросы к API пишет
+/// `MaskedTalkerDioLogger` с маскировкой секретов.
 abstract final class AppLogger {
   static void error(String message, Object error, [StackTrace? stackTrace]) {
-    if (DebugLog.enabled) {
-      DebugLog.write('mentorix', 'ERROR $message: $error');
-      if (stackTrace != null) DebugLog.write('mentorix', '$stackTrace');
-      return;
-    }
-
-    developer.log(
-      message,
-      name: 'mentorix',
-      level: 1000,
-      error: error,
-      stackTrace: stackTrace,
-    );
+    if (!DebugLog.enabled) return;
+    AppTalker.instance.error(message, error, stackTrace);
   }
 
   /// Предупреждение о неверной конфигурации (например, плейсхолдер вместо
   /// реального значения): приложение работает, но функция недоступна.
   static void warning(String message) {
-    if (DebugLog.enabled) {
-      DebugLog.write('mentorix', 'WARNING $message');
-      return;
-    }
-
-    developer.log(message, name: 'mentorix', level: 900);
+    if (!DebugLog.enabled) return;
+    AppTalker.instance.warning(message);
   }
 
-  /// Строка журнала запроса к API (см. `ApiLogInterceptor`). Только debug.
+  /// Произвольная строка журнала запроса. Сами запросы пишет
+  /// `MaskedTalkerDioLogger`.
   static void http(String line) => DebugLog.write('mentorix.http', line);
 
-  /// Логирует ошибку запроса без заголовков и тел: метод, путь, статус и
-  /// `code` из ответа бэкенда.
-  static void dioError(DioException e, [StackTrace? stackTrace]) {
-    final options = e.requestOptions;
-    final code = ApiErrorCodes.of(e.response);
-    final line =
-        '${options.method} ${options.path} -> '
-        '${e.response?.statusCode ?? e.type.name}'
-        '${code != null ? ' code=$code' : ''}';
-
-    // В debug ту же строку уже написал `ApiLogInterceptor`.
-    if (DebugLog.enabled) return;
-
-    developer.log(
-      line,
-      name: 'mentorix.http',
-      level: 900,
-      stackTrace: stackTrace,
-    );
-  }
+  /// Ошибка запроса. В debug её уже записал `MaskedTalkerDioLogger` — вместе
+  /// со статусом, `code`, временем, заголовками и телами (замаскированными),
+  /// поэтому здесь второй строки нет. Метод оставлен для совместимости.
+  static void dioError(DioException e, [StackTrace? stackTrace]) {}
 }

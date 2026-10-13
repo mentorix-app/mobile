@@ -1,8 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:mentorix_app/core/logging/debug_log.dart';
 import 'package:mentorix_app/core/config/api_config.dart';
-import 'package:mentorix_app/core/network/api_log_interceptor.dart';
+import 'package:mentorix_app/core/logging/app_talker.dart';
 import 'package:mentorix_app/core/network/auth_interceptor.dart';
+import 'package:mentorix_app/core/network/masked_talker_dio_logger.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
 import 'package:mentorix_app/core/storage/token_storage.dart';
 
@@ -19,10 +20,13 @@ BaseOptions _baseOptions() => BaseOptions(
 
 /// Клиент без перехватчиков авторизации: только refresh и повтор запросов
 /// внутри [AuthInterceptor]. Токен сам не подставляет и сам себя не обновляет —
-/// иначе цикл. В debug-сборке пишет журнал запросов, чтобы refresh был виден.
+/// иначе цикл. В debug-сборке пишет запросы в Talker (с маскировкой секретов),
+/// чтобы refresh был виден.
 Dio createPlainDio() {
   final dio = Dio(_baseOptions());
-  if (DebugLog.enabled) dio.interceptors.add(ApiLogInterceptor());
+  if (DebugLog.enabled) {
+    dio.interceptors.add(MaskedTalkerDioLogger(talker: AppTalker.instance));
+  }
   return dio;
 }
 
@@ -35,9 +39,6 @@ Dio createApiDio({
   required SessionExpiredNotifier sessionExpired,
 }) {
   final dio = Dio(_baseOptions());
-  // Первым: на ошибке он видит исходный статус раньше, чем [AuthInterceptor]
-  // обработает 401 и повторит запрос.
-  if (DebugLog.enabled) dio.interceptors.add(ApiLogInterceptor());
   dio.interceptors.add(
     AuthInterceptor(
       tokens: tokens,
@@ -45,5 +46,11 @@ Dio createApiDio({
       sessionExpired: sessionExpired,
     ),
   );
+  // После [AuthInterceptor]: к моменту записи заголовок Authorization уже
+  // подставлен (в логе он виден как `***`). 401, который он обновил и повторил,
+  // здесь не виден, но refresh и повтор пишет журнал [plainDio].
+  if (DebugLog.enabled) {
+    dio.interceptors.add(MaskedTalkerDioLogger(talker: AppTalker.instance));
+  }
   return dio;
 }
