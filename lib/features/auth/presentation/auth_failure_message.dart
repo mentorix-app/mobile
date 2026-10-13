@@ -1,12 +1,22 @@
-import 'package:flutter/foundation.dart';
+import 'package:mentorix_app/core/logging/debug_log.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
 /// Локализованный текст для пользователя. Сырой текст бэкенда сюда не попадает.
 extension AuthFailureMessage on AuthFailure {
-  /// [debug] по умолчанию — `kDebugMode`: в debug-сборке «не настроено»
-  /// объясняет, как запустить приложение, в release остаётся общий текст.
-  String message(AppLocalizations l10n, {bool? debug}) => switch (this) {
+  /// [debug] по умолчанию — debug-сборка. В ней «не настроено» объясняет, как
+  /// запустить приложение, а к тексту добавляется ответ сервера:
+  /// «Не удалось удалить аккаунт (503 provider_not_configured)». В release
+  /// остаётся только обычный текст.
+  String message(AppLocalizations l10n, {bool? debug}) {
+    final isDebug = debug ?? DebugLog.enabled;
+    final text = _text(l10n, isDebug);
+    final info = isDebug ? details?.summary : null;
+
+    return info == null || info.isEmpty ? text : '$text ($info)';
+  }
+
+  String _text(AppLocalizations l10n, bool debug) => switch (this) {
     NetworkFailure() => l10n.errorNetwork,
     ServerUnavailableFailure() => l10n.errorServerUnavailable,
     TooManyRequestsFailure() => l10n.errorTooManyRequests,
@@ -15,7 +25,7 @@ extension AuthFailureMessage on AuthFailure {
     UnknownFailure() => l10n.errorUnknown,
     SocialTokenRejectedFailure() => l10n.errorSocialRejected,
     SocialSignInNotConfiguredFailure(:final provider) =>
-      (debug ?? kDebugMode)
+      debug
           ? switch (provider) {
               SocialProvider.google => l10n.errorGoogleNotConfigured,
               SocialProvider.apple => l10n.errorAppleNotConfigured,

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:mentorix_app/core/logging/debug_log.dart';
 import 'package:mentorix_app/core/network/api_error_codes.dart';
 import 'package:mentorix_app/core/network/session_expired_exception.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
@@ -23,7 +24,24 @@ abstract final class AuthErrorMapper {
     DioExceptionType.connectionError,
   };
 
+  /// В debug-сборке к ошибке прикладывается статус и `code` ответа
+  /// ([ApiErrorDetails]) — они показываются рядом с текстом. В release
+  /// `details` не создаётся вовсе.
   static AuthFailure map(DioException e, {EndpointFailureMapper? endpoint}) {
+    final failure = _resolve(e, endpoint);
+    if (!DebugLog.enabled) return failure;
+
+    final response = e.response;
+    return failure.withDetails(
+      ApiErrorDetails(
+        status: response?.statusCode,
+        code: ApiErrorCodes.of(response),
+        transport: response == null ? e.type.name : null,
+      ),
+    );
+  }
+
+  static AuthFailure _resolve(DioException e, EndpointFailureMapper? endpoint) {
     if (e.error is SessionExpiredException) {
       return const SessionExpiredFailure();
     }

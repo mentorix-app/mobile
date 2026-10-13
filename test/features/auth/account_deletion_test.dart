@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mentorix_app/core/config/api_endpoints.dart';
+import 'package:mentorix_app/core/logging/debug_log.dart';
 import 'package:mentorix_app/core/network/auth_interceptor.dart';
 import 'package:mentorix_app/core/network/auth_tokens.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
@@ -163,6 +164,107 @@ void main() {
     expect(google.disconnects, 0, reason: 'аккаунт не удалён');
     expect(sessionExpiredEvents, 0);
   }
+
+  group('debug-журнал потока', () {
+    late List<String> printed;
+    late DebugPrintCallback originalDebugPrint;
+
+    setUp(() {
+      printed = [];
+      originalDebugPrint = debugPrint;
+      debugPrint = (message, {wrapWidth}) => printed.add(message ?? '');
+    });
+
+    tearDown(() {
+      debugPrint = originalDebugPrint;
+      DebugLog.debugModeOverride = null;
+    });
+
+    List<String> flow() => printed
+        .where((l) => l.startsWith('[mentorix.delete]'))
+        .map((l) => l.replaceFirst('[mentorix.delete] ', ''))
+        .toList();
+
+    test('шаги по порядку: без тела → 422 → окно Apple → повтор с телом',
+        () async {
+      await setUp0([fail(422, 'apple_authorization_required'), ok()]);
+
+      await repository.deleteAccount();
+
+      expect(flow(), [
+        'step 1: request without body',
+        'DELETE /auth/me body: none',
+        'step 2: got 422 apple_authorization_required',
+        'step 3: Apple window opened',
+        'step 3: Apple window returned authorization_code=yes',
+        'step 4: retry with body',
+        'DELETE /auth/me body: apple_id_token=yes '
+            'apple_authorization_code=yes apple_redirect_uri=no',
+        'done: tokens cleared, Google disconnect requested',
+      ]);
+    });
+
+    test('Android: apple_redirect_uri=yes, значение адреса не пишется', () async {
+      await setUp0(
+        [fail(422, 'apple_authorization_required'), ok()],
+        platform: TargetPlatform.android,
+      );
+
+      await repository.deleteAccount();
+
+      expect(
+        flow(),
+        contains(
+          'DELETE /auth/me body: apple_id_token=yes '
+          'apple_authorization_code=yes apple_redirect_uri=yes',
+        ),
+      );
+    });
+
+    test('значения токена и кода в журнал не попадают', () async {
+      await setUp0([fail(422, 'apple_authorization_required'), ok()]);
+
+      await repository.deleteAccount();
+
+      final all = printed.join('\n');
+      expect(all, isNot(contains('apple-id-token-1')));
+      expect(all, isNot(contains('auth-code-1')));
+      expect(all, isNot(contains('Bearer')));
+    });
+
+    test('повтор после отказа Apple: первый шаг пропущен', () async {
+      await setUp0([ok()]);
+
+      await repository.deleteAccount(confirmWithApple: true);
+
+      expect(flow().first, 'step 1: bodyless request skipped, Apple already required');
+    });
+
+    test('закрытое окно Apple отмечено в журнале', () async {
+      await setUp0([
+        fail(422, 'apple_authorization_required'),
+      ], appleCancels: true);
+
+      await expectLater(
+        repository.deleteAccount(),
+        throwsA(isA<SocialSignInCancelledFailure>()),
+      );
+
+      expect(flow(), contains('step 3: Apple window cancelled by user'));
+      expect(flow().any((l) => l.startsWith('done')), isFalse);
+    });
+
+    test('release: поток работает, журнала нет', () async {
+      DebugLog.debugModeOverride = false;
+      await setUp0([fail(422, 'apple_authorization_required'), ok()]);
+
+      await repository.deleteAccount();
+
+      expect(printed, isEmpty);
+      expect(deletes(), hasLength(2));
+      expect(await tokens.readRefreshToken(), isNull);
+    });
+  });
 
   group('успех', () {
     test('204: запрос без тела с Bearer, токены очищены, Google отключён', () async {

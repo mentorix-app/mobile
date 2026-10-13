@@ -189,7 +189,7 @@
 | Apple | iOS/macOS — нативно, Android — веб-поток (`APPLE_SERVICE_ID`, `APPLE_REDIRECT_URI`, активити `SignInWithAppleCallback`); перед входом случайный `state`, сверка с `credential.state` до отправки токена. Имя хранится в secure storage до успешного ответа бэкенда |
 | `PATCH /auth/me` | в контракте нет описания ответа: после запроса профиль загружается заново |
 | Подписка | поле `subscription` не разбирается: структура для не-клиентов в контракте не описана |
-| Логи | `ApiLogInterceptor` (debug) пишет на каждый запрос время (UTC), метод, путь, статус и `code`; `message`, тела, заголовки и токены — никогда |
+| Логи | `ApiLogInterceptor` (debug) пишет на каждый запрос время (UTC), метод, путь, статус и `code`; `message`, тела, заголовки и токены — никогда. Весь debug-вывод идёт через `DebugLog` → `debugPrint` (см. «Debug-диагностика») |
 
 ### Что сделать руками
 
@@ -557,6 +557,36 @@ stage; ниже — исходный текст; ответ на «Что нуж
 - Пока на stage нет ключа Apple, такие аккаунты получат 503 `provider_not_configured`
   («Не удалось удалить, попробуйте позже») — это ожидаемо, бэкенд обещал убрать.
 - Аккаунт тренера или администратора (409) — сообщение «обратитесь в поддержку».
+
+### Debug-диагностика (2026-10-13)
+
+Для проверки на устройстве. Всё — только в debug-сборке, в release ничего нет.
+
+**Сделано**
+- Вывод переведён с `dart:developer` на `debugPrint` через `DebugLog`
+  (`lib/core/logging/debug_log.dart`): строки видны в консоли `flutter run` и в Debug
+  Console VS Code. Формат — `[mentorix.http] <время UTC> <метод> <путь> <статус>
+  code=<code>`. Теги: `mentorix.http`, `mentorix.apple`, `mentorix.delete`, `mentorix`
+  (предупреждения и ошибки). В release `AppLogger` пишет через `dart:developer`, как
+  раньше.
+- Статус и `code` рядом с текстом ошибки на экране: «Не удалось удалить аккаунт.
+  Попробуйте позже. (503 provider_not_configured)»; без ответа сервера — тип сбоя
+  (`connectionError`). Берётся из `ApiErrorDetails` у `AuthFailure`, которое
+  маппер заполняет только в debug.
+- Вход через Apple: что вернул Apple (`givenName`/`familyName` — значения, есть ли
+  токен и код — да/нет, совпал ли `state`); есть ли `name` в теле `POST /auth/apple` и
+  его значение; откуда имя — из ответа Apple, из `PendingAppleNameStorage` или его нет.
+- Удаление аккаунта: шаг потока (1 запрос без тела → 2 получен 422 → 3 окно Apple
+  открыто/вернулось/закрыто → 4 повтор с телом → done) и есть ли в теле
+  `apple_id_token`, `apple_authorization_code`, `apple_redirect_uri` (только да/нет).
+
+**Решения**
+- Значения токенов и authorization_code не пишутся нигде, даже в debug.
+- Имя из Apple — персональные данные, пишется только в debug и только по просьбе
+  (отладка того, отдаёт ли Apple имя).
+- `kDebugMode` — константа, в тестах всегда `true`, поэтому release в тестах
+  имитируется `DebugLog.debugModeOverride = false`.
+- `AppLogger.dioError` в debug молчит: ту же строку пишет интерцептор.
 
 ---
 

@@ -5,6 +5,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mentorix_app/app.dart';
 import 'package:mentorix_app/core/config/telegram_config.dart';
+import 'package:mentorix_app/core/logging/debug_log.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
 import 'package:mentorix_app/core/router/app_router.dart';
 import 'package:mentorix_app/core/router/onboarding_flow.dart';
@@ -435,6 +436,41 @@ void main() {
 
       expect(app.repository.deleteCalls, [false, true]);
       expect(find.byType(LoginScreen), findsOneWidget);
+    });
+
+    testWidgets('debug: на экране рядом с текстом статус и code', (tester) async {
+      final app = await openProfile(tester);
+      app.repository.deleteFailure = const AccountDeletionFailedFailure(
+        details: ApiErrorDetails(status: 503, code: 'provider_not_configured'),
+      );
+
+      await tapDelete(tester, app);
+      await confirmDelete(tester, app);
+
+      expect(
+        find.text(
+          '${app.l10n.errorAccountDeletionFailed} '
+          '(503 provider_not_configured)',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('release: на экране только обычный текст', (tester) async {
+      DebugLog.debugModeOverride = false;
+      addTearDown(() => DebugLog.debugModeOverride = null);
+
+      final app = await openProfile(tester);
+      app.repository.deleteFailure = const AccountDeletionFailedFailure(
+        details: ApiErrorDetails(status: 503, code: 'provider_not_configured'),
+      );
+
+      await tapDelete(tester, app);
+      await confirmDelete(tester, app);
+
+      expect(find.text(app.l10n.errorAccountDeletionFailed), findsOneWidget);
+      expect(find.textContaining('provider_not_configured'), findsNothing);
+      expect(find.textContaining('503'), findsNothing);
     });
 
     testWidgets('«Повторить» есть только у отказов Apple', (tester) async {

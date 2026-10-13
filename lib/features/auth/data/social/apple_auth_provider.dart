@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:mentorix_app/core/config/social_auth_config.dart';
+import 'package:mentorix_app/core/logging/debug_log.dart';
 import 'package:mentorix_app/core/logging/app_logger.dart';
 import 'package:mentorix_app/features/auth/domain/entities/social_credential.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
@@ -107,6 +108,18 @@ class AppleAuthProvider implements SocialAuthProvider {
               )
             : null,
         state: state,
+      );
+
+      // Только debug. Имена — персональные данные, нужные, чтобы понять,
+      // отдал ли Apple имя (он делает это один раз). Токены не пишутся.
+      DebugLog.write(
+        'mentorix.apple',
+        'credential: platform=${_target.name} '
+        'givenName=${DebugLog.quoted(credential.givenName)} '
+        'familyName=${DebugLog.quoted(credential.familyName)} '
+        'state=${credential.state == state ? 'match' : 'MISMATCH'} '
+        'identityToken=${DebugLog.yesNo(credential.identityToken)} '
+        'authorizationCode=${DebugLog.yesNo(credential.authorizationCode)}',
       );
 
       // Токен принимается только на тот запрос, который мы сами отправили.

@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import 'package:mentorix_app/core/logging/debug_log.dart';
 import 'package:mentorix_app/core/config/api_config.dart';
 import 'package:mentorix_app/core/network/api_log_interceptor.dart';
 import 'package:mentorix_app/core/network/auth_interceptor.dart';
@@ -22,7 +22,7 @@ BaseOptions _baseOptions() => BaseOptions(
 /// иначе цикл. В debug-сборке пишет журнал запросов, чтобы refresh был виден.
 Dio createPlainDio() {
   final dio = Dio(_baseOptions());
-  if (kDebugMode) dio.interceptors.add(ApiLogInterceptor());
+  if (DebugLog.enabled) dio.interceptors.add(ApiLogInterceptor());
   return dio;
 }
 
@@ -37,7 +37,7 @@ Dio createApiDio({
   final dio = Dio(_baseOptions());
   // Первым: на ошибке он видит исходный статус раньше, чем [AuthInterceptor]
   // обработает 401 и повторит запрос.
-  if (kDebugMode) dio.interceptors.add(ApiLogInterceptor());
+  if (DebugLog.enabled) dio.interceptors.add(ApiLogInterceptor());
   dio.interceptors.add(
     AuthInterceptor(
       tokens: tokens,

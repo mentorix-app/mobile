@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:mentorix_app/core/logging/app_logger.dart';
+import 'package:mentorix_app/core/logging/debug_log.dart';
 import 'package:mentorix_app/core/network/api_error_codes.dart';
 
 /// Одна строка на каждый запрос к API: время (UTC), метод, путь, статус и `code`
@@ -7,7 +8,8 @@ import 'package:mentorix_app/core/network/api_error_codes.dart';
 /// запросы приложения со своими логами.
 ///
 /// Тела, заголовки и токены в строку не попадают. Подключается только в
-/// debug-сборке (`createApiDio`/`createPlainDio`).
+/// debug-сборке (`createApiDio`/`createPlainDio`), а сам тоже проверяет режим.
+/// Строка идёт через `debugPrint`: видна в консоли `flutter run`.
 class ApiLogInterceptor extends Interceptor {
   ApiLogInterceptor({void Function(String line)? sink, DateTime Function()? now})
     : _sink = sink ?? AppLogger.http,
@@ -35,6 +37,8 @@ class ApiLogInterceptor extends Interceptor {
   }
 
   void _write(RequestOptions options, String? status, String? code) {
+    if (!DebugLog.enabled) return;
+
     final time = _now().toUtc().toIso8601String();
     _sink(
       '$time ${options.method} ${options.path} ${status ?? '-'}'

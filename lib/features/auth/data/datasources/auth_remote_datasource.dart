@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:mentorix_app/core/config/api_endpoints.dart';
 import 'package:mentorix_app/core/logging/app_logger.dart';
+import 'package:mentorix_app/core/logging/debug_log.dart';
 import 'package:mentorix_app/core/network/auth_interceptor.dart';
 import 'package:mentorix_app/core/network/auth_tokens.dart';
 import 'package:mentorix_app/features/auth/data/mappers/auth_error_mapper.dart';
@@ -40,6 +41,15 @@ class AuthRemoteDataSource {
   Future<AuthTokens> signInWithApple(String idToken, {String? name}) => _guard(
     endpoint: AuthErrorMapper.socialSignIn,
     () async {
+      // Только debug: есть ли в теле `name` и что именно ушло. `id_token` не
+      // пишется.
+      DebugLog.write(
+        'mentorix.apple',
+        'POST ${ApiEndpoints.authApple} body: '
+        'id_token=${DebugLog.yesNo(idToken)} '
+        'name=${name == null ? 'absent' : DebugLog.quoted(name)}',
+      );
+
       final response = await _dio.post<Object?>(
         ApiEndpoints.authApple,
         data: {'id_token': idToken, 'name': ?name},
@@ -79,6 +89,18 @@ class AuthRemoteDataSource {
   /// с `Content-Type: application/json`, иначе 400.
   Future<void> deleteAccount({AppleDeletionProof? apple}) =>
       _guard(endpoint: AuthErrorMapper.accountDeletion, () async {
+        // Только да/нет: значения токена и кода в лог не попадают.
+        DebugLog.write(
+          'mentorix.delete',
+          apple == null
+              ? 'DELETE ${ApiEndpoints.authMe} body: none'
+              : 'DELETE ${ApiEndpoints.authMe} body: '
+                    'apple_id_token=${DebugLog.yesNo(apple.idToken)} '
+                    'apple_authorization_code='
+                    '${DebugLog.yesNo(apple.authorizationCode)} '
+                    'apple_redirect_uri=${DebugLog.yesNo(apple.redirectUri)}',
+        );
+
         await _dio.delete<Object?>(
           ApiEndpoints.authMe,
           data: apple?.toJson(),
