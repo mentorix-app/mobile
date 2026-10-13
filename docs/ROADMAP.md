@@ -186,7 +186,8 @@
 | Порядок экранов | `/auth/me` → `/client/trainers` → если `telegram_linked == false` и предложение не закрыто, Telegram → приглашение (только если `items` пуст и шаг не закрыт) → главный. Пройденные шаги хранятся в `shared_preferences` по `user_id` |
 | Главный экран | недоступен, пока не закрыт шаг приглашения (его можно отложить кнопкой «Позже») |
 | Telegram → профиль | после `telegram/link` оба токена и `user_id` заменяются, кеш профиля сброшен, `/auth/me` запрашивается заново; если `/auth/me` упал, повтор не шлёт использованный код |
-| Apple | iOS/macOS — нативно, Android — веб-поток (`APPLE_SERVICE_ID`, `APPLE_REDIRECT_URI`, активити `SignInWithAppleCallback`); перед входом случайный `state`, сверка с `credential.state` до отправки токена. Имя хранится в secure storage до успешного ответа бэкенда |
+| Apple | iOS/macOS — нативно, Android — веб-поток (`APPLE_SERVICE_ID`, `APPLE_REDIRECT_URI`, активити `SignInWithAppleCallback`); перед входом случайный `state`, сверка с `credential.state` до отправки токена. Имя хранится в secure storage, пока профиль не подтвердит, что имя на сервере есть (или `PATCH /auth/me` его не запишет) |
+| Имя из Apple | после `/auth/me` с пустым именем и известным именем Apple — `PATCH /auth/me` (не больше 100 символов) и повторный `/auth/me`; существующее имя не трогается; сбой PATCH только в debug-лог (`name fallback: PATCH sent / skipped (server has name) / failed`), вход не ломается, имя остаётся в `PendingAppleNameStorage`. Один раз за вход |
 | `PATCH /auth/me` | в контракте нет описания ответа: после запроса профиль загружается заново |
 | Подписка | поле `subscription` не разбирается: структура для не-клиентов в контракте не описана |
 | Логи | `ApiLogInterceptor` (debug) пишет на каждый запрос время (UTC), метод, путь, статус и `code`; `message`, тела, заголовки и токены — никогда. Весь debug-вывод идёт через `DebugLog` → `debugPrint` (см. «Debug-диагностика») |

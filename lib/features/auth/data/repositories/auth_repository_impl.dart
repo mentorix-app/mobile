@@ -36,6 +36,15 @@ class AuthRepositoryImpl implements AuthRepository {
 
   UserProfile? _cachedProfile;
 
+  /// Задан после входа через Apple и снимается первым успешным `GET /auth/me`.
+  /// `name` — имя, известное Apple (из этого входа или сохранённое после
+  /// неудачной попытки): если на сервере имя пустое, его нужно записать
+  /// через `PATCH /auth/me`.
+  ({String? name})? _appleNameFollowUp;
+
+  /// `PATCH /auth/me`: имя длиннее — 400.
+  static const _maxNameLength = 100;
+
   @override
   bool get isGoogleSignInAvailable => _google.isAvailable;
 
@@ -86,8 +95,12 @@ class AuthRepositoryImpl implements AuthRepository {
     );
 
     await _tokens.save(tokens);
-    await _pendingAppleName.clear();
     _cachedProfile = null;
+
+    // Бэкенд берёт `name` только при создании записи. Если запись уже была и
+    // имя в ней пустое, /auth/me это покажет, и имя уйдёт через PATCH. Поэтому
+    // из хранилища имя убирается там же, а не здесь.
+    _appleNameFollowUp = (name: name);
   }
 
   @override
@@ -95,9 +108,70 @@ class AuthRepositoryImpl implements AuthRepository {
     final cached = _cachedProfile;
     if (!forceRefresh && cached != null) return cached;
 
-    final profile = await _endSessionIfAccountGone(_remote.getMe);
+    final fetched = await _endSessionIfAccountGone(_remote.getMe);
+    final profile = await _applyAppleNameFallback(fetched);
     _cachedProfile = profile;
     return profile;
+  }
+
+  /// После входа через Apple: если имя в профиле пустое, а Apple имя дала,
+  /// записывает его через `PATCH /auth/me` и перечитывает профиль.
+  ///
+  /// Существующее имя не перезаписывается. Сбой PATCH вход не ломает: имя
+  /// остаётся в [PendingAppleNameStorage] до следующей попытки входа. Выполняется
+  /// один раз за вход.
+  Future<UserProfile> _applyAppleNameFallback(UserProfile profile) async {
+    final followUp = _appleNameFollowUp;
+    if (followUp == null) return profile;
+    _appleNameFollowUp = null;
+
+    final name = followUp.name;
+
+    if (profile.name.isNotEmpty) {
+      if (name != null) {
+        _nameFallbackTrace('skipped (server has name)');
+        await _pendingAppleName.clear();
+      }
+      return profile;
+    }
+
+    if (name == null) {
+      _nameFallbackTrace('skipped (no name from Apple)');
+      return profile;
+    }
+
+    final limited = name.runes.length > _maxNameLength
+        ? String.fromCharCodes(name.runes.take(_maxNameLength))
+        : name;
+
+    try {
+      await _remote.updateName(limited);
+    } on AuthFailure catch (failure) {
+      // Вход состоялся: пользователь входит с пустым именем, имя ждёт
+      // следующей попытки в хранилище.
+      _nameFallbackTrace(
+        'failed (${failure.runtimeType}'
+        '${failure.details != null ? ' ${failure.details!.summary}' : ''})',
+      );
+      return profile;
+    }
+
+    _nameFallbackTrace('PATCH sent');
+    await _pendingAppleName.clear();
+
+    try {
+      return await _remote.getMe();
+    } on AuthFailure {
+      // Имя записано, профиль перечитать не вышло — показываем с именем.
+      return UserProfile(
+        userId: profile.userId,
+        email: profile.email,
+        name: limited,
+        telegramLinked: profile.telegramLinked,
+        createdAt: profile.createdAt,
+        roles: profile.roles,
+      );
+    }
   }
 
   @override
@@ -152,6 +226,9 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   void _trace(String step) => DebugLog.write('mentorix.delete', step);
+
+  void _nameFallbackTrace(String result) =>
+      DebugLog.write('mentorix.apple', 'name fallback: $result');
 
   /// Окно Apple показывается здесь, а не заранее: `authorization_code`
   /// одноразовый и живёт 5 минут, поэтому берётся прямо перед запросом.

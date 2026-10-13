@@ -209,8 +209,15 @@ void main() {
       expect(remote.lastAppleName, 'Ivan Petrov');
       expect(
         await PendingAppleNameStorage(const FlutterSecureStorage()).read(),
+        'Ivan Petrov',
+        reason: 'вход принят, но имя ещё может понадобиться для PATCH',
+      );
+
+      // /auth/me показал, что имя на сервере есть: хранить больше нечего.
+      await repository.getProfile(forceRefresh: true);
+      expect(
+        await PendingAppleNameStorage(const FlutterSecureStorage()).read(),
         isNull,
-        reason: 'после успешного ответа имя удаляется',
       );
       expect(await tokens.readRefreshToken(), 'apple-refresh');
     });
