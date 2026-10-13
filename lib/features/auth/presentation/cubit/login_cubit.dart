@@ -25,11 +25,10 @@ class LoginCubit extends Cubit<LoginState> {
 
     try {
       await signIn();
-      // Порядок из контракта: сначала /auth/me, потом экраны.
-      final profile = await _repository.getProfile(forceRefresh: true);
+      // Порядок из контракта: /auth/me, /client/trainers, потом экраны.
+      await _session.authenticate();
       if (isClosed) return;
 
-      _session.setAuthenticated(profile);
       emit(const LoginInitial());
     } on SocialSignInCancelledFailure {
       if (isClosed) return;

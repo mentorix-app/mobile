@@ -24,8 +24,8 @@ void main() {
 
     repository = FakeAuthRepository()..profile = unlinkedProfile;
     launcher = FakeExternalLinkLauncher();
-    session = SessionCubit(repository, SessionExpiredNotifier())
-      ..setAuthenticated(unlinkedProfile);
+    session = SessionCubit(repository, SessionExpiredNotifier());
+    await session.authenticate();
 
     return TelegramLinkCubit(
       repository,

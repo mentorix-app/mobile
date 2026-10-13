@@ -138,6 +138,14 @@ class AppLocalizationsRu extends AppLocalizations {
       'Google sign-in не настроен: запусти с --dart-define-from-file=config/stage.json';
 
   @override
+  String get errorAppleNotConfigured =>
+      'Apple sign-in не настроен: запусти с --dart-define-from-file=config/stage.json';
+
+  @override
+  String get errorAppleStateMismatch =>
+      'Не удалось проверить ответ Apple. Попробуйте войти ещё раз.';
+
+  @override
   String get errorInvalidRequest =>
       'Не удалось обработать запрос. Проверьте введённые данные.';
 
@@ -150,7 +158,11 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get errorTelegramConflict =>
-      'Эти записи нельзя объединить, либо к ним уже привязан другой Telegram.';
+      'Этот Telegram уже связан с другой учётной записью, объединить их нельзя.';
+
+  @override
+  String get errorTelegramAlreadyLinked =>
+      'К вашей учётной записи уже привязан другой Telegram.';
 
   @override
   String get errorInviteNotFound =>
@@ -166,9 +178,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get errorInviteClientLimit => 'У тренера сейчас нет свободных мест.';
-
-  @override
-  String get errorInviteConflict => 'Сейчас это приглашение принять нельзя.';
 
   @override
   String get errorInviteNotAllowed =>

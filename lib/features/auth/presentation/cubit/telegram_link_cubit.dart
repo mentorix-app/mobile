@@ -59,11 +59,10 @@ class TelegramLinkCubit extends Cubit<TelegramLinkState> {
         _linked = true;
       }
 
-      // user_id мог поменяться: профиль всегда запрашивается заново.
-      final profile = await _repository.getProfile(forceRefresh: true);
+      // user_id мог поменяться: профиль и тренеры запрашиваются заново.
+      await _session.authenticate();
       if (isClosed) return;
 
-      _session.setAuthenticated(profile);
       emit(const TelegramLinkSuccess());
     } on AuthFailure catch (failure) {
       if (isClosed) return;

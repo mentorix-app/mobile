@@ -1,4 +1,5 @@
 import 'package:mentorix_app/features/auth/domain/entities/invite_acceptance.dart';
+import 'package:mentorix_app/features/auth/domain/entities/linked_trainer.dart';
 import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
 
 /// Все методы бросают [AuthFailure].
@@ -19,6 +20,10 @@ abstract class AuthRepository {
   Future<UserProfile> getProfile({bool forceRefresh = false});
 
   Future<UserProfile> updateName(String name);
+
+  /// `GET /client/trainers` — вызывается после [getProfile]. Пустой список —
+  /// тренера нет, нужно показать экран приглашения.
+  Future<List<LinkedTrainer>> getTrainers();
 
   /// Заменяет **оба** токена (и `user_id`: он может поменяться) и сбрасывает
   /// кеш профиля. После вызова нужно заново запросить профиль.

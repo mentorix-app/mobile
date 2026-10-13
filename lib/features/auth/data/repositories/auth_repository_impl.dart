@@ -3,6 +3,7 @@ import 'package:mentorix_app/core/storage/token_storage.dart';
 import 'package:mentorix_app/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:mentorix_app/features/auth/data/storage/pending_apple_name_storage.dart';
 import 'package:mentorix_app/features/auth/domain/entities/invite_acceptance.dart';
+import 'package:mentorix_app/features/auth/domain/entities/linked_trainer.dart';
 import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 import 'package:mentorix_app/features/auth/domain/providers/social_auth_provider.dart';
@@ -91,6 +92,10 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<List<LinkedTrainer>> getTrainers() =>
+      _endSessionIfAccountGone(_remote.getTrainers);
+
+  @override
   Future<void> linkTelegram(String code) async {
     final tokens = await _remote.linkTelegram(code.trim());
 
@@ -127,9 +132,10 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  /// 404 на `/auth/me` — учётной записи больше нет (после переноса на старую
-  /// запись прежние токены отвечают именно так, а не 401). Это конец сессии,
-  /// как при 401 на refresh: токены очищаются, `SessionCubit` уводит на вход.
+  /// `user_not_found` на запросах профиля и тренеров — учётной записи больше
+  /// нет (после переноса на старую запись прежние токены отвечают именно так, а
+  /// не 401). Это конец сессии, как при 401 на refresh: токены очищаются,
+  /// `SessionCubit` уводит на вход.
   Future<T> _endSessionIfAccountGone<T>(Future<T> Function() action) async {
     try {
       return await action();

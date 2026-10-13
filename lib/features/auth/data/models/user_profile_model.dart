@@ -11,10 +11,10 @@ class UserProfileModel extends UserProfile {
   });
 
   /// `email` и `name` могут быть пустой строкой, неизвестные поля игнорируются.
-  /// Без `user_id` профиль бессмыслен — [FormatException].
+  /// `user_id` — UUID строкой; без него профиль бессмыслен — [FormatException].
   factory UserProfileModel.fromJson(Map<String, dynamic> json) {
     final userId = json['user_id'];
-    if (userId == null || userId.toString().isEmpty) {
+    if (userId is! String || userId.isEmpty) {
       throw const FormatException('user_id is missing');
     }
 
@@ -24,7 +24,7 @@ class UserProfileModel extends UserProfile {
     final roles = json['roles'];
 
     return UserProfileModel(
-      userId: userId.toString(),
+      userId: userId,
       email: email is String ? email : '',
       name: name is String ? name : '',
       telegramLinked: json['telegram_linked'] == true,

@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mentorix_app/core/config/api_config.dart';
+import 'package:mentorix_app/core/network/api_log_interceptor.dart';
 import 'package:mentorix_app/core/network/auth_interceptor.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
 import 'package:mentorix_app/core/storage/token_storage.dart';
@@ -15,9 +17,14 @@ BaseOptions _baseOptions() => BaseOptions(
   sendTimeout: ApiConfig.sendTimeout,
 );
 
-/// Клиент без перехватчиков: только refresh и повтор запросов внутри
-/// [AuthInterceptor]. Токен сам не подставляет и сам себя не обновляет — иначе цикл.
-Dio createPlainDio() => Dio(_baseOptions());
+/// Клиент без перехватчиков авторизации: только refresh и повтор запросов
+/// внутри [AuthInterceptor]. Токен сам не подставляет и сам себя не обновляет —
+/// иначе цикл. В debug-сборке пишет журнал запросов, чтобы refresh был виден.
+Dio createPlainDio() {
+  final dio = Dio(_baseOptions());
+  if (kDebugMode) dio.interceptors.add(ApiLogInterceptor());
+  return dio;
+}
 
 /// Основной клиент для всех запросов приложения: Bearer и обновление сессии
 /// делает [AuthInterceptor]. Публичные эндпоинты (вход, logout) помечаются
@@ -28,6 +35,9 @@ Dio createApiDio({
   required SessionExpiredNotifier sessionExpired,
 }) {
   final dio = Dio(_baseOptions());
+  // Первым: на ошибке он видит исходный статус раньше, чем [AuthInterceptor]
+  // обработает 401 и повторит запрос.
+  if (kDebugMode) dio.interceptors.add(ApiLogInterceptor());
   dio.interceptors.add(
     AuthInterceptor(
       tokens: tokens,

@@ -5,6 +5,7 @@ import 'package:mentorix_app/core/network/auth_interceptor.dart';
 import 'package:mentorix_app/core/network/auth_tokens.dart';
 import 'package:mentorix_app/features/auth/data/mappers/auth_error_mapper.dart';
 import 'package:mentorix_app/features/auth/data/models/invite_acceptance_model.dart';
+import 'package:mentorix_app/features/auth/data/models/linked_trainer_model.dart';
 import 'package:mentorix_app/features/auth/data/models/user_profile_model.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 
@@ -61,43 +62,38 @@ class AuthRemoteDataSource {
     await _dio.post<Object?>(ApiEndpoints.authLogoutAll);
   });
 
-  Future<UserProfileModel> getMe() => _guard(
-    endpoint: AuthErrorMapper.profile,
-    () async {
-      final response = await _dio.get<Object?>(ApiEndpoints.authMe);
-      return UserProfileModel.fromJson(_object(response));
-    },
-  );
+  Future<UserProfileModel> getMe() => _guard(() async {
+    final response = await _dio.get<Object?>(ApiEndpoints.authMe);
+    return UserProfileModel.fromJson(_object(response));
+  });
 
   /// Описания тела ответа у PATCH в контракте нет — ответ не разбирается.
-  Future<void> updateName(String name) => _guard(
-    endpoint: AuthErrorMapper.profile,
-    () async {
-      await _dio.patch<Object?>(ApiEndpoints.authMe, data: {'name': name});
-    },
-  );
+  Future<void> updateName(String name) => _guard(() async {
+    await _dio.patch<Object?>(ApiEndpoints.authMe, data: {'name': name});
+  });
 
-  Future<AuthTokens> linkTelegram(String code) => _guard(
-    endpoint: AuthErrorMapper.telegramLink,
-    () async {
-      final response = await _dio.post<Object?>(
-        ApiEndpoints.authTelegramLink,
-        data: {'code': code},
-      );
-      return AuthTokens.fromJson(_object(response));
-    },
-  );
+  /// `GET /client/trainers`: `items` всегда массив, пустой — тренера нет.
+  /// Вызывается после `GET /auth/me`.
+  Future<List<LinkedTrainerModel>> getTrainers() => _guard(() async {
+    final response = await _dio.get<Object?>(ApiEndpoints.clientTrainers);
+    return LinkedTrainerModel.listFromJson(_object(response));
+  });
 
-  Future<InviteAcceptanceModel> acceptInvite(String token) => _guard(
-    endpoint: AuthErrorMapper.inviteAccept,
-    () async {
-      final response = await _dio.post<Object?>(
-        ApiEndpoints.clientInviteAccept,
-        data: {'token': token},
-      );
-      return InviteAcceptanceModel.fromJson(_object(response));
-    },
-  );
+  Future<AuthTokens> linkTelegram(String code) => _guard(() async {
+    final response = await _dio.post<Object?>(
+      ApiEndpoints.authTelegramLink,
+      data: {'code': code},
+    );
+    return AuthTokens.fromJson(_object(response));
+  });
+
+  Future<InviteAcceptanceModel> acceptInvite(String token) => _guard(() async {
+    final response = await _dio.post<Object?>(
+      ApiEndpoints.clientInviteAccept,
+      data: {'token': token},
+    );
+    return InviteAcceptanceModel.fromJson(_object(response));
+  });
 
   Map<String, dynamic> _object(Response<Object?> response) {
     final data = response.data;

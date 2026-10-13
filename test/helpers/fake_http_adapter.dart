@@ -49,7 +49,7 @@ Map<String, Object?> tokenJson({
   String access = 'new-access',
   String refresh = 'new-refresh',
   String userId = 'user-1',
-  Object? expiresAt = 4102444800, // 2100-01-01
+  Object? expiresAt = '2100-01-01T00:00:00Z',
 }) => {
   'access_token': access,
   'token_type': 'Bearer',

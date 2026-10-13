@@ -5,6 +5,7 @@ import 'package:mentorix_app/core/network/session_expired_notifier.dart';
 import 'package:mentorix_app/core/storage/token_storage.dart';
 import 'package:mentorix_app/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:mentorix_app/features/auth/data/models/invite_acceptance_model.dart';
+import 'package:mentorix_app/features/auth/data/models/linked_trainer_model.dart';
 import 'package:mentorix_app/features/auth/data/models/user_profile_model.dart';
 import 'package:mentorix_app/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:mentorix_app/features/auth/data/storage/pending_apple_name_storage.dart';
@@ -39,6 +40,16 @@ class _FakeRemote implements AuthRemoteDataSource {
       name: 'N',
       telegramLinked: false,
     );
+  }
+
+  List<LinkedTrainerModel> trainers = const [];
+  AuthFailure? trainersFailure;
+
+  @override
+  Future<List<LinkedTrainerModel>> getTrainers() async {
+    final failure = trainersFailure;
+    if (failure != null) throw failure;
+    return trainers;
   }
 
   @override

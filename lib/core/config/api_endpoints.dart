@@ -30,4 +30,12 @@ abstract final class ApiEndpoints {
 
   /// `POST` (Bearer) — принять приглашение тренера (токен, `inv_…` или ссылка).
   static const clientInviteAccept = '/client/invites/accept';
+
+  /// `GET` (Bearer) — тренеры клиента: `{"items": [...]}`, пустой массив —
+  /// тренера нет. Вызывается после `GET /auth/me`.
+  static const clientTrainers = '/client/trainers';
+
+  /// `POST` — возврат из веб-потока Apple на Android (Return URL Services ID).
+  /// Сессию не создаёт: приложение после возврата само шлёт `id_token`.
+  static const authAppleCallback = '/auth/apple/callback';
 }

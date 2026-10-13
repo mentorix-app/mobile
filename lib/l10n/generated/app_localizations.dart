@@ -332,6 +332,18 @@ abstract class AppLocalizations {
   /// **'Google sign-in is not configured: run with --dart-define-from-file=config/stage.json'**
   String get errorGoogleNotConfigured;
 
+  /// No description provided for @errorAppleNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple sign-in is not configured: run with --dart-define-from-file=config/stage.json'**
+  String get errorAppleNotConfigured;
+
+  /// No description provided for @errorAppleStateMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not verify Apple\'s response. Try signing in again.'**
+  String get errorAppleStateMismatch;
+
   /// No description provided for @errorInvalidRequest.
   ///
   /// In en, this message translates to:
@@ -353,8 +365,14 @@ abstract class AppLocalizations {
   /// No description provided for @errorTelegramConflict.
   ///
   /// In en, this message translates to:
-  /// **'These accounts cannot be merged, or another Telegram is already linked.'**
+  /// **'This Telegram is already linked to another account, and the two cannot be merged.'**
   String get errorTelegramConflict;
+
+  /// No description provided for @errorTelegramAlreadyLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Another Telegram is already linked to your account.'**
+  String get errorTelegramAlreadyLinked;
 
   /// No description provided for @errorInviteNotFound.
   ///
@@ -379,12 +397,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your trainer has no free spots at the moment.'**
   String get errorInviteClientLimit;
-
-  /// No description provided for @errorInviteConflict.
-  ///
-  /// In en, this message translates to:
-  /// **'This invitation cannot be accepted right now.'**
-  String get errorInviteConflict;
 
   /// No description provided for @errorInviteNotAllowed.
   ///

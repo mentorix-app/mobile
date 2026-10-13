@@ -11,6 +11,7 @@ import 'package:mentorix_app/core/router/onboarding_flow.dart';
 import 'package:mentorix_app/core/storage/storage_keys.dart';
 import 'package:mentorix_app/core/widgets/brand_svg_icon.dart';
 import 'package:mentorix_app/generated/assets.dart';
+import 'package:mentorix_app/features/auth/domain/entities/linked_trainer.dart';
 import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/invite_cubit.dart';
@@ -70,6 +71,7 @@ void main() {
     bool inviteDone = true,
     String botName = 'mentorix_test_bot',
     bool appleAvailable = false,
+    List<LinkedTrainer> trainers = const [],
   }) async {
     SharedPreferences.setMockInitialValues({
       ...stored,
@@ -79,7 +81,8 @@ void main() {
 
     final repository = FakeAuthRepository()
       ..profile = profile
-      ..appleAvailable = appleAvailable;
+      ..appleAvailable = appleAvailable
+      ..trainers = trainers;
     final launcher = FakeExternalLinkLauncher();
     final session = SessionCubit(repository, SessionExpiredNotifier());
     switch (sessionState) {
@@ -88,7 +91,7 @@ void main() {
       case _Session.unauthenticated:
         await session.logout();
       case _Session.authenticated:
-        session.setAuthenticated(profile);
+        await session.authenticate();
     }
 
     final flow = OnboardingFlow(prefs);
@@ -236,6 +239,43 @@ void main() {
       await pumpApp(tester, inviteDone: false);
 
       expect(find.byType(InviteScreen), findsOneWidget);
+    });
+
+    testWidgets('GET /client/trainers: пустой items → приглашение', (
+      tester,
+    ) async {
+      await pumpApp(tester, inviteDone: false, trainers: const []);
+
+      expect(find.byType(InviteScreen), findsOneWidget);
+    });
+
+    testWidgets('GET /client/trainers: тренер есть → приглашение пропущено', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        inviteDone: false,
+        trainers: const [
+          // Имя может прийти пустой строкой — на маршрут это не влияет.
+          LinkedTrainer(trainerId: 'trainer-1', trainerDisplayName: ''),
+        ],
+      );
+
+      expect(find.byType(InviteScreen), findsNothing);
+      expect(find.byType(HomeScreen), findsOneWidget);
+    });
+
+    testWidgets('тренер есть, но Telegram не привязан → сначала Telegram', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        profile: unlinkedProfile,
+        inviteDone: false,
+        trainers: const [testTrainer],
+      );
+
+      expect(find.byType(TelegramOfferScreen), findsOneWidget);
     });
 
     testWidgets('всё пройдено → главный экран', (tester) async {
@@ -446,6 +486,7 @@ void main() {
           const TelegramCodeInvalidFailure(),
       '404 — учётной записи больше нет': const AccountNotFoundFailure(),
       '409 — нельзя объединить': const TelegramLinkConflictFailure(),
+      '409 — уже привязан другой Telegram': const TelegramAlreadyLinkedFailure(),
       '503 — привязка недоступна': const ServerUnavailableFailure(),
       '5xx — прочая ошибка сервера': const UnknownFailure(),
     };
@@ -477,25 +518,9 @@ void main() {
       });
     }
 
-    testWidgets('409: текст из message показывается рядом с подсказкой', (
-      tester,
-    ) async {
-      final app = await openCodeScreen(tester);
-      app.repository.linkFailure = const TelegramLinkConflictFailure(
-        message: 'telegram is already linked to another account',
-      );
-
-      await submitCode(tester, app);
-
-      expect(
-        find.text('telegram is already linked to another account'),
-        findsOneWidget,
-      );
-      expect(find.text(app.l10n.telegramCodeSpentHint), findsOneWidget);
-      expect(fieldText(tester), isEmpty);
-    });
-
-    testWidgets('409 без message: только локализованный текст и подсказка', (
+    // Два вида 409 различаются кодом, а не текстом, и у каждого свой
+    // локализованный текст; текст бэкенда не показывается.
+    testWidgets('409 telegram_link_conflict: свой текст и подсказка', (
       tester,
     ) async {
       final app = await openCodeScreen(tester);
@@ -504,6 +529,21 @@ void main() {
       await submitCode(tester, app);
 
       expect(find.text(app.l10n.errorTelegramConflict), findsOneWidget);
+      expect(find.text(app.l10n.errorTelegramAlreadyLinked), findsNothing);
+      expect(find.text(app.l10n.telegramCodeSpentHint), findsOneWidget);
+      expect(fieldText(tester), isEmpty);
+    });
+
+    testWidgets('409 telegram_already_linked: свой текст и подсказка', (
+      tester,
+    ) async {
+      final app = await openCodeScreen(tester);
+      app.repository.linkFailure = const TelegramAlreadyLinkedFailure();
+
+      await submitCode(tester, app);
+
+      expect(find.text(app.l10n.errorTelegramAlreadyLinked), findsOneWidget);
+      expect(find.text(app.l10n.errorTelegramConflict), findsNothing);
       expect(find.text(app.l10n.telegramCodeSpentHint), findsOneWidget);
     });
 

@@ -14,21 +14,25 @@ extension AuthFailureMessage on AuthFailure {
     InvalidRequestFailure() => l10n.errorInvalidRequest,
     UnknownFailure() => l10n.errorUnknown,
     SocialTokenRejectedFailure() => l10n.errorSocialRejected,
-    SocialSignInNotConfiguredFailure() =>
+    SocialSignInNotConfiguredFailure(:final provider) =>
       (debug ?? kDebugMode)
-          ? l10n.errorGoogleNotConfigured
+          ? switch (provider) {
+              SocialProvider.google => l10n.errorGoogleNotConfigured,
+              SocialProvider.apple => l10n.errorAppleNotConfigured,
+            }
           : l10n.errorSocialUnavailable,
+    SocialSignInStateMismatchFailure() => l10n.errorAppleStateMismatch,
     SocialSignInUnavailableFailure() => l10n.errorSocialUnavailable,
     // Отказ пользователя ошибкой не показывается; строка — на случай вызова.
     SocialSignInCancelledFailure() => l10n.errorUnknown,
     TelegramCodeInvalidFailure() => l10n.errorTelegramCodeInvalid,
     AccountNotFoundFailure() => l10n.errorAccountNotFound,
     TelegramLinkConflictFailure() => l10n.errorTelegramConflict,
+    TelegramAlreadyLinkedFailure() => l10n.errorTelegramAlreadyLinked,
     InviteNotFoundFailure() => l10n.errorInviteNotFound,
     InviteExpiredFailure() => l10n.errorInviteExpired,
     InviteAlreadyConsumedFailure() => l10n.errorInviteConsumed,
     InviteClientLimitReachedFailure() => l10n.errorInviteClientLimit,
-    InviteConflictFailure() => l10n.errorInviteConflict,
     InviteNotAllowedFailure() => l10n.errorInviteNotAllowed,
     AdminAccountFailure() => l10n.errorAdminAccount,
   };

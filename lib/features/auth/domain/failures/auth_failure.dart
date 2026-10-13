@@ -11,7 +11,8 @@ final class NetworkFailure extends AuthFailure {
   const NetworkFailure();
 }
 
-/// 503: вход или привязка ещё не настроены на сервере либо временно недоступны.
+/// 503 (в том числе `provider_not_configured`): вход или привязка ещё не
+/// настроены на сервере либо временно недоступны.
 final class ServerUnavailableFailure extends AuthFailure {
   const ServerUnavailableFailure();
 }
@@ -26,7 +27,7 @@ final class SessionExpiredFailure extends AuthFailure {
   const SessionExpiredFailure();
 }
 
-/// 400 без более точного смысла.
+/// 400 без более точного смысла (`bad_request` и неизвестный `code`).
 final class InvalidRequestFailure extends AuthFailure {
   const InvalidRequestFailure();
 }
@@ -37,7 +38,7 @@ final class UnknownFailure extends AuthFailure {
 
 // --- вход через Google и Apple ---------------------------------------------
 
-/// 401 на `/auth/google` и `/auth/apple`: сервер не принял `id_token`.
+/// `invalid_id_token`: сервер не принял `id_token` Google или Apple.
 final class SocialTokenRejectedFailure extends AuthFailure {
   const SocialTokenRejectedFailure();
 }
@@ -47,11 +48,23 @@ final class SocialSignInCancelledFailure extends AuthFailure {
   const SocialSignInCancelledFailure();
 }
 
-/// Client id провайдера не задан (пуст или плейсхолдер): приложение запущено
-/// без `--dart-define-from-file=config/stage.json`. Это ошибка запуска, а не
-/// сбой провайдера или бэкенда, поэтому отделена от [SocialSignInUnavailableFailure].
+/// Провайдер входа.
+enum SocialProvider { google, apple }
+
+/// Идентификаторы провайдера не заданы (пусты или плейсхолдеры): приложение
+/// запущено без `--dart-define-from-file=config/stage.json`. Это ошибка запуска,
+/// а не сбой провайдера или бэкенда, поэтому отделена от
+/// [SocialSignInUnavailableFailure].
 final class SocialSignInNotConfiguredFailure extends AuthFailure {
-  const SocialSignInNotConfiguredFailure();
+  const SocialSignInNotConfiguredFailure({this.provider = SocialProvider.google});
+
+  final SocialProvider provider;
+}
+
+/// Apple вернула не тот `state`, что мы передали: ответ мог быть подменён,
+/// токен на сервер не отправляется.
+final class SocialSignInStateMismatchFailure extends AuthFailure {
+  const SocialSignInStateMismatchFailure();
 }
 
 /// Провайдер не поддерживается на платформе или не вернул токен.
@@ -61,59 +74,56 @@ final class SocialSignInUnavailableFailure extends AuthFailure {
 
 // --- Telegram --------------------------------------------------------------
 
-/// 400: код неверный, просрочен или уже использован.
+/// 400 `invalid_link_code`: код неверный, просрочен или уже использован.
 final class TelegramCodeInvalidFailure extends AuthFailure {
   const TelegramCodeInvalidFailure();
 }
 
-/// 404: учётной записи больше нет.
+/// 404 `user_not_found`: учётной записи больше нет.
 final class AccountNotFoundFailure extends AuthFailure {
   const AccountNotFoundFailure();
 }
 
-/// 409: записи нельзя объединить либо к этой уже привязан другой Telegram.
-///
-/// Два случая различаются только текстом ответа, поэтому он сохраняется в
-/// [message] и показывается как есть (исключение из правила «текст бэкенда
-/// пользователю не показывается»), пока у бэкенда нет поля `code`.
+/// 409 `telegram_link_conflict`: этот Telegram принадлежит аккаунту, который
+/// нельзя объединить с текущим.
 final class TelegramLinkConflictFailure extends AuthFailure {
-  const TelegramLinkConflictFailure({this.message});
+  const TelegramLinkConflictFailure();
+}
 
-  final String? message;
+/// 409 `telegram_already_linked`: у аккаунта уже привязан другой Telegram.
+final class TelegramAlreadyLinkedFailure extends AuthFailure {
+  const TelegramAlreadyLinkedFailure();
 }
 
 // --- приглашения -----------------------------------------------------------
 
+/// 404 `invite_not_found`.
 final class InviteNotFoundFailure extends AuthFailure {
   const InviteNotFoundFailure();
 }
 
-/// 410.
+/// 410 `invite_expired`.
 final class InviteExpiredFailure extends AuthFailure {
   const InviteExpiredFailure();
 }
 
-/// 409 `invite already consumed`: использовано другим человеком.
+/// 409 `invite_consumed`: использовано другим человеком.
 final class InviteAlreadyConsumedFailure extends AuthFailure {
   const InviteAlreadyConsumedFailure();
 }
 
-/// 409 `client limit reached`: у тренера нет свободных мест.
+/// 409 `client_limit_reached`: у тренера нет свободных мест.
 final class InviteClientLimitReachedFailure extends AuthFailure {
   const InviteClientLimitReachedFailure();
 }
 
-/// 409 с текстом, которого в контракте нет.
-final class InviteConflictFailure extends AuthFailure {
-  const InviteConflictFailure();
-}
-
-/// 422: своё приглашение или тренер заблокировал клиента.
+/// 422 `self_invite` или `client_blocked`: своё приглашение или тренер
+/// заблокировал клиента.
 final class InviteNotAllowedFailure extends AuthFailure {
   const InviteNotAllowedFailure();
 }
 
-/// 403: учётная запись администратора.
+/// 403 `admin_cannot_accept`: учётная запись администратора.
 final class AdminAccountFailure extends AuthFailure {
   const AdminAccountFailure();
 }
@@ -128,6 +138,7 @@ extension TelegramCodeSpending on AuthFailure {
     TelegramCodeInvalidFailure() ||
     AccountNotFoundFailure() ||
     TelegramLinkConflictFailure() ||
+    TelegramAlreadyLinkedFailure() ||
     ServerUnavailableFailure() ||
     InvalidRequestFailure() ||
     UnknownFailure() => true,
@@ -136,13 +147,13 @@ extension TelegramCodeSpending on AuthFailure {
     SessionExpiredFailure() ||
     SocialTokenRejectedFailure() ||
     SocialSignInCancelledFailure() ||
+    SocialSignInStateMismatchFailure() ||
     SocialSignInNotConfiguredFailure() ||
     SocialSignInUnavailableFailure() ||
     InviteNotFoundFailure() ||
     InviteExpiredFailure() ||
     InviteAlreadyConsumedFailure() ||
     InviteClientLimitReachedFailure() ||
-    InviteConflictFailure() ||
     InviteNotAllowedFailure() ||
     AdminAccountFailure() => false,
   };

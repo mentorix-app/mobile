@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:mentorix_app/features/auth/domain/entities/linked_trainer.dart';
 import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 
@@ -25,10 +26,16 @@ class SessionUnauthenticated extends SessionState {
 }
 
 class SessionAuthenticated extends SessionState {
-  const SessionAuthenticated(this.profile);
+  const SessionAuthenticated(this.profile, {this.trainers = const []});
 
   final UserProfile profile;
 
+  /// `GET /client/trainers` на момент входа. Пусто — тренера нет, и онбординг
+  /// показывает экран приглашения.
+  final List<LinkedTrainer> trainers;
+
+  bool get hasTrainer => trainers.isNotEmpty;
+
   @override
-  List<Object?> get props => [profile];
+  List<Object?> get props => [profile, trainers];
 }

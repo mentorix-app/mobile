@@ -11,6 +11,8 @@
 abstract final class SocialAuthConfig {
   static const googleServerClientIdPlaceholder = 'YOUR_GOOGLE_SERVER_CLIENT_ID';
   static const googleIosClientIdPlaceholder = 'YOUR_GOOGLE_IOS_CLIENT_ID';
+  static const appleServiceIdPlaceholder = 'YOUR_APPLE_SERVICE_ID';
+  static const appleRedirectUriPlaceholder = 'YOUR_APPLE_REDIRECT_URI';
 
   /// **Web-клиент** из Google Cloud. Передаётся как `serverClientId` на обеих
   /// платформах: тогда `aud` в `id_token` одинаковый на iOS и Android, и
@@ -26,6 +28,26 @@ abstract final class SocialAuthConfig {
     'GOOGLE_IOS_CLIENT_ID',
     defaultValue: googleIosClientIdPlaceholder,
   );
+
+  /// Services ID Apple (`com.mentorix.mobile.signin`) — `client_id` веб-потока.
+  /// Нужен только на Android: iOS входит нативно по bundle id.
+  static const appleServiceId = String.fromEnvironment(
+    'APPLE_SERVICE_ID',
+    defaultValue: appleServiceIdPlaceholder,
+  );
+
+  /// Return URL Services ID: `…/auth/apple/callback` на бэкенде. Сервер
+  /// переадресует на `intent://callback?…`, где его ловит
+  /// `SignInWithAppleCallback` из `AndroidManifest.xml`.
+  static const appleRedirectUri = String.fromEnvironment(
+    'APPLE_REDIRECT_URI',
+    defaultValue: appleRedirectUriPlaceholder,
+  );
+
+  /// Предупреждение в лог, когда Apple Services ID или redirect URI не заданы.
+  static const appleNotConfiguredWarning =
+      'Apple sign-in на Android не настроен: запусти с '
+      '--dart-define-from-file=config/stage.json';
 
   /// Предупреждение в лог, когда Google client id не задан.
   static const googleNotConfiguredWarning =

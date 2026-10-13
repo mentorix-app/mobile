@@ -14,6 +14,7 @@ class AuthTokens {
     final access = json['access_token'];
     final refresh = json['refresh_token'];
     final userId = json['user_id'];
+    final expiresAt = json['expires_at'];
 
     if (access is! String || access.isEmpty) {
       throw const FormatException('access_token is missing');
@@ -21,15 +22,16 @@ class AuthTokens {
     if (refresh is! String || refresh.isEmpty) {
       throw const FormatException('refresh_token is missing');
     }
-    if (userId == null || userId.toString().isEmpty) {
+    // user_id — UUID строкой (контракт); число или null — не тот ответ.
+    if (userId is! String || userId.isEmpty) {
       throw const FormatException('user_id is missing');
     }
 
     return AuthTokens(
       accessToken: access,
       refreshToken: refresh,
-      userId: userId.toString(),
-      expiresAt: parseExpiresAt(json['expires_at']),
+      userId: userId,
+      expiresAt: parseExpiresAt(expiresAt),
     );
   }
 
@@ -37,25 +39,17 @@ class AuthTokens {
   final String refreshToken;
   final String userId;
 
-  /// `null`, если формат `expires_at` не распознан: тогда токен обновляется
-  /// только по 401.
+  /// `null`, если значение не разобралось: тогда токен обновляется только по 401.
   final DateTime? expiresAt;
 
-  /// Формат `expires_at` в `auth_api.md` не описан, поэтому разбор терпимый:
-  /// ISO-8601, unix-секунды или unix-миллисекунды (число или строка).
+  /// `expires_at` — строка ISO 8601 в UTC, например `2026-10-12T06:15:00Z`
+  /// (ответ бэкенда, `docs/backend_answers.md`). Всё остальное — `null`.
   static DateTime? parseExpiresAt(Object? value) {
-    if (value is num) return _fromEpoch(value.toInt());
-    if (value is String) {
-      final asInt = int.tryParse(value);
-      if (asInt != null) return _fromEpoch(asInt);
-      return DateTime.tryParse(value)?.toUtc();
-    }
-    return null;
+    // `DateTime.tryParse('1893456000')` читает число как год, поэтому форма
+    // «дата T время» проверяется отдельно.
+    if (value is! String || !_isoDateTime.hasMatch(value)) return null;
+    return DateTime.tryParse(value)?.toUtc();
   }
 
-  static DateTime _fromEpoch(int value) {
-    // 1e12 мс — это 2001 год, 1e12 с — 33658 год: граница однозначна.
-    final millis = value.abs() >= 1000000000000 ? value : value * 1000;
-    return DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
-  }
+  static final _isoDateTime = RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}');
 }

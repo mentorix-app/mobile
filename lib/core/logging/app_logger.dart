@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
+import 'package:mentorix_app/core/network/api_error_codes.dart';
 
 /// Сырой текст ошибок пользователю не показывается — только сюда.
 ///
@@ -22,17 +23,21 @@ abstract final class AppLogger {
     developer.log(message, name: 'mentorix', level: 900);
   }
 
-  /// Логирует ошибку запроса без заголовков и тел: метод, путь, статус,
-  /// `message` из ответа бэкенда.
+  /// Строка журнала запроса к API (см. `ApiLogInterceptor`).
+  static void http(String line) {
+    developer.log(line, name: 'mentorix.http', level: 500);
+  }
+
+  /// Логирует ошибку запроса без заголовков и тел: метод, путь, статус и
+  /// `code` из ответа бэкенда.
   static void dioError(DioException e, [StackTrace? stackTrace]) {
     final options = e.requestOptions;
-    final data = e.response?.data;
-    final backendMessage = data is Map ? data['message'] : null;
+    final code = ApiErrorCodes.of(e.response);
 
     developer.log(
       '${options.method} ${options.path} -> '
       '${e.response?.statusCode ?? e.type.name}'
-      '${backendMessage != null ? ' "$backendMessage"' : ''}',
+      '${code != null ? ' code=$code' : ''}',
       name: 'mentorix.http',
       level: 900,
       stackTrace: stackTrace,

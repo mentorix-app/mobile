@@ -30,6 +30,8 @@ void main() {
       'GOOGLE_SERVER_CLIENT_ID',
       'GOOGLE_IOS_CLIENT_ID',
       'TELEGRAM_BOT_NAME',
+      'APPLE_SERVICE_ID',
+      'APPLE_REDIRECT_URI',
     ]) {
       expect(stage[key], isA<String>(), reason: key);
       expect((stage[key] as String).isNotEmpty, isTrue, reason: key);

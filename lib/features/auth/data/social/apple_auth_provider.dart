@@ -1,29 +1,115 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
+import 'package:mentorix_app/core/config/social_auth_config.dart';
 import 'package:mentorix_app/core/logging/app_logger.dart';
 import 'package:mentorix_app/features/auth/domain/entities/social_credential.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 import 'package:mentorix_app/features/auth/domain/providers/social_auth_provider.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
-/// Вход через Apple. Только iOS и macOS: на Android нужен веб-поток со
-/// Service ID и redirect URI, которых в проекте нет — кнопка там скрыта.
+/// Запрос учётных данных Apple; в проде — `SignInWithApple.getAppleIDCredential`.
+typedef AppleCredentialRequest =
+    Future<AuthorizationCredentialAppleID> Function({
+      required List<AppleIDAuthorizationScopes> scopes,
+      WebAuthenticationOptions? webAuthenticationOptions,
+      String? state,
+    });
+
+/// Вход через Apple.
+///
+/// iOS и macOS — нативный диалог. Android — веб-поток со Services ID и
+/// redirect URI на бэкенде (`/auth/apple/callback`), результат возвращается в
+/// приложение через `SignInWithAppleCallback` из `AndroidManifest.xml`.
+///
+/// Перед каждым входом генерируется случайный `state`; ответ Apple принимается,
+/// только если `state` в нём тот же. Иначе токен на сервер не уходит.
 class AppleAuthProvider implements SocialAuthProvider {
+  AppleAuthProvider({
+    AppleCredentialRequest? request,
+    String Function()? stateGenerator,
+    TargetPlatform? platform,
+    String? serviceId,
+    String? redirectUri,
+    void Function(String message)? onWarning,
+  }) : _request = request ?? SignInWithApple.getAppleIDCredential,
+       _generateState = stateGenerator ?? generateState,
+       _platform = platform,
+       _serviceId = serviceId ?? SocialAuthConfig.appleServiceId,
+       _redirectUri = redirectUri ?? SocialAuthConfig.appleRedirectUri,
+       _warn = onWarning ?? AppLogger.warning;
+
+  final AppleCredentialRequest _request;
+  final String Function() _generateState;
+  final TargetPlatform? _platform;
+  final String _serviceId;
+  final String _redirectUri;
+  final void Function(String message) _warn;
+
+  TargetPlatform get _target => _platform ?? defaultTargetPlatform;
+
   @override
-  bool get isAvailable =>
-      defaultTargetPlatform == TargetPlatform.iOS ||
-      defaultTargetPlatform == TargetPlatform.macOS;
+  bool get isAvailable => switch (_target) {
+    TargetPlatform.iOS ||
+    TargetPlatform.macOS ||
+    TargetPlatform.android => true,
+    _ => false,
+  };
+
+  /// Веб-поток Android не работает без Services ID и redirect URI.
+  bool get _webFlowConfigured =>
+      SocialAuthConfig.isRealClientId(
+        _serviceId,
+        SocialAuthConfig.appleServiceIdPlaceholder,
+      ) &&
+      SocialAuthConfig.isRealClientId(
+        _redirectUri,
+        SocialAuthConfig.appleRedirectUriPlaceholder,
+      );
+
+  /// 32 байта из `Random.secure()`, base64url без заполнения.
+  @visibleForTesting
+  static String generateState() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+    return base64UrlEncode(bytes).replaceAll('=', '');
+  }
 
   @override
   Future<SocialCredential> signIn() async {
     if (!isAvailable) throw const SocialSignInUnavailableFailure();
 
+    final isAndroid = _target == TargetPlatform.android;
+    if (isAndroid && !_webFlowConfigured) {
+      _warn(SocialAuthConfig.appleNotConfiguredWarning);
+      throw const SocialSignInNotConfiguredFailure(
+        provider: SocialProvider.apple,
+      );
+    }
+
+    final state = _generateState();
+
     try {
-      final credential = await SignInWithApple.getAppleIDCredential(
+      final credential = await _request(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],
+        webAuthenticationOptions: isAndroid
+            ? WebAuthenticationOptions(
+                clientId: _serviceId,
+                redirectUri: Uri.parse(_redirectUri),
+              )
+            : null,
+        state: state,
       );
+
+      // Токен принимается только на тот запрос, который мы сами отправили.
+      if (credential.state != state) {
+        AppLogger.warning('apple sign-in: state mismatch, token dropped');
+        throw const SocialSignInStateMismatchFailure();
+      }
 
       final idToken = credential.identityToken;
       if (idToken == null || idToken.isEmpty) {

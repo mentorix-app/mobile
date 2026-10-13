@@ -141,6 +141,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Google sign-in is not configured: run with --dart-define-from-file=config/stage.json';
 
   @override
+  String get errorAppleNotConfigured =>
+      'Apple sign-in is not configured: run with --dart-define-from-file=config/stage.json';
+
+  @override
+  String get errorAppleStateMismatch =>
+      'Could not verify Apple\'s response. Try signing in again.';
+
+  @override
   String get errorInvalidRequest =>
       'The request could not be processed. Check the entered data.';
 
@@ -153,7 +161,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorTelegramConflict =>
-      'These accounts cannot be merged, or another Telegram is already linked.';
+      'This Telegram is already linked to another account, and the two cannot be merged.';
+
+  @override
+  String get errorTelegramAlreadyLinked =>
+      'Another Telegram is already linked to your account.';
 
   @override
   String get errorInviteNotFound =>
@@ -170,10 +182,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorInviteClientLimit =>
       'Your trainer has no free spots at the moment.';
-
-  @override
-  String get errorInviteConflict =>
-      'This invitation cannot be accepted right now.';
 
   @override
   String get errorInviteNotAllowed =>

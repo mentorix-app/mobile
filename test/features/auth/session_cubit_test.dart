@@ -69,7 +69,7 @@ void main() {
   });
 
   test('перехватчик сообщил о конце сессии → unauthenticated', () async {
-    cubit.setAuthenticated(testProfile);
+    await cubit.authenticate();
 
     notifier.notify();
     await Future<void>.delayed(Duration.zero);

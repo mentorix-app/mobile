@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mentorix_app/core/network/api_error_codes.dart';
 import 'package:mentorix_app/core/network/session_expired_exception.dart';
 import 'package:mentorix_app/features/auth/data/mappers/auth_error_mapper.dart';
-import 'package:mentorix_app/features/auth/data/mappers/invite_conflict_parser.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 import 'package:mentorix_app/features/auth/presentation/auth_failure_message.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations_en.dart';
@@ -21,119 +21,128 @@ DioException _error(int status, {Object? data, DioExceptionType? type}) {
   );
 }
 
+/// Ответ вида `{"code": ..., "message": ...}`.
+DioException _coded(int status, String code, {String message = 'любой текст'}) =>
+    _error(status, data: {'code': code, 'message': message});
+
 void main() {
-  group('InviteConflictParser — 409 по message', () {
-    test('invite already consumed', () {
-      expect(
-        InviteConflictParser.parse('invite already consumed'),
-        isA<InviteAlreadyConsumedFailure>(),
-      );
+  group('AuthErrorMapper — ветвление по code', () {
+    // Статус намеренно «не тот»: разбор идёт по code, а не по статусу.
+    const cases = <String, Type>{
+      ApiErrorCodes.rateLimited: TooManyRequestsFailure,
+      ApiErrorCodes.invalidIdToken: SocialTokenRejectedFailure,
+      ApiErrorCodes.missingAuthorization: SessionExpiredFailure,
+      ApiErrorCodes.invalidToken: SessionExpiredFailure,
+      ApiErrorCodes.invalidRefreshToken: SessionExpiredFailure,
+      ApiErrorCodes.userNotFound: AccountNotFoundFailure,
+      ApiErrorCodes.providerNotConfigured: ServerUnavailableFailure,
+      ApiErrorCodes.invalidLinkCode: TelegramCodeInvalidFailure,
+      ApiErrorCodes.telegramLinkConflict: TelegramLinkConflictFailure,
+      ApiErrorCodes.telegramAlreadyLinked: TelegramAlreadyLinkedFailure,
+      ApiErrorCodes.inviteNotFound: InviteNotFoundFailure,
+      ApiErrorCodes.inviteExpired: InviteExpiredFailure,
+      ApiErrorCodes.inviteConsumed: InviteAlreadyConsumedFailure,
+      ApiErrorCodes.clientLimitReached: InviteClientLimitReachedFailure,
+      ApiErrorCodes.selfInvite: InviteNotAllowedFailure,
+      ApiErrorCodes.clientBlocked: InviteNotAllowedFailure,
+      ApiErrorCodes.adminCannotAccept: AdminAccountFailure,
+    };
+
+    cases.forEach((code, expected) {
+      test('$code → $expected', () {
+        final failure = AuthErrorMapper.map(_coded(418, code));
+
+        expect(failure.runtimeType, expected);
+      });
     });
 
-    test('client limit reached', () {
-      expect(
-        InviteConflictParser.parse('client limit reached'),
-        isA<InviteClientLimitReachedFailure>(),
+    test('два вида 409 на привязке Telegram различаются только кодом', () {
+      // Тексты одинаковые — результат разный: message не разбирается.
+      final conflict = AuthErrorMapper.map(
+        _coded(409, ApiErrorCodes.telegramLinkConflict, message: 'conflict'),
       );
+      final already = AuthErrorMapper.map(
+        _coded(409, ApiErrorCodes.telegramAlreadyLinked, message: 'conflict'),
+      );
+
+      expect(conflict, isA<TelegramLinkConflictFailure>());
+      expect(already, isA<TelegramAlreadyLinkedFailure>());
     });
 
-    test('регистр и обрамляющий текст не важны', () {
-      expect(
-        InviteConflictParser.parse('Conflict: Client Limit Reached.'),
-        isA<InviteClientLimitReachedFailure>(),
+    test('message не влияет на результат: ни текст, ни его отсутствие', () {
+      // Старый разбор по тексту «invite already consumed» больше не работает.
+      final byText = AuthErrorMapper.map(
+        _error(409, data: {'message': 'invite already consumed'}),
       );
+      final withCode = AuthErrorMapper.map(
+        _coded(409, ApiErrorCodes.inviteConsumed, message: 'совсем другой'),
+      );
+
+      expect(byText, isA<UnknownFailure>());
+      expect(withCode, isA<InviteAlreadyConsumedFailure>());
     });
 
-    test('неизвестный текст и null — общая ошибка 409', () {
-      expect(
-        InviteConflictParser.parse('something new'),
-        isA<InviteConflictFailure>(),
+    test('code приоритетнее статуса', () {
+      final failure = AuthErrorMapper.map(
+        _coded(503, ApiErrorCodes.inviteExpired),
       );
-      expect(InviteConflictParser.parse(null), isA<InviteConflictFailure>());
+
+      expect(failure, isA<InviteExpiredFailure>());
     });
   });
 
-  group('AuthErrorMapper', () {
-    test('приглашение: 409 разбирается по message', () {
-      final failure = AuthErrorMapper.map(
-        _error(409, data: {'message': 'invite already consumed'}),
-        endpoint: AuthErrorMapper.inviteAccept,
-      );
-
-      expect(failure, isA<InviteAlreadyConsumedFailure>());
-    });
-
-    test('приглашение: остальные статусы из контракта', () {
-      AuthFailure map(int status) => AuthErrorMapper.map(
-        _error(status),
-        endpoint: AuthErrorMapper.inviteAccept,
-      );
-
-      expect(map(404), isA<InviteNotFoundFailure>());
-      expect(map(410), isA<InviteExpiredFailure>());
-      expect(map(422), isA<InviteNotAllowedFailure>());
-      expect(map(403), isA<AdminAccountFailure>());
-    });
-
-    test('Telegram: 400 / 404 / 409', () {
-      AuthFailure map(int status) => AuthErrorMapper.map(
-        _error(status),
-        endpoint: AuthErrorMapper.telegramLink,
-      );
-
-      expect(map(400), isA<TelegramCodeInvalidFailure>());
-      expect(map(404), isA<AccountNotFoundFailure>());
-      expect(map(409), isA<TelegramLinkConflictFailure>());
-    });
-
-    test('/auth/me: 404 — учётной записи больше нет', () {
-      final failure = AuthErrorMapper.map(
-        _error(404),
-        endpoint: AuthErrorMapper.profile,
-      );
-
-      expect(failure, isA<AccountNotFoundFailure>());
-    });
-
-    test('404 на других эндпоинтах значит своё', () {
-      // На /auth/me 404 — конец сессии, на этих — нет: разбор у каждого свой.
+  group('AuthErrorMapper — неизвестный code → общий текст по статусу', () {
+    test('имена статусов вместо кодов: bad_request / not_found / conflict', () {
       expect(
-        AuthErrorMapper.map(
-          _error(404),
-          endpoint: AuthErrorMapper.inviteAccept,
-        ),
-        isA<InviteNotFoundFailure>(),
+        AuthErrorMapper.map(_coded(400, 'bad_request')),
+        isA<InvalidRequestFailure>(),
       );
       expect(
-        AuthErrorMapper.map(_error(404)),
+        AuthErrorMapper.map(_coded(404, 'not_found')),
         isA<UnknownFailure>(),
-        reason: 'без разбора эндпоинта 404 — не конец сессии',
       );
-    });
-
-    test('Telegram 409: текст message сохраняется в ошибке', () {
-      final failure = AuthErrorMapper.map(
-        _error(409, data: {'message': '  telegram already linked  '}),
-        endpoint: AuthErrorMapper.telegramLink,
-      );
-
-      expect(failure, isA<TelegramLinkConflictFailure>());
       expect(
-        (failure as TelegramLinkConflictFailure).message,
-        'telegram already linked',
+        AuthErrorMapper.map(_coded(409, 'conflict')),
+        isA<UnknownFailure>(),
       );
     });
 
-    test('Telegram 409 без message: текста нет', () {
-      final failure = AuthErrorMapper.map(
-        _error(409, data: {'message': '   '}),
-        endpoint: AuthErrorMapper.telegramLink,
+    test('новый, ещё не известный клиенту code', () {
+      expect(
+        AuthErrorMapper.map(_coded(429, 'some_future_code')),
+        isA<TooManyRequestsFailure>(),
       );
-
-      expect((failure as TelegramLinkConflictFailure).message, isNull);
+      expect(
+        AuthErrorMapper.map(_coded(503, 'some_future_code')),
+        isA<ServerUnavailableFailure>(),
+      );
+      expect(
+        AuthErrorMapper.map(_coded(422, 'some_future_code')),
+        isA<UnknownFailure>(),
+      );
+      expect(
+        AuthErrorMapper.map(_coded(401, 'some_future_code')),
+        isA<SessionExpiredFailure>(),
+      );
     });
 
-    test('вход: 401 — токен провайдера не принят', () {
+    test('тела нет, тело не объект или code не строка', () {
+      expect(AuthErrorMapper.map(_error(400)), isA<InvalidRequestFailure>());
+      expect(
+        AuthErrorMapper.map(_error(500, data: 'Internal Server Error')),
+        isA<UnknownFailure>(),
+      );
+      expect(
+        AuthErrorMapper.map(_error(400, data: {'code': 42})),
+        isA<InvalidRequestFailure>(),
+      );
+      expect(
+        AuthErrorMapper.map(_error(400, data: {'code': ''})),
+        isA<InvalidRequestFailure>(),
+      );
+    });
+
+    test('вход: 401 без известного code — токен провайдера не принят', () {
       final failure = AuthErrorMapper.map(
         _error(401),
         endpoint: AuthErrorMapper.socialSignIn,
@@ -142,11 +151,15 @@ void main() {
       expect(failure, isA<SocialTokenRejectedFailure>());
     });
 
+    test('на других эндпоинтах тот же 401 — конец сессии', () {
+      expect(AuthErrorMapper.map(_error(401)), isA<SessionExpiredFailure>());
+    });
+
     test('429 и 503 одинаковы для всех эндпоинтов', () {
       expect(
         AuthErrorMapper.map(
           _error(429),
-          endpoint: AuthErrorMapper.telegramLink,
+          endpoint: AuthErrorMapper.socialSignIn,
         ),
         isA<TooManyRequestsFailure>(),
       );
@@ -155,7 +168,9 @@ void main() {
         isA<ServerUnavailableFailure>(),
       );
     });
+  });
 
+  group('AuthErrorMapper — без ответа сервера', () {
     test('таймаут и обрыв связи — сеть', () {
       for (final type in [
         DioExceptionType.connectionTimeout,
@@ -185,6 +200,7 @@ void main() {
 
   _spendingTests();
   _notConfiguredMessageTests();
+  _everyFailureHasText();
 }
 
 void _spendingTests() {
@@ -194,6 +210,7 @@ void _spendingTests() {
         TelegramCodeInvalidFailure(), // 400
         AccountNotFoundFailure(), // 404
         TelegramLinkConflictFailure(), // 409
+        TelegramAlreadyLinkedFailure(), // 409
         ServerUnavailableFailure(), // 503
         UnknownFailure(), // 5xx и прочее
       ]) {
@@ -214,37 +231,74 @@ void _spendingTests() {
 }
 
 void _notConfiguredMessageTests() {
-  group('сообщение «Google не настроен»', () {
-    const failure = SocialSignInNotConfiguredFailure();
+  group('сообщение «не настроено»', () {
+    const google = SocialSignInNotConfiguredFailure();
+    const apple = SocialSignInNotConfiguredFailure(
+      provider: SocialProvider.apple,
+    );
 
     test('debug: подсказка, как запустить, на обоих языках', () {
       expect(
-        failure.message(AppLocalizationsRu(), debug: true),
+        google.message(AppLocalizationsRu(), debug: true),
         'Google sign-in не настроен: запусти с '
         '--dart-define-from-file=config/stage.json',
       );
       expect(
-        failure.message(AppLocalizationsEn(), debug: true),
+        apple.message(AppLocalizationsRu(), debug: true),
+        startsWith('Apple sign-in не настроен'),
+      );
+      expect(
+        google.message(AppLocalizationsEn(), debug: true),
         contains('--dart-define-from-file=config/stage.json'),
+      );
+      expect(
+        apple.message(AppLocalizationsEn(), debug: true),
+        contains('Apple sign-in is not configured'),
       );
     });
 
     test('release: общий текст, без подробностей запуска', () {
-      final release = failure.message(AppLocalizationsRu(), debug: false);
+      final release = google.message(AppLocalizationsRu(), debug: false);
 
       expect(release, AppLocalizationsRu().errorSocialUnavailable);
       expect(release, isNot(contains('dart-define')));
+      expect(
+        apple.message(AppLocalizationsRu(), debug: false),
+        AppLocalizationsRu().errorSocialUnavailable,
+      );
     });
 
     test('в тестах kDebugMode включён: по умолчанию debug-текст', () {
       expect(
-        failure.message(AppLocalizationsRu()),
+        google.message(AppLocalizationsRu()),
         AppLocalizationsRu().errorGoogleNotConfigured,
       );
     });
 
-    test('«не настроено» код Telegram не тратит', () {
-      expect(failure.spendsTelegramCode, isFalse);
+    test('«не настроено» и несовпадение state код Telegram не тратят', () {
+      expect(google.spendsTelegramCode, isFalse);
+      expect(
+        const SocialSignInStateMismatchFailure().spendsTelegramCode,
+        isFalse,
+      );
     });
+  });
+}
+
+void _everyFailureHasText() {
+  test('у новых ошибок есть локализованный текст на обоих языках', () {
+    for (final failure in const <AuthFailure>[
+      TelegramAlreadyLinkedFailure(),
+      TelegramLinkConflictFailure(),
+      SocialSignInStateMismatchFailure(),
+    ]) {
+      expect(failure.message(AppLocalizationsRu()), isNotEmpty);
+      expect(failure.message(AppLocalizationsEn()), isNotEmpty);
+    }
+
+    expect(
+      const TelegramAlreadyLinkedFailure().message(AppLocalizationsRu()),
+      isNot(const TelegramLinkConflictFailure().message(AppLocalizationsRu())),
+    );
   });
 }

@@ -1,13 +1,18 @@
 import 'package:dio/dio.dart';
+import 'package:mentorix_app/core/network/api_error_codes.dart';
 import 'package:mentorix_app/core/network/session_expired_exception.dart';
-import 'package:mentorix_app/features/auth/data/mappers/invite_conflict_parser.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 
-/// Разбор ошибки конкретного эндпоинта: статус и `message` из ответа.
-/// `null` — «не знаю», решает общий разбор.
-typedef EndpointFailureMapper =
-    AuthFailure? Function(int status, String? message);
+/// Запасной разбор эндпоинта по статусу, когда `code` не распознан.
+/// `null` — «не знаю», решает общий разбор по статусу.
+typedef EndpointFailureMapper = AuthFailure? Function(int status);
 
+/// Ошибка API → доменный [AuthFailure].
+///
+/// Ветвление — **только по `code`** из тела ответа (`{"code","message"}`):
+/// `message` бэкенд вправе менять, поэтому он не разбирается и пользователю не
+/// показывается. Если `code` неизвестен (в том числе имена статусов вроде
+/// `bad_request`), ошибка разбирается по HTTP-статусу.
 abstract final class AuthErrorMapper {
   static const _networkTypes = {
     DioExceptionType.connectionTimeout,
@@ -16,8 +21,6 @@ abstract final class AuthErrorMapper {
     DioExceptionType.connectionError,
   };
 
-  /// Общий разбор: сеть, 429 и 503 одинаковы для всех эндпоинтов,
-  /// остальное — по [endpoint].
   static AuthFailure map(DioException e, {EndpointFailureMapper? endpoint}) {
     if (e.error is SessionExpiredException) {
       return const SessionExpiredFailure();
@@ -28,11 +31,45 @@ abstract final class AuthErrorMapper {
     final status = e.response?.statusCode;
     if (status == null) return const UnknownFailure();
 
+    final code = ApiErrorCodes.of(e.response);
+    final byCode = code == null ? null : fromCode(code);
+    if (byCode != null) return byCode;
+
+    return _fromStatus(status, endpoint);
+  }
+
+  /// Известный `code` → ошибка; неизвестный → `null`.
+  static AuthFailure? fromCode(String code) => switch (code) {
+    // общие
+    ApiErrorCodes.rateLimited => const TooManyRequestsFailure(),
+    ApiErrorCodes.invalidIdToken => const SocialTokenRejectedFailure(),
+    ApiErrorCodes.missingAuthorization ||
+    ApiErrorCodes.invalidToken ||
+    ApiErrorCodes.invalidRefreshToken => const SessionExpiredFailure(),
+    ApiErrorCodes.userNotFound => const AccountNotFoundFailure(),
+    ApiErrorCodes.providerNotConfigured => const ServerUnavailableFailure(),
+    // привязка Telegram
+    ApiErrorCodes.invalidLinkCode => const TelegramCodeInvalidFailure(),
+    ApiErrorCodes.telegramLinkConflict => const TelegramLinkConflictFailure(),
+    ApiErrorCodes.telegramAlreadyLinked => const TelegramAlreadyLinkedFailure(),
+    // приглашения
+    ApiErrorCodes.inviteNotFound => const InviteNotFoundFailure(),
+    ApiErrorCodes.inviteExpired => const InviteExpiredFailure(),
+    ApiErrorCodes.inviteConsumed => const InviteAlreadyConsumedFailure(),
+    ApiErrorCodes.clientLimitReached => const InviteClientLimitReachedFailure(),
+    ApiErrorCodes.selfInvite ||
+    ApiErrorCodes.clientBlocked => const InviteNotAllowedFailure(),
+    ApiErrorCodes.adminCannotAccept => const AdminAccountFailure(),
+    _ => null,
+  };
+
+  /// Общий текст по статусу, когда `code` неизвестен.
+  static AuthFailure _fromStatus(int status, EndpointFailureMapper? endpoint) {
     // На 429 ничего автоматически не повторяется — только сообщаем.
     if (status == 429) return const TooManyRequestsFailure();
     if (status == 503) return const ServerUnavailableFailure();
 
-    final specific = endpoint?.call(status, messageOf(e.response));
+    final specific = endpoint?.call(status);
     if (specific != null) return specific;
 
     return switch (status) {
@@ -42,51 +79,8 @@ abstract final class AuthErrorMapper {
     };
   }
 
-  /// `{ "message": "..." }` из тела ошибки. Пользователю не показывается —
-  /// только для разбора и лога.
-  static String? messageOf(Response<dynamic>? response) {
-    final data = response?.data;
-    if (data is Map) {
-      final message = data['message'];
-      if (message is String) return message;
-    }
-    return null;
-  }
-
-  // --- разбор по эндпоинтам -------------------------------------------------
-
-  /// `/auth/google`, `/auth/apple`.
-  static AuthFailure? socialSignIn(int status, String? message) =>
+  /// `/auth/google`, `/auth/apple`: 401 без известного `code` — токен
+  /// провайдера не принят (сессии на входе ещё нет, истекать нечему).
+  static AuthFailure? socialSignIn(int status) =>
       status == 401 ? const SocialTokenRejectedFailure() : null;
-
-  /// `/auth/me`. 404 здесь — учётной записи больше нет: после переноса на
-  /// старую запись прежние токены отвечают 404 (а не 401). Только для этого
-  /// эндпоинта: на `telegram/link` и `invites/accept` 404 значит своё.
-  static AuthFailure? profile(int status, String? message) =>
-      status == 404 ? const AccountNotFoundFailure() : null;
-
-  /// `/auth/telegram/link`.
-  static AuthFailure? telegramLink(int status, String? message) {
-    final text = message?.trim();
-
-    return switch (status) {
-      400 => const TelegramCodeInvalidFailure(),
-      404 => const AccountNotFoundFailure(),
-      409 => TelegramLinkConflictFailure(
-        message: text == null || text.isEmpty ? null : text,
-      ),
-      _ => null,
-    };
-  }
-
-  /// `/client/invites/accept`.
-  static AuthFailure? inviteAccept(int status, String? message) =>
-      switch (status) {
-        404 => const InviteNotFoundFailure(),
-        410 => const InviteExpiredFailure(),
-        409 => InviteConflictParser.parse(message),
-        422 => const InviteNotAllowedFailure(),
-        403 => const AdminAccountFailure(),
-        _ => null,
-      };
 }

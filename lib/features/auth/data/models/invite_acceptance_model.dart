@@ -9,14 +9,14 @@ class InviteAcceptanceModel extends InviteAcceptance {
 
   factory InviteAcceptanceModel.fromJson(Map<String, dynamic> json) {
     final trainerId = json['trainer_id'];
-    if (trainerId == null || trainerId.toString().isEmpty) {
+    if (trainerId is! String || trainerId.isEmpty) {
       throw const FormatException('trainer_id is missing');
     }
 
     final displayName = json['trainer_display_name'];
 
     return InviteAcceptanceModel(
-      trainerId: trainerId.toString(),
+      trainerId: trainerId,
       trainerDisplayName: displayName is String ? displayName : '',
       alreadyLinked: json['already_linked'] == true,
     );

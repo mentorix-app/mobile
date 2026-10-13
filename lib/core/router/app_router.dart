@@ -32,11 +32,8 @@ GoRouter createAppRouter({
         location == RouteNames.splash ? null : RouteNames.splash,
       SessionUnauthenticated() =>
         location == RouteNames.login ? null : RouteNames.login,
-      SessionAuthenticated(:final profile) => _authenticatedRedirect(
-        location,
-        profile,
-        flow,
-      ),
+      SessionAuthenticated(:final profile, :final hasTrainer) =>
+        _authenticatedRedirect(location, profile, hasTrainer, flow),
     };
   }
 
@@ -91,9 +88,10 @@ GoRouter createAppRouter({
 String? _authenticatedRedirect(
   String location,
   UserProfile profile,
+  bool hasTrainer,
   OnboardingFlow flow,
 ) {
-  final next = flow.nextRoute(profile);
+  final next = flow.nextRoute(profile, hasTrainer: hasTrainer);
 
   // Вход и заставка: сразу на следующий шаг.
   if (location == RouteNames.splash || location == RouteNames.login) {

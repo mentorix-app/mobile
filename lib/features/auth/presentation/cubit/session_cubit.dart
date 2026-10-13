@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
-import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 import 'package:mentorix_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_state.dart';
@@ -17,7 +16,7 @@ class SessionCubit extends Cubit<SessionState> {
   final AuthRepository _repository;
   late final StreamSubscription<void> _expiredSubscription;
 
-  /// Старт приложения: читает токены и запрашивает `/auth/me`.
+  /// Старт приложения: читает токены, затем `/auth/me` и `/client/trainers`.
   Future<void> start() async {
     emit(const SessionUnknown());
 
@@ -30,9 +29,7 @@ class SessionCubit extends Cubit<SessionState> {
         return;
       }
 
-      final profile = await _repository.getProfile(forceRefresh: true);
-      if (isClosed) return;
-      emit(SessionAuthenticated(profile));
+      await authenticate();
     } on AuthFailure catch (failure) {
       // 401 на refresh и 404 на /auth/me (учётную запись перенесли) — конец
       // сессии: токены очищаются, пользователь попадает на экран входа.
@@ -50,9 +47,15 @@ class SessionCubit extends Cubit<SessionState> {
     }
   }
 
-  /// Вызывается после входа и после привязки Telegram — с свежим профилем.
-  void setAuthenticated(UserProfile profile) {
-    emit(SessionAuthenticated(profile));
+  /// Вызывается после входа и после привязки Telegram. Порядок из контракта:
+  /// сначала `GET /auth/me`, затем `GET /client/trainers` — по его ответу
+  /// решается, показывать ли экран приглашения. Бросает [AuthFailure]; сессию
+  /// не завершает — решение за вызывающим.
+  Future<void> authenticate() async {
+    final profile = await _repository.getProfile(forceRefresh: true);
+    final trainers = await _repository.getTrainers();
+    if (isClosed) return;
+    emit(SessionAuthenticated(profile, trainers: trainers));
   }
 
   Future<void> logout() async {

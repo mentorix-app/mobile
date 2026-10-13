@@ -93,17 +93,21 @@ void main() {
   });
 
   group('AuthTokens.parseExpiresAt', () {
-    test('ISO-8601, unix-секунды и миллисекунды', () {
-      final expected = DateTime.utc(2030, 1, 1);
-      final seconds = expected.millisecondsSinceEpoch ~/ 1000;
+    test('ISO 8601 в UTC — формат контракта', () {
+      final expected = DateTime.utc(2026, 10, 12, 6, 15);
 
-      expect(AuthTokens.parseExpiresAt('2030-01-01T00:00:00Z'), expected);
-      expect(AuthTokens.parseExpiresAt(seconds), expected);
-      expect(AuthTokens.parseExpiresAt('$seconds'), expected);
+      expect(AuthTokens.parseExpiresAt('2026-10-12T06:15:00Z'), expected);
       expect(
-        AuthTokens.parseExpiresAt(expected.millisecondsSinceEpoch),
+        AuthTokens.parseExpiresAt('2026-10-12T09:15:00+03:00'),
         expected,
+        reason: 'смещение приводится к UTC',
       );
+      expect(AuthTokens.parseExpiresAt('2026-10-12T06:15:00Z')!.isUtc, isTrue);
+    });
+
+    test('unix-время бэкенд больше не присылает: число → null', () {
+      expect(AuthTokens.parseExpiresAt(1893456000), isNull);
+      expect(AuthTokens.parseExpiresAt('1893456000'), isNull);
     });
 
     test('мусор и null → null, а не исключение', () {
@@ -124,14 +128,27 @@ void main() {
       );
     });
 
-    test('user_id как число приводится к строке', () {
+    test('user_id — UUID строкой', () {
       final tokens = AuthTokens.fromJson({
         'access_token': 'a',
         'refresh_token': 'r',
-        'user_id': 42,
+        'user_id': '0b6e4f0e-3c1d-4a8e-9b7a-1f2d3c4b5a69',
+        'expires_at': '2026-10-12T06:15:00Z',
       });
 
-      expect(tokens.userId, '42');
+      expect(tokens.userId, '0b6e4f0e-3c1d-4a8e-9b7a-1f2d3c4b5a69');
+      expect(tokens.expiresAt, DateTime.utc(2026, 10, 12, 6, 15));
+    });
+
+    test('user_id числом — не тот ответ: FormatException', () {
+      expect(
+        () => AuthTokens.fromJson({
+          'access_token': 'a',
+          'refresh_token': 'r',
+          'user_id': 42,
+        }),
+        throwsFormatException,
+      );
     });
   });
 }

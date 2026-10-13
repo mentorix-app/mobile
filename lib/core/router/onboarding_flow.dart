@@ -4,7 +4,8 @@ import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Порядок экранов после входа (`docs/auth_api.md`): профиль → если
-/// `telegram_linked == false`, предложение привязать Telegram → приглашение.
+/// `telegram_linked == false`, предложение привязать Telegram → если
+/// `GET /client/trainers` вернул пустой `items`, приглашение.
 ///
 /// Приглашение нельзя принимать раньше привязки Telegram: после него
 /// привязать Telegram к старой учётной записи уже не получится (409).
@@ -16,7 +17,9 @@ class OnboardingFlow {
 
   final SharedPreferences _prefs;
 
-  String nextRoute(UserProfile profile) {
+  /// [hasTrainer] — `items` из `GET /client/trainers` не пуст: приглашение
+  /// такому клиенту не показывается.
+  String nextRoute(UserProfile profile, {required bool hasTrainer}) {
     final id = profile.userId;
 
     final offerDone =
@@ -27,7 +30,7 @@ class OnboardingFlow {
     if (!profile.telegramLinked && !offerDone) {
       return RouteNames.telegramOffer;
     }
-    if (!inviteDone) return RouteNames.invite;
+    if (!hasTrainer && !inviteDone) return RouteNames.invite;
     return RouteNames.home;
   }
 

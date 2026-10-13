@@ -41,10 +41,15 @@ signing»).
 | `API_BASE_URL` | адрес API (по умолчанию stage) |
 | `GOOGLE_SERVER_CLIENT_ID` | web-клиент Google; `serverClientId` на обеих платформах |
 | `GOOGLE_IOS_CLIENT_ID` | iOS-клиент Google |
-| `TELEGRAM_BOT_NAME` | имя бота без `@` |
+| `TELEGRAM_BOT_NAME` | имя бота без `@` (stage: `mentorix_dev_bot`) |
+| `APPLE_SERVICE_ID` | Services ID Apple (`com.mentorix.mobile.signin`): `clientId` веб-потока на Android |
+| `APPLE_REDIRECT_URI` | Return URL Services ID: `…/auth/apple/callback` на бэкенде; на Android возвращает в приложение через `SignInWithAppleCallback` |
 
 - Без `--dart-define-from-file` приложение запускается, но вход через Google
-  сообщает, что он не настроен, а кнопка «Открыть бота» неактивна.
+  (и через Apple на Android) сообщает, что он не настроен, а кнопка «Открыть бота»
+  неактивна.
+- В debug-сборке каждый запрос к API пишет в лог строку: время (UTC), метод, путь,
+  статус и `code` из ответа — по ней бэкенд сверяет запросы со своими логами.
 - Client id Google продублированы в `ios/Runner/Info.plist` (`GIDClientID`,
   `GIDServerClientID`, URL scheme): при смене меняются оба файла, совпадение
   проверяет тест.

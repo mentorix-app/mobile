@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:mentorix_app/features/auth/domain/entities/invite_acceptance.dart';
+import 'package:mentorix_app/features/auth/domain/entities/linked_trainer.dart';
 import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 import 'package:mentorix_app/features/auth/domain/repositories/auth_repository.dart';
@@ -10,6 +11,11 @@ const testProfile = UserProfile(
   email: 'user@example.com',
   name: 'Test User',
   telegramLinked: true,
+);
+
+const testTrainer = LinkedTrainer(
+  trainerId: 'trainer-1',
+  trainerDisplayName: 'Coach',
 );
 
 const unlinkedProfile = UserProfile(
@@ -26,6 +32,11 @@ class FakeAuthRepository implements AuthRepository {
   /// Если задан — `restoreSession` и `getProfile` бросают его.
   AuthFailure? restoreFailure;
   AuthFailure? profileFailure;
+
+  /// `GET /client/trainers`: пустой список — тренера нет (экран приглашения).
+  List<LinkedTrainer> trainers = const [];
+  AuthFailure? trainersFailure;
+  int trainersCalls = 0;
 
   /// Если задан — `linkTelegram` бросает его (код при этом считается принятым
   /// сервером к отправке: он попадает в [linkedCodes]).
@@ -80,6 +91,14 @@ class FakeAuthRepository implements AuthRepository {
     final failure = profileFailure;
     if (failure != null) throw failure;
     return profile;
+  }
+
+  @override
+  Future<List<LinkedTrainer>> getTrainers() async {
+    trainersCalls++;
+    final failure = trainersFailure;
+    if (failure != null) throw failure;
+    return trainers;
   }
 
   @override
