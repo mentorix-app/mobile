@@ -69,6 +69,19 @@ class GoogleAuthProvider implements SocialAuthProvider {
     }
   }
 
+  @override
+  Future<void> disconnect() async {
+    if (!_isConfigured) return;
+
+    try {
+      await _ensureInitialized();
+      await _googleSignIn.disconnect();
+    } on Object catch (e, st) {
+      // Аккаунт уже удалён на сервере: сбой отключения только в лог.
+      AppLogger.error('google disconnect failed', e, st);
+    }
+  }
+
   Future<void> _ensureInitialized() {
     final hasIosClientId = SocialAuthConfig.isRealClientId(
       _iosClientId,

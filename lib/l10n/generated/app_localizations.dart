@@ -290,6 +290,66 @@ abstract class AppLocalizations {
   /// **'Sign out'**
   String get logoutAction;
 
+  /// No description provided for @cancelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancelAction;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileTitle;
+
+  /// No description provided for @profileOpenAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileOpenAction;
+
+  /// No description provided for @profileNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get profileNameLabel;
+
+  /// No description provided for @profileEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get profileEmailLabel;
+
+  /// No description provided for @profileValueEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get profileValueEmpty;
+
+  /// No description provided for @deleteAccountAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get deleteAccountAction;
+
+  /// No description provided for @deleteAccountDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account?'**
+  String get deleteAccountDialogTitle;
+
+  /// No description provided for @deleteAccountDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything will be deleted: your link with the trainer, programs, workout marks and trainer comments, and the Telegram link. The account and its data cannot be restored.'**
+  String get deleteAccountDialogBody;
+
+  /// No description provided for @deleteAccountConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete permanently'**
+  String get deleteAccountConfirmAction;
+
   /// No description provided for @errorNetwork.
   ///
   /// In en, this message translates to:
@@ -343,6 +403,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not verify Apple\'s response. Try signing in again.'**
   String get errorAppleStateMismatch;
+
+  /// No description provided for @errorAppleConfirmationRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not confirm your Apple sign-in. Try again: the Apple window will open once more.'**
+  String get errorAppleConfirmationRetry;
+
+  /// No description provided for @errorAppleAccountMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'You signed in with a different Apple ID than the one this account was created with. Choose the same Apple ID.'**
+  String get errorAppleAccountMismatch;
+
+  /// No description provided for @errorAccountDeletionUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This account cannot be deleted from the app. Please contact support.'**
+  String get errorAccountDeletionUnavailable;
+
+  /// No description provided for @errorAccountDeletionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete the account. Try again later.'**
+  String get errorAccountDeletionFailed;
 
   /// No description provided for @errorInvalidRequest.
   ///

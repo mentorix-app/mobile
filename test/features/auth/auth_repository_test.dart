@@ -4,6 +4,7 @@ import 'package:mentorix_app/core/network/auth_tokens.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
 import 'package:mentorix_app/core/storage/token_storage.dart';
 import 'package:mentorix_app/features/auth/data/datasources/auth_remote_datasource.dart';
+import 'package:mentorix_app/features/auth/data/models/apple_deletion_proof.dart';
 import 'package:mentorix_app/features/auth/data/models/invite_acceptance_model.dart';
 import 'package:mentorix_app/features/auth/data/models/linked_trainer_model.dart';
 import 'package:mentorix_app/features/auth/data/models/user_profile_model.dart';
@@ -86,6 +87,9 @@ class _FakeRemote implements AuthRemoteDataSource {
   Future<void> logoutAll() async {}
 
   @override
+  Future<void> deleteAccount({AppleDeletionProof? apple}) async {}
+
+  @override
   Future<void> updateName(String name) async {}
 
   @override
@@ -107,6 +111,9 @@ class _FakeProvider implements SocialAuthProvider {
 
   @override
   Future<SocialCredential> signIn() async => credentials.removeAt(0);
+
+  @override
+  Future<void> disconnect() async {}
 }
 
 void main() {

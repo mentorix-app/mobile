@@ -128,6 +128,39 @@ final class AdminAccountFailure extends AuthFailure {
   const AdminAccountFailure();
 }
 
+// --- удаление аккаунта -------------------------------------------------------
+
+/// 422 `apple_authorization_required`: у аккаунта есть вход через Apple, а в
+/// запросе нет данных Apple. Репозиторий сам показывает окно Apple и повторяет;
+/// наружу выходит, только если сервер потребовал это и со вторым запросом.
+final class AppleAuthorizationRequiredFailure extends AuthFailure {
+  const AppleAuthorizationRequiredFailure();
+}
+
+/// 401 `invalid_id_token` или 400 `invalid_apple_authorization_code` на
+/// удалении: токен Apple не прошёл проверку либо код просрочен или использован.
+/// Нужно показать окно Apple заново.
+final class AppleProofRejectedFailure extends AuthFailure {
+  const AppleProofRejectedFailure();
+}
+
+/// 403 `apple_account_mismatch`: вошли не тем Apple ID, которым создан аккаунт.
+final class AppleAccountMismatchFailure extends AuthFailure {
+  const AppleAccountMismatchFailure();
+}
+
+/// 409 `account_deletion_unavailable`: у аккаунта есть роль тренера или
+/// администратора — удаление только через поддержку.
+final class AccountDeletionUnavailableFailure extends AuthFailure {
+  const AccountDeletionUnavailableFailure();
+}
+
+/// 502 `apple_revocation_failed`, 503 (в том числе `provider_not_configured`):
+/// аккаунт не удалён, попробовать позже.
+final class AccountDeletionFailedFailure extends AuthFailure {
+  const AccountDeletionFailedFailure();
+}
+
 /// Код привязки Telegram одноразовый: после любого ответа сервера, кроме 429 и
 /// 401, он потрачен. Ошибка без ответа сервера (нет связи) код не тратит.
 ///
@@ -155,6 +188,11 @@ extension TelegramCodeSpending on AuthFailure {
     InviteAlreadyConsumedFailure() ||
     InviteClientLimitReachedFailure() ||
     InviteNotAllowedFailure() ||
-    AdminAccountFailure() => false,
+    AdminAccountFailure() ||
+    AppleAuthorizationRequiredFailure() ||
+    AppleProofRejectedFailure() ||
+    AppleAccountMismatchFailure() ||
+    AccountDeletionUnavailableFailure() ||
+    AccountDeletionFailedFailure() => false,
   };
 }

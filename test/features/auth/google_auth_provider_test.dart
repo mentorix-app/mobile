@@ -11,6 +11,8 @@ class _FakeGoogleSignIn implements GoogleSignIn {
   String? initServerClientId;
   int initializeCalls = 0;
   int authenticateCalls = 0;
+  int disconnectCalls = 0;
+  Object? disconnectFailure;
 
   @override
   Future<void> initialize({
@@ -30,6 +32,13 @@ class _FakeGoogleSignIn implements GoogleSignIn {
   }) async {
     authenticateCalls++;
     throw const GoogleSignInException(code: GoogleSignInExceptionCode.canceled);
+  }
+
+  @override
+  Future<void> disconnect() async {
+    disconnectCalls++;
+    final failure = disconnectFailure;
+    if (failure != null) throw failure;
   }
 
   @override
@@ -130,6 +139,51 @@ void main() {
       );
 
       expect(warnings, isEmpty);
+    });
+  });
+
+  group('disconnect после удаления аккаунта', () {
+    test('отключает аккаунт у SDK, инициализировав его при необходимости',
+        () async {
+      final provider = GoogleAuthProvider(
+        googleSignIn: google,
+        serverClientId: _webClientId,
+        iosClientId: _iosClientId,
+      );
+
+      await provider.disconnect();
+
+      expect(google.initializeCalls, 1);
+      expect(google.disconnectCalls, 1);
+    });
+
+    test('сбой SDK не бросается: аккаунт уже удалён на сервере', () async {
+      google.disconnectFailure = const GoogleSignInException(
+        code: GoogleSignInExceptionCode.unknownError,
+      );
+      final provider = GoogleAuthProvider(
+        googleSignIn: google,
+        serverClientId: _webClientId,
+        iosClientId: _iosClientId,
+      );
+
+      await provider.disconnect();
+
+      expect(google.disconnectCalls, 1);
+    });
+
+    test('client id не задан — SDK не трогаем', () async {
+      final provider = GoogleAuthProvider(
+        googleSignIn: google,
+        serverClientId: '',
+        iosClientId: _iosClientId,
+        onWarning: (_) {},
+      );
+
+      await provider.disconnect();
+
+      expect(google.initializeCalls, 0);
+      expect(google.disconnectCalls, 0);
     });
   });
 

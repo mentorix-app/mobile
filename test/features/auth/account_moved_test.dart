@@ -39,6 +39,9 @@ class _NoSocialProvider implements SocialAuthProvider {
   @override
   Future<SocialCredential> signIn() async =>
       throw const SocialSignInUnavailableFailure();
+
+  @override
+  Future<void> disconnect() async {}
 }
 
 Map<String, Object?> _error(String code) => {

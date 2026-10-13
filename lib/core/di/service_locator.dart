@@ -14,6 +14,7 @@ import 'package:mentorix_app/features/auth/data/social/apple_auth_provider.dart'
 import 'package:mentorix_app/features/auth/data/social/google_auth_provider.dart';
 import 'package:mentorix_app/features/auth/data/storage/pending_apple_name_storage.dart';
 import 'package:mentorix_app/features/auth/domain/repositories/auth_repository.dart';
+import 'package:mentorix_app/features/auth/presentation/cubit/account_deletion_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/invite_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/login_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_cubit.dart';
@@ -100,6 +101,13 @@ Future<void> configureDependencies() async {
       getIt<SessionCubit>(),
       getIt<OnboardingFlow>(),
       getIt<ExternalLinkLauncher>(),
+    ),
+  );
+  getIt.registerFactory<AccountDeletionCubit>(
+    () => AccountDeletionCubit(
+      getIt<AuthRepository>(),
+      getIt<SessionCubit>(),
+      getIt<OnboardingFlow>(),
     ),
   );
   getIt.registerFactory<InviteCubit>(

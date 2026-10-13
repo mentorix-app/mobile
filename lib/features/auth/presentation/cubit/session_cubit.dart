@@ -64,6 +64,10 @@ class SessionCubit extends Cubit<SessionState> {
     emit(const SessionUnauthenticated());
   }
 
+  /// Аккаунт удалён на сервере: токены репозиторий уже очистил, остаётся
+  /// закончить сессию — роутер уведёт на вход.
+  void onAccountDeleted() => emit(const SessionUnauthenticated());
+
   Future<void> logoutAll() async {
     await _repository.logoutAll();
     if (isClosed) return;

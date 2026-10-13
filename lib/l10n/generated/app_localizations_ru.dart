@@ -113,6 +113,37 @@ class AppLocalizationsRu extends AppLocalizations {
   String get logoutAction => 'Выйти';
 
   @override
+  String get cancelAction => 'Отмена';
+
+  @override
+  String get profileTitle => 'Профиль';
+
+  @override
+  String get profileOpenAction => 'Профиль';
+
+  @override
+  String get profileNameLabel => 'Имя';
+
+  @override
+  String get profileEmailLabel => 'Почта';
+
+  @override
+  String get profileValueEmpty => 'Не указано';
+
+  @override
+  String get deleteAccountAction => 'Удалить аккаунт';
+
+  @override
+  String get deleteAccountDialogTitle => 'Удалить аккаунт?';
+
+  @override
+  String get deleteAccountDialogBody =>
+      'Будет удалено всё: связь с тренером, программы, отметки тренировок и комментарии тренера, привязка Telegram. Восстановить аккаунт и данные будет нельзя.';
+
+  @override
+  String get deleteAccountConfirmAction => 'Удалить навсегда';
+
+  @override
   String get errorNetwork =>
       'Нет соединения или сервер просыпается. Проверьте связь и повторите.';
 
@@ -144,6 +175,22 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get errorAppleStateMismatch =>
       'Не удалось проверить ответ Apple. Попробуйте войти ещё раз.';
+
+  @override
+  String get errorAppleConfirmationRetry =>
+      'Не удалось подтвердить вход через Apple. Повторите: окно Apple откроется снова.';
+
+  @override
+  String get errorAppleAccountMismatch =>
+      'Вы вошли другим Apple ID, не тем, которым создан аккаунт. Выберите тот же Apple ID.';
+
+  @override
+  String get errorAccountDeletionUnavailable =>
+      'Этот аккаунт нельзя удалить из приложения. Обратитесь в поддержку.';
+
+  @override
+  String get errorAccountDeletionFailed =>
+      'Не удалось удалить аккаунт. Попробуйте позже.';
 
   @override
   String get errorInvalidRequest =>

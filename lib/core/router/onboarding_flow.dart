@@ -37,6 +37,12 @@ class OnboardingFlow {
   Future<void> skipTelegramOffer(String userId) =>
       _prefs.setBool(StorageKeys.onboardingTelegramOfferDone(userId), true);
 
+  /// Аккаунт удалён: его отметки о пройденных шагах больше не нужны.
+  Future<void> forget(String userId) async {
+    await _prefs.remove(StorageKeys.onboardingTelegramOfferDone(userId));
+    await _prefs.remove(StorageKeys.onboardingInviteDone(userId));
+  }
+
   /// Приглашение принято или пропущено.
   Future<void> completeInvite(String userId) =>
       _prefs.setBool(StorageKeys.onboardingInviteDone(userId), true);

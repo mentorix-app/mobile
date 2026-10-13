@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mentorix_app/core/router/onboarding_flow.dart';
 import 'package:mentorix_app/core/router/route_names.dart';
 import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
+import 'package:mentorix_app/features/auth/presentation/cubit/account_deletion_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/invite_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/login_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_cubit.dart';
@@ -17,6 +18,7 @@ import 'package:mentorix_app/features/auth/presentation/screens/telegram_code_sc
 import 'package:mentorix_app/features/auth/presentation/screens/telegram_offer_screen.dart';
 import 'package:mentorix_app/features/auth/presentation/session_refresh_listenable.dart';
 import 'package:mentorix_app/features/home/presentation/screens/home_screen.dart';
+import 'package:mentorix_app/features/profile/presentation/screens/profile_screen.dart';
 
 /// Роутер зависит от сессии: куда можно попасть, решает [SessionCubit],
 /// а порядок экранов после входа — [OnboardingFlow].
@@ -80,6 +82,13 @@ GoRouter createAppRouter({
       GoRoute(
         path: RouteNames.home,
         builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.profile,
+        builder: (context, state) => BlocProvider(
+          create: (_) => GetIt.I<AccountDeletionCubit>(),
+          child: const ProfileScreen(),
+        ),
       ),
     ],
   );

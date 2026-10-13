@@ -4,6 +4,7 @@ import 'package:mentorix_app/core/logging/app_logger.dart';
 import 'package:mentorix_app/core/network/auth_interceptor.dart';
 import 'package:mentorix_app/core/network/auth_tokens.dart';
 import 'package:mentorix_app/features/auth/data/mappers/auth_error_mapper.dart';
+import 'package:mentorix_app/features/auth/data/models/apple_deletion_proof.dart';
 import 'package:mentorix_app/features/auth/data/models/invite_acceptance_model.dart';
 import 'package:mentorix_app/features/auth/data/models/linked_trainer_model.dart';
 import 'package:mentorix_app/features/auth/data/models/user_profile_model.dart';
@@ -71,6 +72,21 @@ class AuthRemoteDataSource {
   Future<void> updateName(String name) => _guard(() async {
     await _dio.patch<Object?>(ApiEndpoints.authMe, data: {'name': name});
   });
+
+  /// `DELETE /auth/me`: 204 без тела. Без [apple] — тело не отправляется; для
+  /// аккаунтов со входом через Apple бэкенд ответит 422
+  /// `apple_authorization_required`, и запрос повторяют с [apple]. Тело — только
+  /// с `Content-Type: application/json`, иначе 400.
+  Future<void> deleteAccount({AppleDeletionProof? apple}) =>
+      _guard(endpoint: AuthErrorMapper.accountDeletion, () async {
+        await _dio.delete<Object?>(
+          ApiEndpoints.authMe,
+          data: apple?.toJson(),
+          options: apple == null
+              ? null
+              : Options(contentType: Headers.jsonContentType),
+        );
+      });
 
   /// `GET /client/trainers`: `items` всегда массив, пустой — тренера нет.
   /// Вызывается после `GET /auth/me`.

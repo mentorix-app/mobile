@@ -2,6 +2,7 @@ import 'dart:io' show HttpDate;
 
 import 'package:dio/dio.dart';
 import 'package:mentorix_app/core/config/api_endpoints.dart';
+import 'package:mentorix_app/core/network/api_error_codes.dart';
 import 'package:mentorix_app/core/network/auth_tokens.dart';
 import 'package:mentorix_app/core/network/session_expired_exception.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
@@ -20,6 +21,8 @@ import 'package:mentorix_app/core/storage/token_storage.dart';
 ///   через `Retry-After` из ответа или через 5 минут.
 /// * 401 — один refresh на всех: запросы, получившие 401 со старым токеном,
 ///   после чужого refresh просто повторяются с новым, без второго refresh.
+/// * 401 с `code: invalid_id_token` (токен Apple из тела запроса, не Bearer)
+///   не обновляет сессию и не повторяется.
 /// * Повтор идёт через [plainDio] (без перехватчиков) и только один раз.
 /// * Refresh вернул 401 — токены очищены, [SessionExpiredNotifier] оповещён.
 ///
@@ -111,6 +114,13 @@ class AuthInterceptor extends QueuedInterceptor {
     if (options.extra[skipAuthKey] == true ||
         err.response?.statusCode != 401 ||
         options.extra[retriedKey] == true) {
+      return handler.next(err);
+    }
+
+    // 401 `invalid_id_token` — не истёкший access-токен, а отказ в токене
+    // Apple из тела запроса (удаление аккаунта). Refresh не поможет, а повтор
+    // потратил бы одноразовый authorization_code.
+    if (ApiErrorCodes.of(err.response) == ApiErrorCodes.invalidIdToken) {
       return handler.next(err);
     }
 

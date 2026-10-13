@@ -14,6 +14,7 @@ import 'package:mentorix_app/generated/assets.dart';
 import 'package:mentorix_app/features/auth/domain/entities/linked_trainer.dart';
 import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
+import 'package:mentorix_app/features/auth/presentation/cubit/account_deletion_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/invite_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/login_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_cubit.dart';
@@ -24,6 +25,7 @@ import 'package:mentorix_app/features/auth/presentation/screens/splash_screen.da
 import 'package:mentorix_app/features/auth/presentation/screens/telegram_code_screen.dart';
 import 'package:mentorix_app/features/auth/presentation/screens/telegram_offer_screen.dart';
 import 'package:mentorix_app/features/home/presentation/screens/home_screen.dart';
+import 'package:mentorix_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:mentorix_app/features/theme/data/repositories/theme_repository_impl.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
 import 'package:mentorix_app/features/theme/presentation/widgets/theme_mode_button.dart';
@@ -108,6 +110,9 @@ void main() {
       )
       ..registerFactory<InviteCubit>(
         () => InviteCubit(repository, session, flow),
+      )
+      ..registerFactory<AccountDeletionCubit>(
+        () => AccountDeletionCubit(repository, session, flow),
       );
 
     tester.platformDispatcher.platformBrightnessTestValue = brightness;
@@ -288,11 +293,186 @@ void main() {
       final app = await pumpApp(tester);
       expect(find.byType(HomeScreen), findsOneWidget);
 
+      // Выход — в профиле, с главного экрана туда ведёт отдельная кнопка.
+      await tester.tap(find.text(app.l10n.profileOpenAction));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProfileScreen), findsOneWidget);
+
       await tester.tap(find.text(app.l10n.logoutAction));
       await tester.pumpAndSettle();
 
       expect(find.byType(LoginScreen), findsOneWidget);
       expect(app.repository.logoutCalls, 1);
+    });
+  });
+
+  group('профиль и удаление аккаунта', () {
+    Future<_Harness> openProfile(WidgetTester tester) async {
+      final app = await pumpApp(tester);
+      await tester.tap(find.text(app.l10n.profileOpenAction));
+      await tester.pumpAndSettle();
+      return app;
+    }
+
+    Future<void> tapDelete(WidgetTester tester, _Harness app) async {
+      await tester.tap(find.text(app.l10n.deleteAccountAction));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> confirmDelete(WidgetTester tester, _Harness app) async {
+      await tester.tap(find.text(app.l10n.deleteAccountConfirmAction));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('профиль открывается с главного: имя и почта', (tester) async {
+      final app = await openProfile(tester);
+
+      expect(find.byType(ProfileScreen), findsOneWidget);
+      expect(find.text(testProfile.name), findsOneWidget);
+      expect(find.text(testProfile.email), findsOneWidget);
+      expect(find.text(app.l10n.logoutAction), findsOneWidget);
+      expect(find.text(app.l10n.deleteAccountAction), findsOneWidget);
+    });
+
+    testWidgets('пустое имя — «Не указано», а не пустая строка', (tester) async {
+      const nameless = UserProfile(
+        userId: 'user-1',
+        email: 'user@example.com',
+        name: '',
+        telegramLinked: true,
+      );
+      final app = await pumpApp(tester, profile: nameless);
+      await tester.tap(find.text(app.l10n.profileOpenAction));
+      await tester.pumpAndSettle();
+
+      expect(find.text(app.l10n.profileValueEmpty), findsOneWidget);
+    });
+
+    testWidgets('диалог: что удалится и что восстановить нельзя', (tester) async {
+      final app = await openProfile(tester);
+
+      await tapDelete(tester, app);
+
+      expect(find.text(app.l10n.deleteAccountDialogTitle), findsOneWidget);
+      expect(find.text(app.l10n.deleteAccountDialogBody), findsOneWidget);
+      expect(
+        app.l10n.deleteAccountDialogBody,
+        contains('cannot be restored'),
+      );
+      expect(app.repository.deleteCalls, isEmpty, reason: 'ещё не подтверждено');
+    });
+
+    testWidgets('«Отмена»: ничего не удалено, остаёмся в профиле', (
+      tester,
+    ) async {
+      final app = await openProfile(tester);
+      await tapDelete(tester, app);
+
+      await tester.tap(find.text(app.l10n.cancelAction));
+      await tester.pumpAndSettle();
+
+      expect(app.repository.deleteCalls, isEmpty);
+      expect(find.byType(ProfileScreen), findsOneWidget);
+      expect(find.byType(LoginScreen), findsNothing);
+    });
+
+    testWidgets('подтверждение → удаление → экран входа', (tester) async {
+      final app = await openProfile(tester);
+      await tapDelete(tester, app);
+
+      await confirmDelete(tester, app);
+
+      expect(app.repository.deleteCalls, [false]);
+      expect(find.byType(LoginScreen), findsOneWidget);
+      expect(find.byType(ProfileScreen), findsNothing);
+    });
+
+    // Тексты по ответам бэкенда (docs/auth_api.md, часть 3).
+    final failures = <String, (AuthFailure, String Function(AppLocalizations))>{
+      '401/400 отказ Apple': (
+        const AppleProofRejectedFailure(),
+        (l) => l.errorAppleConfirmationRetry,
+      ),
+      '403 другой Apple ID': (
+        const AppleAccountMismatchFailure(),
+        (l) => l.errorAppleAccountMismatch,
+      ),
+      '409 в поддержку': (
+        const AccountDeletionUnavailableFailure(),
+        (l) => l.errorAccountDeletionUnavailable,
+      ),
+      '502/503 позже': (
+        const AccountDeletionFailedFailure(),
+        (l) => l.errorAccountDeletionFailed,
+      ),
+    };
+
+    for (final entry in failures.entries) {
+      testWidgets('${entry.key}: сообщение, аккаунт не удалён', (tester) async {
+        final app = await openProfile(tester);
+        app.repository.deleteFailure = entry.value.$1;
+
+        await tapDelete(tester, app);
+        await confirmDelete(tester, app);
+
+        expect(find.text(entry.value.$2(app.l10n)), findsOneWidget);
+        expect(find.byType(ProfileScreen), findsOneWidget);
+        expect(find.byType(LoginScreen), findsNothing);
+      });
+    }
+
+    testWidgets('отказ Apple: «Повторить» снова открывает окно Apple', (
+      tester,
+    ) async {
+      final app = await openProfile(tester);
+      app.repository.deleteFailure = const AppleProofRejectedFailure();
+      await tapDelete(tester, app);
+      await confirmDelete(tester, app);
+
+      app.repository.deleteFailure = null;
+      await tester.tap(find.text(app.l10n.retryAction));
+      await tester.pumpAndSettle();
+
+      expect(app.repository.deleteCalls, [false, true]);
+      expect(find.byType(LoginScreen), findsOneWidget);
+    });
+
+    testWidgets('«Повторить» есть только у отказов Apple', (tester) async {
+      final app = await openProfile(tester);
+      app.repository.deleteFailure = const AccountDeletionUnavailableFailure();
+
+      await tapDelete(tester, app);
+      await confirmDelete(tester, app);
+
+      expect(find.text(app.l10n.retryAction), findsNothing);
+    });
+
+    testWidgets('окно Apple закрыто: сообщения об ошибке нет', (tester) async {
+      final app = await openProfile(tester);
+      app.repository.deleteFailure = const SocialSignInCancelledFailure();
+
+      await tapDelete(tester, app);
+      await confirmDelete(tester, app);
+
+      expect(find.byType(ProfileScreen), findsOneWidget);
+      expect(find.text(app.l10n.errorUnknown), findsNothing);
+      expect(find.text(app.l10n.errorAppleConfirmationRetry), findsNothing);
+    });
+
+    testWidgets('сообщение появляется ниже кнопок и ничего не сдвигает', (
+      tester,
+    ) async {
+      final app = await openProfile(tester);
+      final logout = find.text(app.l10n.logoutAction);
+      final delete = find.text(app.l10n.deleteAccountAction);
+      final before = [tester.getTopLeft(logout), tester.getTopLeft(delete)];
+
+      app.repository.deleteFailure = const AccountDeletionFailedFailure();
+      await tapDelete(tester, app);
+      await confirmDelete(tester, app);
+
+      expect(tester.getTopLeft(logout), before[0]);
+      expect(tester.getTopLeft(delete), before[1]);
     });
   });
 

@@ -76,6 +76,10 @@ class AppleAuthProvider implements SocialAuthProvider {
     return base64UrlEncode(bytes).replaceAll('=', '');
   }
 
+  /// У Apple нечего отключать на устройстве: токены отзывает бэкенд.
+  @override
+  Future<void> disconnect() async {}
+
   @override
   Future<SocialCredential> signIn() async {
     if (!isAvailable) throw const SocialSignInUnavailableFailure();
@@ -123,9 +127,14 @@ class AppleAuthProvider implements SocialAuthProvider {
           .where((part) => part.isNotEmpty)
           .join(' ');
 
+      final authorizationCode = credential.authorizationCode;
+
       return SocialCredential(
         idToken: idToken,
         name: name.isEmpty ? null : name,
+        authorizationCode: authorizationCode.isEmpty ? null : authorizationCode,
+        // Только веб-поток Android: на iOS поле на бэкенд не уходит.
+        webRedirectUri: isAndroid ? _redirectUri : null,
       );
     } on SignInWithAppleAuthorizationException catch (e, st) {
       if (e.code == AuthorizationErrorCode.canceled) {

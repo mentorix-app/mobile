@@ -31,6 +31,16 @@ abstract class AuthRepository {
 
   Future<InviteAcceptance> acceptInvite(String tokenOrLink);
 
+  /// `DELETE /auth/me`. Сначала без тела; если у аккаунта есть вход через Apple
+  /// (422 `apple_authorization_required`), показывает окно Apple и повторяет с
+  /// его данными, взятыми прямо перед запросом. [confirmWithApple] — сразу
+  /// показать окно Apple (повтор после отказа Apple). Успех (204 и 404
+  /// `user_not_found`) очищает токены и отключает Google.
+  ///
+  /// Бросает [AuthFailure]; [SocialSignInCancelledFailure] — пользователь закрыл
+  /// окно Apple, аккаунт не тронут.
+  Future<void> deleteAccount({bool confirmWithApple = false});
+
   /// Завершает сессию на сервере (если получится) и локально.
   /// Локальная сессия очищается в любом случае.
   Future<void> logout();

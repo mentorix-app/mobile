@@ -1,6 +1,7 @@
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
 import 'package:mentorix_app/core/storage/token_storage.dart';
 import 'package:mentorix_app/features/auth/data/datasources/auth_remote_datasource.dart';
+import 'package:mentorix_app/features/auth/data/models/apple_deletion_proof.dart';
 import 'package:mentorix_app/features/auth/data/storage/pending_apple_name_storage.dart';
 import 'package:mentorix_app/features/auth/domain/entities/invite_acceptance.dart';
 import 'package:mentorix_app/features/auth/domain/entities/linked_trainer.dart';
@@ -107,6 +108,44 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<InviteAcceptance> acceptInvite(String tokenOrLink) {
     return _remote.acceptInvite(tokenOrLink.trim());
+  }
+
+  @override
+  Future<void> deleteAccount({bool confirmWithApple = false}) async {
+    try {
+      if (confirmWithApple) {
+        await _deleteWithApple();
+      } else {
+        try {
+          await _remote.deleteAccount();
+        } on AppleAuthorizationRequiredFailure {
+          await _deleteWithApple();
+        }
+      }
+    } on AccountNotFoundFailure {
+      // `user_not_found`: аккаунт уже удалён — для пользователя это успех.
+    }
+
+    await clearLocalSession();
+    await _pendingAppleName.clear();
+    await _google.disconnect();
+  }
+
+  /// Окно Apple показывается здесь, а не заранее: `authorization_code`
+  /// одноразовый и живёт 5 минут, поэтому берётся прямо перед запросом.
+  Future<void> _deleteWithApple() async {
+    final credential = await _apple.signIn();
+
+    final code = credential.authorizationCode;
+    if (code == null) throw const SocialSignInUnavailableFailure();
+
+    await _remote.deleteAccount(
+      apple: AppleDeletionProof(
+        idToken: credential.idToken,
+        authorizationCode: code,
+        redirectUri: credential.webRedirectUri,
+      ),
+    );
   }
 
   @override

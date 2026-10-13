@@ -35,5 +35,10 @@ extension AuthFailureMessage on AuthFailure {
     InviteClientLimitReachedFailure() => l10n.errorInviteClientLimit,
     InviteNotAllowedFailure() => l10n.errorInviteNotAllowed,
     AdminAccountFailure() => l10n.errorAdminAccount,
+    AppleAuthorizationRequiredFailure() ||
+    AppleProofRejectedFailure() => l10n.errorAppleConfirmationRetry,
+    AppleAccountMismatchFailure() => l10n.errorAppleAccountMismatch,
+    AccountDeletionUnavailableFailure() => l10n.errorAccountDeletionUnavailable,
+    AccountDeletionFailedFailure() => l10n.errorAccountDeletionFailed,
   };
 }

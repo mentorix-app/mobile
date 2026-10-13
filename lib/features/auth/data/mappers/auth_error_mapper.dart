@@ -3,9 +3,11 @@ import 'package:mentorix_app/core/network/api_error_codes.dart';
 import 'package:mentorix_app/core/network/session_expired_exception.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 
-/// Запасной разбор эндпоинта по статусу, когда `code` не распознан.
-/// `null` — «не знаю», решает общий разбор по статусу.
-typedef EndpointFailureMapper = AuthFailure? Function(int status);
+/// Разбор, специфичный для эндпоинта: один и тот же `code` или статус на разных
+/// эндпоинтах значит разное (401 `invalid_id_token` на входе — «токен не принят»,
+/// на удалении аккаунта — «повторите окно Apple»). `null` — «не знаю», решает
+/// общий разбор по `code` и статусу.
+typedef EndpointFailureMapper = AuthFailure? Function(int status, String? code);
 
 /// Ошибка API → доменный [AuthFailure].
 ///
@@ -32,10 +34,14 @@ abstract final class AuthErrorMapper {
     if (status == null) return const UnknownFailure();
 
     final code = ApiErrorCodes.of(e.response);
+
+    final specific = endpoint?.call(status, code);
+    if (specific != null) return specific;
+
     final byCode = code == null ? null : fromCode(code);
     if (byCode != null) return byCode;
 
-    return _fromStatus(status, endpoint);
+    return _fromStatus(status);
   }
 
   /// Известный `code` → ошибка; неизвестный → `null`.
@@ -64,23 +70,39 @@ abstract final class AuthErrorMapper {
   };
 
   /// Общий текст по статусу, когда `code` неизвестен.
-  static AuthFailure _fromStatus(int status, EndpointFailureMapper? endpoint) {
+  static AuthFailure _fromStatus(int status) => switch (status) {
     // На 429 ничего автоматически не повторяется — только сообщаем.
-    if (status == 429) return const TooManyRequestsFailure();
-    if (status == 503) return const ServerUnavailableFailure();
-
-    final specific = endpoint?.call(status);
-    if (specific != null) return specific;
-
-    return switch (status) {
-      400 => const InvalidRequestFailure(),
-      401 => const SessionExpiredFailure(),
-      _ => const UnknownFailure(),
-    };
-  }
+    429 => const TooManyRequestsFailure(),
+    503 => const ServerUnavailableFailure(),
+    400 => const InvalidRequestFailure(),
+    401 => const SessionExpiredFailure(),
+    _ => const UnknownFailure(),
+  };
 
   /// `/auth/google`, `/auth/apple`: 401 без известного `code` — токен
   /// провайдера не принят (сессии на входе ещё нет, истекать нечему).
-  static AuthFailure? socialSignIn(int status) =>
+  static AuthFailure? socialSignIn(int status, String? code) =>
       status == 401 ? const SocialTokenRejectedFailure() : null;
+
+  /// `DELETE /auth/me`. `user_not_found` здесь не разбирается: репозиторий
+  /// считает его успехом (аккаунт уже удалён).
+  static AuthFailure? accountDeletion(int status, String? code) {
+    return switch (code) {
+      ApiErrorCodes.appleAuthorizationRequired =>
+        const AppleAuthorizationRequiredFailure(),
+      ApiErrorCodes.invalidIdToken ||
+      ApiErrorCodes.invalidAppleAuthorizationCode =>
+        const AppleProofRejectedFailure(),
+      ApiErrorCodes.appleAccountMismatch =>
+        const AppleAccountMismatchFailure(),
+      ApiErrorCodes.accountDeletionUnavailable =>
+        const AccountDeletionUnavailableFailure(),
+      ApiErrorCodes.appleRevocationFailed ||
+      ApiErrorCodes.providerNotConfigured =>
+        const AccountDeletionFailedFailure(),
+      _ => status == 502 || status == 503
+          ? const AccountDeletionFailedFailure()
+          : null,
+    };
+  }
 }

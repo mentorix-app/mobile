@@ -48,11 +48,17 @@ class FakeAuthRepository implements AuthRepository {
   /// Если задан — `acceptInvite` бросает его.
   AuthFailure? inviteFailure;
 
+  /// Если задан — `deleteAccount` бросает его.
+  AuthFailure? deleteFailure;
+
   /// Если задан — вход и привязка Telegram ждут его завершения (экран остаётся
   /// в состоянии загрузки).
   Completer<void>? gate;
 
   int clearCalls = 0;
+
+  /// Значение `confirmWithApple` каждого вызова `deleteAccount`.
+  final List<bool> deleteCalls = [];
   int logoutCalls = 0;
   final List<String> linkedCodes = [];
   final List<String> acceptedInvites = [];
@@ -125,6 +131,15 @@ class FakeAuthRepository implements AuthRepository {
       trainerDisplayName: 'Coach',
       alreadyLinked: false,
     );
+  }
+
+  @override
+  Future<void> deleteAccount({bool confirmWithApple = false}) async {
+    deleteCalls.add(confirmWithApple);
+    await gate?.future;
+    final failure = deleteFailure;
+    if (failure != null) throw failure;
+    hasSession = false;
   }
 
   @override

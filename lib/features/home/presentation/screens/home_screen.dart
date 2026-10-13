@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mentorix_app/core/router/route_names.dart';
 import 'package:mentorix_app/core/theme/app_spacing.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_state.dart';
@@ -8,8 +10,8 @@ import 'package:mentorix_app/features/theme/presentation/widgets/theme_mode_butt
 import 'package:mentorix_app/generated/assets.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
-/// Заглушка главного экрана: кто вошёл и выход. Заменяется настоящим экраном
-/// в следующих этапах.
+/// Заглушка главного экрана: кто вошёл и переход в профиль (там выход и
+/// удаление аккаунта). Заменяется настоящим экраном в следующих этапах.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -50,8 +52,8 @@ class HomeScreen extends StatelessWidget {
                   ],
                   const SizedBox(height: AppSpacing.lg),
                   OutlinedButton(
-                    onPressed: () => context.read<SessionCubit>().logout(),
-                    child: Text(l10n.logoutAction),
+                    onPressed: () => context.push(RouteNames.profile),
+                    child: Text(l10n.profileOpenAction),
                   ),
                 ],
               );

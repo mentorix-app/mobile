@@ -13,11 +13,12 @@ AuthorizationCredentialAppleID _credential({
   String? identityToken = 'apple-id-token',
   String? givenName,
   String? familyName,
+  String authorizationCode = 'apple-auth-code',
 }) => AuthorizationCredentialAppleID(
   userIdentifier: 'apple-user',
   givenName: givenName,
   familyName: familyName,
-  authorizationCode: 'code',
+  authorizationCode: authorizationCode,
   email: null,
   identityToken: identityToken,
   state: state,
@@ -190,6 +191,40 @@ void main() {
       await expectLater(
         provider.signIn(),
         throwsA(isA<SocialSignInUnavailableFailure>()),
+      );
+    });
+  });
+
+  group('данные для удаления аккаунта', () {
+    test('authorization_code из окна Apple попадает в результат', () async {
+      final provider = create(answer: (_) => _credential());
+
+      final result = await provider.signIn();
+
+      expect(result.authorizationCode, 'apple-auth-code');
+    });
+
+    test('iOS: redirect URI в результате нет', () async {
+      final provider = create(answer: (_) => _credential());
+
+      expect((await provider.signIn()).webRedirectUri, isNull);
+    });
+
+    test('Android: redirect URI — тот же, что у входа', () async {
+      final provider = create(
+        platform: TargetPlatform.android,
+        answer: (_) => _credential(),
+      );
+
+      expect((await provider.signIn()).webRedirectUri, _redirect);
+    });
+
+    test('state сверяется и при повторном окне для удаления', () async {
+      final provider = create(answer: (_) => _credential(state: 'чужой'));
+
+      await expectLater(
+        provider.signIn(),
+        throwsA(isA<SocialSignInStateMismatchFailure>()),
       );
     });
   });

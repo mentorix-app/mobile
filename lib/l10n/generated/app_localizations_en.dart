@@ -114,6 +114,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get logoutAction => 'Sign out';
 
   @override
+  String get cancelAction => 'Cancel';
+
+  @override
+  String get profileTitle => 'Profile';
+
+  @override
+  String get profileOpenAction => 'Profile';
+
+  @override
+  String get profileNameLabel => 'Name';
+
+  @override
+  String get profileEmailLabel => 'Email';
+
+  @override
+  String get profileValueEmpty => 'Not set';
+
+  @override
+  String get deleteAccountAction => 'Delete account';
+
+  @override
+  String get deleteAccountDialogTitle => 'Delete account?';
+
+  @override
+  String get deleteAccountDialogBody =>
+      'Everything will be deleted: your link with the trainer, programs, workout marks and trainer comments, and the Telegram link. The account and its data cannot be restored.';
+
+  @override
+  String get deleteAccountConfirmAction => 'Delete permanently';
+
+  @override
   String get errorNetwork =>
       'No connection or the server is waking up. Check your connection and try again.';
 
@@ -147,6 +178,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorAppleStateMismatch =>
       'Could not verify Apple\'s response. Try signing in again.';
+
+  @override
+  String get errorAppleConfirmationRetry =>
+      'Could not confirm your Apple sign-in. Try again: the Apple window will open once more.';
+
+  @override
+  String get errorAppleAccountMismatch =>
+      'You signed in with a different Apple ID than the one this account was created with. Choose the same Apple ID.';
+
+  @override
+  String get errorAccountDeletionUnavailable =>
+      'This account cannot be deleted from the app. Please contact support.';
+
+  @override
+  String get errorAccountDeletionFailed =>
+      'Could not delete the account. Try again later.';
 
   @override
   String get errorInvalidRequest =>

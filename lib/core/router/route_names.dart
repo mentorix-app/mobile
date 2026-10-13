@@ -5,4 +5,5 @@ abstract final class RouteNames {
   static const telegramCode = '/onboarding/telegram/code';
   static const invite = '/onboarding/invite';
   static const home = '/';
+  static const profile = '/profile';
 }

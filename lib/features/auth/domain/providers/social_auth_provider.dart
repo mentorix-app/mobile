@@ -9,4 +9,9 @@ abstract class SocialAuthProvider {
   /// Бросает [SocialSignInCancelledFailure], если пользователь отказался,
   /// и [SocialSignInUnavailableFailure], если вход невозможен.
   Future<SocialCredential> signIn();
+
+  /// Отзывает у провайдера разрешение приложению (после удаления аккаунта,
+  /// чтобы при следующем входе Google снова спросил, какой аккаунт взять).
+  /// Никогда не бросает: сбой здесь не должен отменять уже выполненное удаление.
+  Future<void> disconnect();
 }
