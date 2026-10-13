@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mentorix_app/core/config/api_endpoints.dart';
+import 'package:mentorix_app/core/logging/app_talker.dart';
+import 'package:mentorix_app/core/logging/debug_log.dart';
 import 'package:mentorix_app/core/network/auth_interceptor.dart';
 import 'package:mentorix_app/core/network/auth_tokens.dart';
 import 'package:mentorix_app/core/network/session_expired_exception.dart';
@@ -15,6 +17,7 @@ import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_http_adapter.dart';
+import '../../helpers/talker_capture.dart';
 
 const _baseUrl = 'https://api.test';
 
@@ -255,6 +258,118 @@ void main() {
 
       expect(adapter.requestsTo(ApiEndpoints.authRefresh), hasLength(1));
       expect(await tokens.readRefreshToken(), 'old-refresh');
+    });
+  });
+
+  group('debug-строка о 401', () {
+    tearDown(() => DebugLog.debugModeOverride = null);
+
+    List<String> lines() =>
+        loggedMessages().where((l) => l.contains('401 на')).toList();
+
+    test('401 → refresh: метод и путь, значения токенов не пишутся', () async {
+      setUpClients(refreshResponder: (_) async => jsonBody(tokenJson()));
+      await signedInWith();
+
+      await apiDio.get<Object?>('/auth/me');
+
+      expect(lines(), ['[mentorix.http] 401 на GET /auth/me → refresh']);
+      final all = loggedMessages().join('\n');
+      expect(all, isNot(contains('old-access')));
+      expect(all, isNot(contains('old-refresh')));
+      expect(all, isNot(contains('new-access')));
+      expect(all, isNot(contains('Bearer')));
+    });
+
+    test('токен уже обновил другой запрос → «повтор с уже обновлённым»',
+        () async {
+      setUpClients(
+        refreshResponder: (_) async {
+          await Future<void>.delayed(const Duration(milliseconds: 30));
+          return jsonBody(tokenJson());
+        },
+      );
+      await signedInWith();
+
+      await Future.wait([
+        apiDio.get<Object?>('/a'),
+        apiDio.post<Object?>('/b'),
+        apiDio.get<Object?>('/c'),
+      ]);
+
+      final all = lines();
+      expect(all, hasLength(3));
+      expect(
+        all.where((l) => l.endsWith('→ refresh')),
+        hasLength(1),
+        reason: 'refresh ровно один',
+      );
+      expect(
+        all.where((l) => l.endsWith('→ повтор с уже обновлённым токеном')),
+        hasLength(2),
+      );
+      expect(adapter.requestsTo(ApiEndpoints.authRefresh), hasLength(1));
+    });
+
+    test('путь и метод у каждой строки свои', () async {
+      setUpClients(
+        refreshResponder: (_) async {
+          await Future<void>.delayed(const Duration(milliseconds: 30));
+          return jsonBody(tokenJson());
+        },
+      );
+      await signedInWith();
+
+      await Future.wait([
+        apiDio.get<Object?>('/a'),
+        apiDio.post<Object?>('/b'),
+      ]);
+
+      final all = lines().join('\n');
+      expect(all, contains('401 на GET /a'));
+      expect(all, contains('401 на POST /b'));
+    });
+
+    test('публичный запрос и 401 invalid_id_token: строки нет, refresh нет',
+        () async {
+      setUpClients(
+        refreshResponder: (_) async => jsonBody(tokenJson()),
+        routes: {
+          '/pub': (_) async =>
+              jsonBody({'code': 'invalid_token', 'message': 'x'}, status: 401),
+          '/del': (_) async =>
+              jsonBody({'code': 'invalid_id_token', 'message': 'x'}, status: 401),
+        },
+      );
+      await signedInWith();
+
+      await expectLater(
+        apiDio.get<Object?>(
+          '/pub',
+          options: Options(extra: {AuthInterceptor.skipAuthKey: true}),
+        ),
+        throwsA(isA<DioException>()),
+      );
+      await expectLater(
+        apiDio.delete<Object?>('/del'),
+        throwsA(isA<DioException>()),
+      );
+
+      expect(lines(), isEmpty);
+      expect(adapter.requestsTo(ApiEndpoints.authRefresh), isEmpty);
+    });
+
+    test('release: refresh работает, строки и Talker нет', () async {
+      DebugLog.debugModeOverride = false;
+      setUpClients(refreshResponder: (_) async => jsonBody(tokenJson()));
+      await signedInWith();
+
+      final response = await apiDio.get<Object?>('/auth/me');
+
+      expect(response.statusCode, 200);
+      expect(adapter.requestsTo(ApiEndpoints.authRefresh), hasLength(1));
+      expect(AppTalker.isCreated, isFalse);
+      expect(loggedMessages(), isEmpty);
     });
   });
 

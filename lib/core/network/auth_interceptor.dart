@@ -2,6 +2,7 @@ import 'dart:io' show HttpDate;
 
 import 'package:dio/dio.dart';
 import 'package:mentorix_app/core/config/api_endpoints.dart';
+import 'package:mentorix_app/core/logging/app_logger.dart';
 import 'package:mentorix_app/core/network/api_error_codes.dart';
 import 'package:mentorix_app/core/network/auth_tokens.dart';
 import 'package:mentorix_app/core/network/session_expired_exception.dart';
@@ -129,7 +130,15 @@ class AuthInterceptor extends QueuedInterceptor {
       final current = await _tokens.readAccessToken();
 
       // Кто-то уже обновил сессию, пока этот запрос был в пути.
-      final accessToken = current != null && sent != 'Bearer $current'
+      final alreadyRefreshed = current != null && sent != 'Bearer $current';
+
+      // Только debug: почему запрос повторяется. Значения токенов не пишутся.
+      AppLogger.http(
+        '401 на ${options.method} ${options.path} → '
+        '${alreadyRefreshed ? 'повтор с уже обновлённым токеном' : 'refresh'}',
+      );
+
+      final accessToken = alreadyRefreshed
           ? current
           : (await _refreshShared()).accessToken;
 
