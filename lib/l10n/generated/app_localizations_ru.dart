@@ -239,4 +239,18 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get errorOpenTelegram => 'Не удалось открыть Telegram.';
+
+  @override
+  String get trainerWebOnlyTitle =>
+      'Тренерские инструменты пока в веб-кабинете';
+
+  @override
+  String get trainerOpenDashboardAction => 'Открыть дашборд';
+
+  @override
+  String get adminWebOnlyTitle =>
+      'Администрирование доступно только в веб-кабинете';
+
+  @override
+  String get errorOpenDashboard => 'Не удалось открыть браузер.';
 }

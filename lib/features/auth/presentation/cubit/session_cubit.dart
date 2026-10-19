@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
+import 'package:mentorix_app/features/auth/domain/entities/app_mode.dart';
+import 'package:mentorix_app/features/auth/domain/entities/linked_trainer.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 import 'package:mentorix_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_state.dart';
@@ -49,11 +51,14 @@ class SessionCubit extends Cubit<SessionState> {
 
   /// Вызывается после входа и после привязки Telegram. Порядок из контракта:
   /// сначала `GET /auth/me`, затем `GET /client/trainers` — по его ответу
-  /// решается, показывать ли экран приглашения. Бросает [AuthFailure]; сессию
-  /// не завершает — решение за вызывающим.
+  /// решается, показывать ли экран приглашения. Список тренеров нужен только
+  /// клиентскому режиму: тренеру и администратору запрос не уходит. Бросает
+  /// [AuthFailure]; сессию не завершает — решение за вызывающим.
   Future<void> authenticate() async {
     final profile = await _repository.getProfile(forceRefresh: true);
-    final trainers = await _repository.getTrainers();
+    final trainers = profile.mode == AppMode.client
+        ? await _repository.getTrainers()
+        : const <LinkedTrainer>[];
     if (isClosed) return;
     emit(SessionAuthenticated(profile, trainers: trainers));
   }

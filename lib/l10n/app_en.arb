@@ -93,5 +93,9 @@
   "errorInviteNotAllowed": "This invitation cannot be accepted with your account.",
   "errorAdminAccount": "Administrator accounts cannot accept invitations.",
   "errorUnknown": "Something went wrong. Try again.",
-  "errorOpenTelegram": "Could not open Telegram."
+  "errorOpenTelegram": "Could not open Telegram.",
+  "trainerWebOnlyTitle": "Trainer tools are in the web dashboard for now",
+  "trainerOpenDashboardAction": "Open dashboard",
+  "adminWebOnlyTitle": "Administration is only available in the web dashboard",
+  "errorOpenDashboard": "Could not open the browser."
 }

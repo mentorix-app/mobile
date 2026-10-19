@@ -243,4 +243,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorOpenTelegram => 'Could not open Telegram.';
+
+  @override
+  String get trainerWebOnlyTitle =>
+      'Trainer tools are in the web dashboard for now';
+
+  @override
+  String get trainerOpenDashboardAction => 'Open dashboard';
+
+  @override
+  String get adminWebOnlyTitle =>
+      'Administration is only available in the web dashboard';
+
+  @override
+  String get errorOpenDashboard => 'Could not open the browser.';
 }

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mentorix_app/app.dart';
 import 'package:mentorix_app/core/config/telegram_config.dart';
 import 'package:mentorix_app/core/logging/app_talker.dart';
@@ -10,6 +11,7 @@ import 'package:mentorix_app/core/logging/debug_log.dart';
 import 'package:mentorix_app/core/network/session_expired_notifier.dart';
 import 'package:mentorix_app/core/router/app_router.dart';
 import 'package:mentorix_app/core/router/onboarding_flow.dart';
+import 'package:mentorix_app/core/router/route_names.dart';
 import 'package:mentorix_app/core/storage/storage_keys.dart';
 import 'package:mentorix_app/core/widgets/brand_svg_icon.dart';
 import 'package:mentorix_app/core/widgets/debug_logs_entry.dart';
@@ -28,6 +30,9 @@ import 'package:mentorix_app/features/auth/presentation/screens/splash_screen.da
 import 'package:mentorix_app/features/auth/presentation/screens/telegram_code_screen.dart';
 import 'package:mentorix_app/features/auth/presentation/screens/telegram_offer_screen.dart';
 import 'package:mentorix_app/features/home/presentation/screens/home_screen.dart';
+import 'package:mentorix_app/features/mode/presentation/cubit/dashboard_link_cubit.dart';
+import 'package:mentorix_app/features/mode/presentation/screens/admin_web_only_screen.dart';
+import 'package:mentorix_app/features/mode/presentation/screens/trainer_web_only_screen.dart';
 import 'package:mentorix_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:mentorix_app/features/theme/data/repositories/theme_repository_impl.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
@@ -77,6 +82,7 @@ void main() {
     UserProfile profile = testProfile,
     bool inviteDone = true,
     String botName = 'mentorix_test_bot',
+    String dashboardUrl = 'https://dashboard.test/trainer',
     bool appleAvailable = false,
     List<LinkedTrainer> trainers = const [],
   }) async {
@@ -115,6 +121,9 @@ void main() {
       )
       ..registerFactory<InviteCubit>(
         () => InviteCubit(repository, session, flow),
+      )
+      ..registerFactory<DashboardLinkCubit>(
+        () => DashboardLinkCubit(launcher, url: dashboardUrl),
       )
       ..registerFactory<AccountDeletionCubit>(
         () => AccountDeletionCubit(repository, session, flow),
@@ -656,6 +665,345 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(brandIcon(FontAwesomeIcons.telegram), findsOneWidget);
+    });
+  });
+
+  group('режим по ролям из /auth/me', () {
+    // Профиль, который онбординг отправил бы на Telegram и приглашение: тренер
+    // и администратор его проходить не должны.
+    UserProfile unfinished(List<String> roles) =>
+        unlinkedProfileWithRoles(roles);
+
+    GoRouter routerOf(WidgetTester tester) =>
+        GoRouter.of(tester.element(find.byType(Scaffold).first));
+
+    Future<void> openProfileFrom(WidgetTester tester, _Harness app) async {
+      await tester.tap(find.text(app.l10n.profileOpenAction));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> tryDeleteAccount(WidgetTester tester, _Harness app) async {
+      app.repository.deleteFailure = const AccountDeletionUnavailableFailure();
+      await tester.tap(find.text(app.l10n.deleteAccountAction));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(app.l10n.deleteAccountConfirmAction));
+      await tester.pumpAndSettle();
+    }
+
+    group('client', () {
+      testWidgets('клиентский поток: онбординг, затем главный экран', (
+        tester,
+      ) async {
+        await pumpApp(
+          tester,
+          profile: unfinished(['client']),
+          inviteDone: false,
+        );
+
+        expect(find.byType(TelegramOfferScreen), findsOneWidget);
+        expect(find.byType(TrainerWebOnlyScreen), findsNothing);
+        expect(find.byType(AdminWebOnlyScreen), findsNothing);
+      });
+
+      testWidgets('онбординг пройден → главный экран', (tester) async {
+        await pumpApp(tester, profile: profileWithRoles(['client']));
+
+        expect(find.byType(HomeScreen), findsOneWidget);
+      });
+
+      testWidgets('экраны тренера и администратора клиенту недоступны', (
+        tester,
+      ) async {
+        await pumpApp(tester, profile: profileWithRoles(['client']));
+
+        routerOf(tester).go(RouteNames.trainerWebOnly);
+        await tester.pumpAndSettle();
+        expect(find.byType(HomeScreen), findsOneWidget);
+
+        routerOf(tester).go(RouteNames.adminWebOnly);
+        await tester.pumpAndSettle();
+        expect(find.byType(HomeScreen), findsOneWidget);
+      });
+
+      testWidgets('роли в ответе нет → тоже клиентский поток', (tester) async {
+        await pumpApp(tester, profile: testProfile);
+
+        expect(find.byType(HomeScreen), findsOneWidget);
+      });
+    });
+
+    group('client + trainer', () {
+      testWidgets('пока клиентский поток, экрана тренера нет', (tester) async {
+        final app = await pumpApp(
+          tester,
+          profile: unfinished(['client', 'trainer']),
+          inviteDone: false,
+        );
+
+        expect(find.byType(TelegramOfferScreen), findsOneWidget);
+        expect(find.byType(TrainerWebOnlyScreen), findsNothing);
+        expect(app.repository.trainersCalls, 1);
+      });
+
+      testWidgets('главный экран клиента, переключателя режимов нет', (
+        tester,
+      ) async {
+        final app = await pumpApp(
+          tester,
+          profile: profileWithRoles(['client', 'trainer']),
+        );
+
+        expect(find.byType(HomeScreen), findsOneWidget);
+        expect(find.text(app.l10n.trainerOpenDashboardAction), findsNothing);
+      });
+    });
+
+    group('trainer', () {
+      testWidgets('экран «пока в веб-кабинете» вместо онбординга', (
+        tester,
+      ) async {
+        final app = await pumpApp(
+          tester,
+          profile: unfinished(['trainer']),
+          inviteDone: false,
+        );
+
+        expect(find.byType(TrainerWebOnlyScreen), findsOneWidget);
+        expect(find.text(app.l10n.trainerWebOnlyTitle), findsOneWidget);
+        expect(find.byType(TelegramOfferScreen), findsNothing);
+        expect(find.byType(InviteScreen), findsNothing);
+        expect(find.byType(HomeScreen), findsNothing);
+        expect(app.repository.trainersCalls, 0);
+      });
+
+      testWidgets('русский текст экрана', (tester) async {
+        final app = await pumpApp(
+          tester,
+          locale: const Locale('ru'),
+          profile: profileWithRoles(['trainer']),
+        );
+
+        expect(
+          find.text('Тренерские инструменты пока в веб-кабинете'),
+          findsOneWidget,
+        );
+        expect(app.l10n.trainerOpenDashboardAction, 'Открыть дашборд');
+      });
+
+      testWidgets('главный и чужие экраны ведут обратно на экран тренера', (
+        tester,
+      ) async {
+        await pumpApp(tester, profile: profileWithRoles(['trainer']));
+
+        for (final route in [
+          RouteNames.home,
+          RouteNames.telegramOffer,
+          RouteNames.invite,
+          RouteNames.adminWebOnly,
+        ]) {
+          routerOf(tester).go(route);
+          await tester.pumpAndSettle();
+          expect(
+            find.byType(TrainerWebOnlyScreen),
+            findsOneWidget,
+            reason: route,
+          );
+        }
+      });
+
+      testWidgets('«Открыть дашборд» открывает адрес из конфига', (
+        tester,
+      ) async {
+        final app = await pumpApp(
+          tester,
+          profile: profileWithRoles(['trainer']),
+        );
+
+        await tester.tap(find.text(app.l10n.trainerOpenDashboardAction));
+        await tester.pumpAndSettle();
+
+        expect(app.launcher.opened, [Uri.parse('https://dashboard.test/trainer')]);
+      });
+
+      testWidgets('браузер не открылся — сообщение об ошибке', (tester) async {
+        final app = await pumpApp(
+          tester,
+          profile: profileWithRoles(['trainer']),
+        );
+        app.launcher.result = false;
+
+        await tester.tap(find.text(app.l10n.trainerOpenDashboardAction));
+        await tester.pumpAndSettle();
+
+        expect(find.text(app.l10n.errorOpenDashboard), findsOneWidget);
+      });
+
+      testWidgets('адрес — плейсхолдер: кнопка неактивна, ничего не открывается', (
+        tester,
+      ) async {
+        final app = await pumpApp(
+          tester,
+          profile: profileWithRoles(['trainer']),
+          dashboardUrl: 'YOUR_DASHBOARD_URL',
+        );
+
+        final button = tester.widget<FilledButton>(
+          find.widgetWithText(FilledButton, app.l10n.trainerOpenDashboardAction),
+        );
+        expect(button.onPressed, isNull);
+        expect(app.launcher.opened, isEmpty);
+      });
+
+      testWidgets('профиль с выходом', (tester) async {
+        final app = await pumpApp(
+          tester,
+          profile: profileWithRoles(['trainer']),
+        );
+        await openProfileFrom(tester, app);
+
+        expect(find.byType(ProfileScreen), findsOneWidget);
+        await tester.tap(find.text(app.l10n.logoutAction));
+        await tester.pumpAndSettle();
+
+        expect(app.repository.logoutCalls, 1);
+        expect(find.byType(LoginScreen), findsOneWidget);
+      });
+
+      testWidgets('удаление: 409 → «обратитесь в поддержку», сессия цела', (
+        tester,
+      ) async {
+        final app = await pumpApp(
+          tester,
+          profile: profileWithRoles(['trainer']),
+        );
+        await openProfileFrom(tester, app);
+
+        await tryDeleteAccount(tester, app);
+
+        expect(app.repository.deleteCalls, [false]);
+        expect(find.text(app.l10n.errorAccountDeletionUnavailable), findsOneWidget);
+        expect(app.l10n.errorAccountDeletionUnavailable, contains('contact support'));
+        expect(find.byType(ProfileScreen), findsOneWidget);
+        expect(find.byType(LoginScreen), findsNothing);
+      });
+
+      testWidgets('русский текст отказа в удалении', (tester) async {
+        final app = await pumpApp(
+          tester,
+          locale: const Locale('ru'),
+          profile: profileWithRoles(['trainer']),
+        );
+        await openProfileFrom(tester, app);
+
+        await tryDeleteAccount(tester, app);
+
+        expect(find.textContaining('Обратитесь в поддержку'), findsOneWidget);
+      });
+    });
+
+    group('admin', () {
+      testWidgets('экран «только в веб-кабинете» вместо онбординга', (
+        tester,
+      ) async {
+        final app = await pumpApp(
+          tester,
+          profile: unfinished(['admin']),
+          inviteDone: false,
+        );
+
+        expect(find.byType(AdminWebOnlyScreen), findsOneWidget);
+        expect(find.text(app.l10n.adminWebOnlyTitle), findsOneWidget);
+        expect(find.byType(TelegramOfferScreen), findsNothing);
+        expect(find.byType(InviteScreen), findsNothing);
+        expect(find.byType(HomeScreen), findsNothing);
+        expect(app.repository.trainersCalls, 0);
+      });
+
+      testWidgets('русский текст экрана', (tester) async {
+        await pumpApp(
+          tester,
+          locale: const Locale('ru'),
+          profile: profileWithRoles(['admin']),
+        );
+
+        expect(
+          find.text('Администрирование доступно только в веб-кабинете'),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('кнопки дашборда у администратора нет', (tester) async {
+        final app = await pumpApp(
+          tester,
+          profile: profileWithRoles(['admin']),
+        );
+
+        expect(find.text(app.l10n.trainerOpenDashboardAction), findsNothing);
+      });
+
+      testWidgets('другие экраны ведут обратно на экран администратора', (
+        tester,
+      ) async {
+        await pumpApp(tester, profile: profileWithRoles(['admin']));
+
+        for (final route in [
+          RouteNames.home,
+          RouteNames.invite,
+          RouteNames.trainerWebOnly,
+        ]) {
+          routerOf(tester).go(route);
+          await tester.pumpAndSettle();
+          expect(
+            find.byType(AdminWebOnlyScreen),
+            findsOneWidget,
+            reason: route,
+          );
+        }
+      });
+
+      testWidgets('«Выйти» на самом экране', (tester) async {
+        final app = await pumpApp(
+          tester,
+          profile: profileWithRoles(['admin']),
+        );
+
+        await tester.tap(find.text(app.l10n.logoutAction));
+        await tester.pumpAndSettle();
+
+        expect(app.repository.logoutCalls, 1);
+        expect(find.byType(LoginScreen), findsOneWidget);
+      });
+
+      testWidgets('удаление: 409 → «обратитесь в поддержку»', (tester) async {
+        final app = await pumpApp(
+          tester,
+          profile: profileWithRoles(['admin']),
+        );
+        await openProfileFrom(tester, app);
+
+        await tryDeleteAccount(tester, app);
+
+        expect(find.text(app.l10n.errorAccountDeletionUnavailable), findsOneWidget);
+        expect(find.byType(ProfileScreen), findsOneWidget);
+      });
+    });
+
+    testWidgets('вход тренера: режим берётся из ролей, а не из входа', (
+      tester,
+    ) async {
+      final app = await pumpApp(
+        tester,
+        sessionState: _Session.unauthenticated,
+        profile: unfinished(['trainer']),
+        inviteDone: false,
+      );
+      expect(find.byType(LoginScreen), findsOneWidget);
+
+      await tester.tap(find.text(app.l10n.signInWithGoogle));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TrainerWebOnlyScreen), findsOneWidget);
+      expect(find.byType(TelegramOfferScreen), findsNothing);
     });
   });
 

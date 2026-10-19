@@ -73,5 +73,9 @@
   "errorInviteNotAllowed": "С вашей учётной записью это приглашение принять нельзя.",
   "errorAdminAccount": "Учётная запись администратора не может принимать приглашения.",
   "errorUnknown": "Что-то пошло не так. Попробуйте ещё раз.",
-  "errorOpenTelegram": "Не удалось открыть Telegram."
+  "errorOpenTelegram": "Не удалось открыть Telegram.",
+  "trainerWebOnlyTitle": "Тренерские инструменты пока в веб-кабинете",
+  "trainerOpenDashboardAction": "Открыть дашборд",
+  "adminWebOnlyTitle": "Администрирование доступно только в веб-кабинете",
+  "errorOpenDashboard": "Не удалось открыть браузер."
 }

@@ -19,6 +19,7 @@ import 'package:mentorix_app/features/auth/presentation/cubit/invite_cubit.dart'
 import 'package:mentorix_app/features/auth/presentation/cubit/login_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/telegram_link_cubit.dart';
+import 'package:mentorix_app/features/mode/presentation/cubit/dashboard_link_cubit.dart';
 import 'package:mentorix_app/features/theme/data/repositories/theme_repository_impl.dart';
 import 'package:mentorix_app/features/theme/domain/repositories/theme_repository.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
@@ -102,6 +103,9 @@ Future<void> configureDependencies() async {
       getIt<OnboardingFlow>(),
       getIt<ExternalLinkLauncher>(),
     ),
+  );
+  getIt.registerFactory<DashboardLinkCubit>(
+    () => DashboardLinkCubit(getIt<ExternalLinkLauncher>()),
   );
   getIt.registerFactory<AccountDeletionCubit>(
     () => AccountDeletionCubit(

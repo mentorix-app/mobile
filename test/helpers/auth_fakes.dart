@@ -159,3 +159,21 @@ class FakeAuthRepository implements AuthRepository {
     hasSession = false;
   }
 }
+
+/// Профиль с заданными ролями из `GET /auth/me`.
+UserProfile profileWithRoles(List<String> roles) => UserProfile(
+  userId: 'user-1',
+  email: 'user@example.com',
+  name: 'Test User',
+  telegramLinked: true,
+  roles: roles,
+);
+
+/// То же, но Telegram не привязан: клиента ведёт на предложение привязать.
+UserProfile unlinkedProfileWithRoles(List<String> roles) => UserProfile(
+  userId: 'user-1',
+  email: 'user@example.com',
+  name: 'Test User',
+  telegramLinked: false,
+  roles: roles,
+);

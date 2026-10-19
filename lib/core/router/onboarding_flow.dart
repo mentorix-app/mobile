@@ -1,11 +1,16 @@
 import 'package:mentorix_app/core/router/route_names.dart';
 import 'package:mentorix_app/core/storage/storage_keys.dart';
+import 'package:mentorix_app/features/auth/domain/entities/app_mode.dart';
 import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Порядок экранов после входа (`docs/auth_api.md`): профиль → если
 /// `telegram_linked == false`, предложение привязать Telegram → если
 /// `GET /client/trainers` вернул пустой `items`, приглашение.
+///
+/// Онбординг — только клиентский режим. Тренер и администратор получают свой
+/// экран сразу: Telegram им не предлагается, а приглашение администратор принять
+/// не может (403 `admin_cannot_accept`).
 ///
 /// Приглашение нельзя принимать раньше привязки Telegram: после него
 /// привязать Telegram к старой учётной записи уже не получится (409).
@@ -20,6 +25,15 @@ class OnboardingFlow {
   /// [hasTrainer] — `items` из `GET /client/trainers` не пуст: приглашение
   /// такому клиенту не показывается.
   String nextRoute(UserProfile profile, {required bool hasTrainer}) {
+    switch (profile.mode) {
+      case AppMode.trainer:
+        return RouteNames.trainerWebOnly;
+      case AppMode.admin:
+        return RouteNames.adminWebOnly;
+      case AppMode.client:
+        break;
+    }
+
     final id = profile.userId;
 
     final offerDone =

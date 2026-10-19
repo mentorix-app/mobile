@@ -505,6 +505,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not open Telegram.'**
   String get errorOpenTelegram;
+
+  /// No description provided for @trainerWebOnlyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer tools are in the web dashboard for now'**
+  String get trainerWebOnlyTitle;
+
+  /// No description provided for @trainerOpenDashboardAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Open dashboard'**
+  String get trainerOpenDashboardAction;
+
+  /// No description provided for @adminWebOnlyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Administration is only available in the web dashboard'**
+  String get adminWebOnlyTitle;
+
+  /// No description provided for @errorOpenDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the browser.'**
+  String get errorOpenDashboard;
 }
 
 class _AppLocalizationsDelegate

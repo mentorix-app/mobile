@@ -4,5 +4,6 @@
   "GOOGLE_IOS_CLIENT_ID": "437977573630-19gdn5igg4t37erfeul4k91uv7v7k8ir.apps.googleusercontent.com",
   "TELEGRAM_BOT_NAME": "mentorix_dev_bot",
   "APPLE_SERVICE_ID": "com.mentorix.mobile.signin",
-  "APPLE_REDIRECT_URI": "https://mentorix-api-stage.onrender.com/auth/apple/callback"
+  "APPLE_REDIRECT_URI": "https://mentorix-api-stage.onrender.com/auth/apple/callback",
+  "DASHBOARD_URL": "YOUR_DASHBOARD_URL"
 }

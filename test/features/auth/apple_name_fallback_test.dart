@@ -12,6 +12,7 @@ import 'package:mentorix_app/features/auth/data/repositories/auth_repository_imp
 import 'package:mentorix_app/features/auth/data/social/apple_auth_provider.dart';
 import 'package:mentorix_app/features/auth/data/storage/pending_apple_name_storage.dart';
 import 'package:mentorix_app/features/auth/domain/entities/social_credential.dart';
+import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 import 'package:mentorix_app/features/auth/domain/providers/social_auth_provider.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_state.dart';
@@ -46,6 +47,9 @@ void main() {
   /// Статус, которым сервер отвечает на PATCH; `null` — успех (204).
   int? patchStatus;
 
+  /// Статус, которым сервер отвечает на `POST /auth/apple`; `null` — успех.
+  int? appleStatus;
+
   /// Имена, которые Apple вернёт на очередных входах по порядку.
   late List<({String? given, String? family})> appleNames;
 
@@ -57,6 +61,7 @@ void main() {
   }) async {
     serverName = initialServerName;
     patchStatus = failPatchWith;
+    appleStatus = null;
     appleNames = [...?names];
 
     FlutterSecureStorage.setMockInitialValues({
@@ -68,6 +73,10 @@ void main() {
     adapter = FakeHttpAdapter((options) async {
       final key = '${options.method} ${options.path}';
       return switch (key) {
+        'POST ${ApiEndpoints.authApple}' when appleStatus != null => jsonBody({
+          'code': 'internal',
+          'message': 'x',
+        }, status: appleStatus!),
         'POST ${ApiEndpoints.authApple}' ||
         'POST ${ApiEndpoints.authGoogle}' => jsonBody(tokenJson()),
         'GET ${ApiEndpoints.authMe}' => jsonBody({
@@ -231,6 +240,43 @@ void main() {
     expect(patches().single.data, {'name': 'Ivan Petrov'});
     expect(profileName(), 'Ivan Petrov');
     expect(await pending(), isNull);
+  });
+
+  test('name уходит в POST /auth/apple каждый раз, пока имя у нас есть', () async {
+    // 1. Вход упал на сервере (503): имя от Apple осталось в хранилище.
+    await setUpStack(
+      names: [
+        (given: 'Ivan', family: 'Petrov'),
+        // Дальше Apple имя уже не отдаёт.
+        (given: null, family: null),
+        (given: null, family: null),
+      ],
+    );
+    appleStatus = 503;
+    await expectLater(repository.signInWithApple(), throwsA(isA<AuthFailure>()));
+    expect(await pending(), 'Ivan Petrov');
+
+    // 2. Повтор: Apple имени не дал, name берётся из PendingAppleNameStorage.
+    appleStatus = null;
+    await signInWithApple();
+
+    final bodies = [
+      for (final r in adapter.requests.where((r) => r.path == ApiEndpoints.authApple))
+        (r.data as Map)['name'],
+    ];
+    expect(bodies, ['Ivan Petrov', 'Ivan Petrov'], reason: 'оба запроса с именем');
+
+    // 3. Имя принято (PATCH записал его): хранить нечего, больше слать нечего.
+    expect(await pending(), isNull);
+    adapter.requests.clear();
+    await signInWithApple();
+    expect(
+      (adapter.requests.firstWhere((r) => r.path == ApiEndpoints.authApple).data
+              as Map)
+          .containsKey('name'),
+      isFalse,
+      reason: 'имени у нас больше нет',
+    );
   });
 
   test('PATCH один раз за вход: повторный /auth/me его не шлёт', () async {

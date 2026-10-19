@@ -44,6 +44,7 @@ signing»).
 | `TELEGRAM_BOT_NAME` | имя бота без `@` (stage: `mentorix_dev_bot`) |
 | `APPLE_SERVICE_ID` | Services ID Apple (`com.mentorix.mobile.signin`): `clientId` веб-потока на Android |
 | `APPLE_REDIRECT_URI` | Return URL Services ID: `…/auth/apple/callback` на бэкенде; на Android возвращает в приложение через `SignInWithAppleCallback` |
+| `DASHBOARD_URL` | адрес веб-кабинета для экрана тренера; пока плейсхолдер `YOUR_DASHBOARD_URL`, кнопка «Открыть дашборд» неактивна |
 
 - Без `--dart-define-from-file` приложение запускается, но вход через Google
   (и через Apple на Android) сообщает, что он не настроен, а кнопка «Открыть бота»

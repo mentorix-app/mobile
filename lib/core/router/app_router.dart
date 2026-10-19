@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mentorix_app/core/router/onboarding_flow.dart';
 import 'package:mentorix_app/core/router/route_names.dart';
+import 'package:mentorix_app/features/auth/domain/entities/app_mode.dart';
 import 'package:mentorix_app/features/auth/domain/entities/user_profile.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/account_deletion_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/invite_cubit.dart';
@@ -18,6 +19,9 @@ import 'package:mentorix_app/features/auth/presentation/screens/telegram_code_sc
 import 'package:mentorix_app/features/auth/presentation/screens/telegram_offer_screen.dart';
 import 'package:mentorix_app/features/auth/presentation/session_refresh_listenable.dart';
 import 'package:mentorix_app/features/home/presentation/screens/home_screen.dart';
+import 'package:mentorix_app/features/mode/presentation/cubit/dashboard_link_cubit.dart';
+import 'package:mentorix_app/features/mode/presentation/screens/admin_web_only_screen.dart';
+import 'package:mentorix_app/features/mode/presentation/screens/trainer_web_only_screen.dart';
 import 'package:mentorix_app/features/profile/presentation/screens/profile_screen.dart';
 
 /// Роутер зависит от сессии: куда можно попасть, решает [SessionCubit],
@@ -84,6 +88,17 @@ GoRouter createAppRouter({
         builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
+        path: RouteNames.trainerWebOnly,
+        builder: (context, state) => BlocProvider(
+          create: (_) => GetIt.I<DashboardLinkCubit>(),
+          child: const TrainerWebOnlyScreen(),
+        ),
+      ),
+      GoRoute(
+        path: RouteNames.adminWebOnly,
+        builder: (context, state) => const AdminWebOnlyScreen(),
+      ),
+      GoRoute(
         path: RouteNames.profile,
         builder: (context, state) => BlocProvider(
           create: (_) => GetIt.I<AccountDeletionCubit>(),
@@ -104,6 +119,18 @@ String? _authenticatedRedirect(
 
   // Вход и заставка: сразу на следующий шаг.
   if (location == RouteNames.splash || location == RouteNames.login) {
+    return next;
+  }
+
+  // Режим задан ролями из /auth/me. Тренер и администратор видят только свой
+  // экран и профиль (выход, удаление); онбординг и главный экран — не для них.
+  if (profile.mode != AppMode.client) {
+    return location == next || location == RouteNames.profile ? null : next;
+  }
+
+  // Клиенту экраны тренера и администратора недоступны.
+  if (location == RouteNames.trainerWebOnly ||
+      location == RouteNames.adminWebOnly) {
     return next;
   }
   // Главный экран недоступен, пока не пройден порядок «Telegram → приглашение».

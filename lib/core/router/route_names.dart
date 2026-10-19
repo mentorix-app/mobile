@@ -6,4 +6,6 @@ abstract final class RouteNames {
   static const invite = '/onboarding/invite';
   static const home = '/';
   static const profile = '/profile';
+  static const trainerWebOnly = '/trainer';
+  static const adminWebOnly = '/admin';
 }
