@@ -44,5 +44,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Claude Code — правила, скиллы и локальные настройки, в репозиторий не идут
-.claude/
+# Claude Code: правила (CLAUDE.md), наши скиллы и команды идут в репозиторий.
+# Не идут: внешний скилл со своим .git и локальные настройки.
+.claude/skills/apple-design/
+.claude/*.local.*
