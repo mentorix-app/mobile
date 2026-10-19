@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -823,6 +826,29 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(app.launcher.opened, [Uri.parse('https://dashboard.test/trainer')]);
+      });
+
+      testWidgets('адрес из config/stage.json: кнопка активна и открывает его', (
+        tester,
+      ) async {
+        final stage =
+            jsonDecode(File('config/stage.json').readAsStringSync())
+                as Map<String, dynamic>;
+        final url = stage['DASHBOARD_URL'] as String;
+        final app = await pumpApp(
+          tester,
+          profile: profileWithRoles(['trainer']),
+          dashboardUrl: url,
+        );
+
+        final button = tester.widget<FilledButton>(
+          find.widgetWithText(FilledButton, app.l10n.trainerOpenDashboardAction),
+        );
+        expect(button.onPressed, isNotNull);
+
+        await tester.tap(find.text(app.l10n.trainerOpenDashboardAction));
+        await tester.pumpAndSettle();
+        expect(app.launcher.opened, [Uri.parse(url)]);
       });
 
       testWidgets('браузер не открылся — сообщение об ошибке', (tester) async {

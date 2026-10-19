@@ -44,7 +44,7 @@ signing»).
 | `TELEGRAM_BOT_NAME` | имя бота без `@` (stage: `mentorix_dev_bot`) |
 | `APPLE_SERVICE_ID` | Services ID Apple (`com.mentorix.mobile.signin`): `clientId` веб-потока на Android |
 | `APPLE_REDIRECT_URI` | Return URL Services ID: `…/auth/apple/callback` на бэкенде; на Android возвращает в приложение через `SignInWithAppleCallback` |
-| `DASHBOARD_URL` | адрес веб-кабинета для экрана тренера; пока плейсхолдер `YOUR_DASHBOARD_URL`, кнопка «Открыть дашборд» неактивна |
+| `DASHBOARD_URL` | адрес веб-кабинета для экрана тренера (stage: `https://dashboard-u7fz.onrender.com`); без значения кнопка «Открыть дашборд» неактивна |
 
 - Без `--dart-define-from-file` приложение запускается, но вход через Google
   (и через Apple на Android) сообщает, что он не настроен, а кнопка «Открыть бота»
@@ -107,5 +107,6 @@ python3 tool/generate_app_icons.py && dart run flutter_launcher_icons
 | `docs/ROADMAP.md` | этапы, решения, сценарии проверки, вопросы к бэкенду |
 | `docs/APP_LOGIC.md` | как приложение работает (поведение) |
 | `docs/FEATURES.md` | что умеет приложение: обзор функций для людей, статусы, проверка на устройствах |
+| `docs/BRAND.md` | термины программы (RU/EN), бренд и сравнение с темой приложения |
 | `docs/BUGS.md` | найденные проблемы |
 | `docs/auth_api.md` | контракт API авторизации |

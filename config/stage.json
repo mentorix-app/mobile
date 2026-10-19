@@ -5,5 +5,5 @@
   "TELEGRAM_BOT_NAME": "mentorix_dev_bot",
   "APPLE_SERVICE_ID": "com.mentorix.mobile.signin",
   "APPLE_REDIRECT_URI": "https://mentorix-api-stage.onrender.com/auth/apple/callback",
-  "DASHBOARD_URL": "YOUR_DASHBOARD_URL"
+  "DASHBOARD_URL": "https://dashboard-u7fz.onrender.com"
 }
