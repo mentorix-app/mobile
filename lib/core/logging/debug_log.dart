@@ -6,7 +6,7 @@ import 'package:mentorix_app/core/logging/app_talker.dart';
 ///
 /// Пишет в [AppTalker]: строки видны в консоли `flutter run`, в Debug Console
 /// VS Code и на экране логов (долгое нажатие на заголовок профиля). Тег
-/// остаётся в тексте: `[mentorix.apple] …`, `[mentorix.delete] …`.
+/// остаётся в тексте: `[mentorix.apple] …`.
 ///
 /// Правила: токены, пароли и тела запросов сюда не попадают (тела запросов к
 /// API пишет `MaskedTalkerDioLogger` с маскировкой секретов). Допустимы

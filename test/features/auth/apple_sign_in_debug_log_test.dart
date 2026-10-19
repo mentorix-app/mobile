@@ -34,8 +34,9 @@ class _NoGoogle implements SocialAuthProvider {
   Future<void> disconnect() async {}
 }
 
-/// Debug-журнал входа через Apple: что вернул Apple, ушло ли имя в тело
-/// `POST /auth/apple` и откуда оно взято. Токены в журнал не попадают.
+/// Вход через Apple не пишет в debug-журнал подробностей: ни credential, ни
+/// источник имени, ни тело запроса (тело пишет только `MaskedTalkerDioLogger`).
+/// Имя при этом по-прежнему уходит в `POST /auth/apple`.
 void main() {
   late FakeHttpAdapter adapter;
 
@@ -86,58 +87,30 @@ void main() {
 
   tearDown(() => DebugLog.debugModeOverride = null);
 
-  test('Apple отдал имя: оно в журнале и в теле, источник — credential', () async {
+  test('Apple отдал имя: оно уходит в тело, а подробностей в журнале нет',
+      () async {
     await signIn(givenName: 'Ivan', familyName: 'Petrov');
 
-    final lines = appleLines();
-    expect(
-      lines.any(
-        (l) => l.contains('givenName="Ivan"') && l.contains('familyName="Petrov"'),
-      ),
-      isTrue,
-      reason: 'значения givenName и familyName видны',
-    );
-    expect(
-      lines.any((l) => l.contains('name source: Apple credential')),
-      isTrue,
-    );
-    expect(
-      lines.any((l) => l.contains('POST /auth/apple') && l.contains('name="Ivan Petrov"')),
-      isTrue,
-      reason: 'поле name в теле и его значение',
-    );
-
-    // Журнал совпадает с реальным телом запроса.
     expect(adapter.requests.single.data, {
       'id_token': _identityToken,
       'name': 'Ivan Petrov',
     });
+    expect(appleLines(), isEmpty, reason: 'ни credential, ни источника имени');
+    expect(loggedMessages().join('\n'), isNot(contains('Ivan')));
   });
 
-  test('Apple имени не отдал, но оно сохранено: источник — PendingAppleNameStorage',
-      () async {
+  test('имя из PendingAppleNameStorage уходит в тело, журнал пуст', () async {
     await signIn(pendingName: 'Saved Name');
 
-    final lines = appleLines();
-    expect(
-      lines.any((l) => l.contains('givenName=null') && l.contains('familyName=null')),
-      isTrue,
-    );
-    expect(
-      lines.any((l) => l.contains('name source: PendingAppleNameStorage')),
-      isTrue,
-    );
-    expect(lines.any((l) => l.contains('name="Saved Name"')), isTrue);
     expect((adapter.requests.single.data as Map)['name'], 'Saved Name');
+    expect(appleLines(), isEmpty);
   });
 
-  test('имени нет нигде: поля name в теле нет, и это видно в журнале', () async {
+  test('имени нет нигде: поля name в теле нет, журнал пуст', () async {
     await signIn();
 
-    final lines = appleLines();
-    expect(lines.any((l) => l.contains('name source: none')), isTrue);
-    expect(lines.any((l) => l.contains('body:') && l.contains('name=absent')), isTrue);
     expect((adapter.requests.single.data as Map).containsKey('name'), isFalse);
+    expect(appleLines(), isEmpty);
   });
 
   test('токены и код авторизации в журнал не попадают', () async {
@@ -149,9 +122,6 @@ void main() {
     expect(all, isNot(contains('new-access')));
     expect(all, isNot(contains('new-refresh')));
     expect(all, isNot(contains('Bearer')));
-    // Но наличие токена отмечено.
-    expect(all, contains('identityToken=yes'));
-    expect(all, contains('id_token=yes'));
   });
 
   test('release: вход работает, а журнала нет вовсе', () async {

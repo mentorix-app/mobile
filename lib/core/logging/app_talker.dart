@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:mentorix_app/core/logging/console_logger_formatter.dart';
 import 'package:mentorix_app/core/logging/debug_log.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
@@ -22,6 +23,7 @@ abstract final class AppTalker {
     );
 
     return _instance ??= Talker(
+      logger: TalkerLogger(formatter: const ConsoleLoggerFormatter()),
       settings: TalkerSettings(
         useConsoleLogs: _console,
         maxHistoryItems: maxHistoryItems,
