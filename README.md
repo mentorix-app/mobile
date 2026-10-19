@@ -106,5 +106,6 @@ python3 tool/generate_app_icons.py && dart run flutter_launcher_icons
 |---|---|
 | `docs/ROADMAP.md` | этапы, решения, сценарии проверки, вопросы к бэкенду |
 | `docs/APP_LOGIC.md` | как приложение работает (поведение) |
+| `docs/FEATURES.md` | что умеет приложение: обзор функций для людей, статусы, проверка на устройствах |
 | `docs/BUGS.md` | найденные проблемы |
 | `docs/auth_api.md` | контракт API авторизации |
