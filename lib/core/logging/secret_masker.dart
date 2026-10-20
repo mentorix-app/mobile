@@ -12,7 +12,8 @@ abstract final class SecretMasker {
 
   static const _headerNames = {'authorization', 'cookie', 'set-cookie'};
 
-  /// `token` — одноразовый токен приглашения тренера (`/client/invites/accept`).
+  /// `token` — одноразовый токен приглашения тренера (`/client/invites/accept`);
+  /// `nonce` — исходная строка защиты входа (`/auth/apple`, `/auth/google`).
   static const _bodyKeys = {
     'access_token',
     'refresh_token',
@@ -20,6 +21,7 @@ abstract final class SecretMasker {
     'apple_id_token',
     'apple_authorization_code',
     'token',
+    'nonce',
   };
 
   static bool isSecretHeader(String name) =>

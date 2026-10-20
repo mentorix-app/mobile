@@ -27,7 +27,7 @@ class _NoGoogle implements SocialAuthProvider {
   bool get isAvailable => true;
 
   @override
-  Future<SocialCredential> signIn() async =>
+  Future<SocialCredential> signIn({bool withNonce = false}) async =>
       throw const SocialSignInUnavailableFailure();
 
   @override
@@ -63,7 +63,7 @@ void main() {
       pendingAppleName: PendingAppleNameStorage(const FlutterSecureStorage()),
       google: _NoGoogle(),
       apple: AppleAuthProvider(
-        request: ({required scopes, webAuthenticationOptions, state}) async =>
+        request: ({required scopes, webAuthenticationOptions, nonce, state}) async =>
             AuthorizationCredentialAppleID(
               userIdentifier: 'apple-user',
               givenName: givenName,
@@ -94,6 +94,7 @@ void main() {
     expect(adapter.requests.single.data, {
       'id_token': _identityToken,
       'name': 'Ivan Petrov',
+      'nonce': isA<String>(),
     });
     expect(appleLines(), isEmpty, reason: 'ни credential, ни источника имени');
     expect(loggedMessages().join('\n'), isNot(contains('Ivan')));

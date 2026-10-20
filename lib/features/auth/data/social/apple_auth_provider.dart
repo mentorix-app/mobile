@@ -1,9 +1,7 @@
-import 'dart:convert';
-import 'dart:math';
-
 import 'package:flutter/foundation.dart';
 import 'package:mentorix_app/core/config/social_auth_config.dart';
 import 'package:mentorix_app/core/logging/app_logger.dart';
+import 'package:mentorix_app/features/auth/data/social/sign_in_nonce.dart';
 import 'package:mentorix_app/features/auth/domain/entities/social_credential.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';
 import 'package:mentorix_app/features/auth/domain/providers/social_auth_provider.dart';
@@ -14,6 +12,7 @@ typedef AppleCredentialRequest =
     Future<AuthorizationCredentialAppleID> Function({
       required List<AppleIDAuthorizationScopes> scopes,
       WebAuthenticationOptions? webAuthenticationOptions,
+      String? nonce,
       String? state,
     });
 
@@ -25,16 +24,23 @@ typedef AppleCredentialRequest =
 ///
 /// Перед каждым входом генерируется случайный `state`; ответ Apple принимается,
 /// только если `state` в нём тот же. Иначе токен на сервер не уходит.
+///
+/// Вход (`signIn(withNonce: true)`) идёт с `nonce`: на каждую попытку новая
+/// строка, Apple получает её SHA-256 (hex, нижний регистр) и кладёт в
+/// `identityToken`, а исходная строка возвращается в [SocialCredential.nonce] и
+/// уходит на бэкенд. Окно Apple при удалении аккаунта — без `nonce`.
 class AppleAuthProvider implements SocialAuthProvider {
   AppleAuthProvider({
     AppleCredentialRequest? request,
     String Function()? stateGenerator,
+    String Function()? nonceGenerator,
     TargetPlatform? platform,
     String? serviceId,
     String? redirectUri,
     void Function(String message)? onWarning,
   }) : _request = request ?? SignInWithApple.getAppleIDCredential,
        _generateState = stateGenerator ?? generateState,
+       _generateNonce = nonceGenerator ?? SignInNonce.randomUrlSafe,
        _platform = platform,
        _serviceId = serviceId ?? SocialAuthConfig.appleServiceId,
        _redirectUri = redirectUri ?? SocialAuthConfig.appleRedirectUri,
@@ -42,6 +48,7 @@ class AppleAuthProvider implements SocialAuthProvider {
 
   final AppleCredentialRequest _request;
   final String Function() _generateState;
+  final String Function() _generateNonce;
   final TargetPlatform? _platform;
   final String _serviceId;
   final String _redirectUri;
@@ -70,18 +77,14 @@ class AppleAuthProvider implements SocialAuthProvider {
 
   /// 32 байта из `Random.secure()`, base64url без заполнения.
   @visibleForTesting
-  static String generateState() {
-    final random = Random.secure();
-    final bytes = List<int>.generate(32, (_) => random.nextInt(256));
-    return base64UrlEncode(bytes).replaceAll('=', '');
-  }
+  static String generateState() => SignInNonce.randomUrlSafe();
 
   /// У Apple нечего отключать на устройстве: токены отзывает бэкенд.
   @override
   Future<void> disconnect() async {}
 
   @override
-  Future<SocialCredential> signIn() async {
+  Future<SocialCredential> signIn({bool withNonce = false}) async {
     if (!isAvailable) throw const SocialSignInUnavailableFailure();
 
     final isAndroid = _target == TargetPlatform.android;
@@ -93,6 +96,8 @@ class AppleAuthProvider implements SocialAuthProvider {
     }
 
     final state = _generateState();
+    // Новое значение на каждую попытку, нигде не хранится.
+    final nonce = withNonce ? SignInNonce(_generateNonce()) : null;
 
     try {
       final credential = await _request(
@@ -106,6 +111,7 @@ class AppleAuthProvider implements SocialAuthProvider {
                 redirectUri: Uri.parse(_redirectUri),
               )
             : null,
+        nonce: nonce?.hashed,
         state: state,
       );
 
@@ -135,6 +141,7 @@ class AppleAuthProvider implements SocialAuthProvider {
         authorizationCode: authorizationCode.isEmpty ? null : authorizationCode,
         // Только веб-поток Android: на iOS поле на бэкенд не уходит.
         webRedirectUri: isAndroid ? _redirectUri : null,
+        nonce: nonce?.raw,
       );
     } on SignInWithAppleAuthorizationException catch (e, st) {
       if (e.code == AuthorizationErrorCode.canceled) {

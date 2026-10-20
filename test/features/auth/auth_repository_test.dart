@@ -57,7 +57,11 @@ class _FakeRemote implements AuthRemoteDataSource {
   Future<AuthTokens> linkTelegram(String code) async => linkResult;
 
   @override
-  Future<AuthTokens> signInWithApple(String idToken, {String? name}) async {
+  Future<AuthTokens> signInWithApple(
+    String idToken, {
+    String? name,
+    String? nonce,
+  }) async {
     appleCalled = true;
     lastAppleName = name;
     final failure = appleFailure;
@@ -110,7 +114,7 @@ class _FakeProvider implements SocialAuthProvider {
   bool get isAvailable => true;
 
   @override
-  Future<SocialCredential> signIn() async => credentials.removeAt(0);
+  Future<SocialCredential> signIn({bool withNonce = false}) async => credentials.removeAt(0);
 
   @override
   Future<void> disconnect() async {}

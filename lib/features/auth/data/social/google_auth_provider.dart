@@ -10,6 +10,13 @@ import 'package:mentorix_app/features/auth/domain/providers/social_auth_provider
 /// `serverClientId` — **всегда web-клиент**, на обеих платформах: поэтому `aud`
 /// в токене одинаковый на iOS и Android. `clientId` (iOS-клиент) нужен только
 /// iOS; Android его не использует.
+///
+/// **Без `nonce`.** В `google_sign_in` 7.2.0 `nonce` принимает только
+/// `initialize()`, который по документации пакета вызывается ровно один раз;
+/// на каждую попытку входа его не передать. Повторная инициализация перед входом
+/// в исходниках платформенных пакетов работает, но это нарушение контракта
+/// пакета, поэтому вход Google идёт без `nonce`, как и раньше (бэкенд его не
+/// требует). Параметр [signIn] `withNonce` игнорируется.
 class GoogleAuthProvider implements SocialAuthProvider {
   GoogleAuthProvider({
     GoogleSignIn? googleSignIn,
@@ -41,7 +48,7 @@ class GoogleAuthProvider implements SocialAuthProvider {
   bool get isAvailable => true;
 
   @override
-  Future<SocialCredential> signIn() async {
+  Future<SocialCredential> signIn({bool withNonce = false}) async {
     if (!_isConfigured) {
       _warn(SocialAuthConfig.googleNotConfiguredWarning);
       throw const SocialSignInNotConfiguredFailure();

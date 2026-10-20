@@ -72,7 +72,7 @@
   "errorServerUnavailable": "The service is temporarily unavailable. Try again later.",
   "errorTooManyRequests": "Too many attempts. Wait a bit and try again.",
   "errorSessionExpired": "Your session has expired. Please sign in again.",
-  "errorSocialRejected": "Sign-in was not accepted. Try again.",
+  "errorSocialRejected": "Sign-in failed. Try again.",
   "errorSocialUnavailable": "This sign-in method is not available right now.",
   "errorGoogleNotConfigured": "Google sign-in is not configured: run with --dart-define-from-file=config/stage.json",
   "errorAppleNotConfigured": "Apple sign-in is not configured: run with --dart-define-from-file=config/stage.json",

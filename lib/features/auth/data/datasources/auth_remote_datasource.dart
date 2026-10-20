@@ -37,12 +37,18 @@ class AuthRemoteDataSource {
   );
 
   /// [name] — только при первой авторизации в Apple; дальше сервер его игнорирует.
-  Future<AuthTokens> signInWithApple(String idToken, {String? name}) => _guard(
+  /// [nonce] — исходная строка (провайдеру ушёл её SHA-256); без неё поле не
+  /// отправляется и сервер проверку пропускает.
+  Future<AuthTokens> signInWithApple(
+    String idToken, {
+    String? name,
+    String? nonce,
+  }) => _guard(
     endpoint: AuthErrorMapper.socialSignIn,
     () async {
       final response = await _dio.post<Object?>(
         ApiEndpoints.authApple,
-        data: {'id_token': idToken, 'name': ?name},
+        data: {'id_token': idToken, 'name': ?name, 'nonce': ?nonce},
         options: _public,
       );
       return AuthTokens.fromJson(_object(response));

@@ -377,7 +377,7 @@ abstract class AppLocalizations {
   /// No description provided for @errorSocialRejected.
   ///
   /// In en, this message translates to:
-  /// **'Sign-in was not accepted. Try again.'**
+  /// **'Sign-in failed. Try again.'**
   String get errorSocialRejected;
 
   /// No description provided for @errorSocialUnavailable.

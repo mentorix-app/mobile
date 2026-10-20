@@ -8,7 +8,13 @@ abstract class SocialAuthProvider {
 
   /// Бросает [SocialSignInCancelledFailure], если пользователь отказался,
   /// и [SocialSignInUnavailableFailure], если вход невозможен.
-  Future<SocialCredential> signIn();
+  ///
+  /// [withNonce] — вход с `nonce` (защита от повторной отправки чужого токена):
+  /// для каждой попытки новое значение, хеш уходит провайдеру, исходная строка
+  /// возвращается в [SocialCredential.nonce]. По умолчанию выключен: окно Apple
+  /// при удалении аккаунта работает без него. Провайдер, который `nonce` на
+  /// каждую попытку не поддерживает (Google), параметр игнорирует.
+  Future<SocialCredential> signIn({bool withNonce = false});
 
   /// Отзывает у провайдера разрешение приложению (после удаления аккаунта,
   /// чтобы при следующем входе Google снова спросил, какой аккаунт взять).

@@ -27,7 +27,7 @@ class _FakeGoogle implements SocialAuthProvider {
   bool get isAvailable => true;
 
   @override
-  Future<SocialCredential> signIn() async =>
+  Future<SocialCredential> signIn({bool withNonce = false}) async =>
       const SocialCredential(idToken: 'google-id-token');
 
   @override
@@ -113,7 +113,7 @@ void main() {
       pendingAppleName: PendingAppleNameStorage(const FlutterSecureStorage()),
       google: _FakeGoogle(),
       apple: AppleAuthProvider(
-        request: ({required scopes, webAuthenticationOptions, state}) async {
+        request: ({required scopes, webAuthenticationOptions, nonce, state}) async {
           final names = appleNames.isEmpty
               ? (given: null, family: null)
               : appleNames.removeAt(0);

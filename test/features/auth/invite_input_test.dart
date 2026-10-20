@@ -19,7 +19,7 @@ class _NoProvider implements SocialAuthProvider {
   bool get isAvailable => true;
 
   @override
-  Future<SocialCredential> signIn() async =>
+  Future<SocialCredential> signIn({bool withNonce = false}) async =>
       throw UnimplementedError('не нужен в этом тесте');
 
   @override

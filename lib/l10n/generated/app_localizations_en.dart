@@ -161,7 +161,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your session has expired. Please sign in again.';
 
   @override
-  String get errorSocialRejected => 'Sign-in was not accepted. Try again.';
+  String get errorSocialRejected => 'Sign-in failed. Try again.';
 
   @override
   String get errorSocialUnavailable =>

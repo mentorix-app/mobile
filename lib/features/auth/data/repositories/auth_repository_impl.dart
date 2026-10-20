@@ -67,7 +67,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> signInWithApple() async {
-    final credential = await _apple.signIn();
+    final credential = await _apple.signIn(withNonce: true);
 
     // Имя приходит только в первый раз: сначала сохраняем, а убираем — только
     // после ответа бэкенда. Повторная попытка возьмёт его из хранилища.
@@ -81,6 +81,7 @@ class AuthRepositoryImpl implements AuthRepository {
     final tokens = await _remote.signInWithApple(
       credential.idToken,
       name: name,
+      nonce: credential.nonce,
     );
 
     await _tokens.save(tokens);

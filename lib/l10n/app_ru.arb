@@ -52,7 +52,7 @@
   "errorServerUnavailable": "Сервис временно недоступен. Попробуйте позже.",
   "errorTooManyRequests": "Слишком много попыток. Подождите немного и повторите.",
   "errorSessionExpired": "Сессия закончилась. Войдите снова.",
-  "errorSocialRejected": "Вход не принят. Попробуйте ещё раз.",
+  "errorSocialRejected": "Вход не удался. Попробуйте ещё раз.",
   "errorSocialUnavailable": "Этот способ входа сейчас недоступен.",
   "errorGoogleNotConfigured": "Google sign-in не настроен: запусти с --dart-define-from-file=config/stage.json",
   "errorAppleNotConfigured": "Apple sign-in не настроен: запусти с --dart-define-from-file=config/stage.json",

@@ -207,7 +207,7 @@ listener: (context, state) => switch (state) {
 - **Маскировка секретов обязательна** (`SecretMasker`, значение → `***`):
   заголовки `Authorization`, `Cookie`, `Set-Cookie`; в телах, в том числе
   вложенных, — `access_token`, `refresh_token`, `id_token`, `apple_id_token`,
-  `apple_authorization_code`, `token` (приглашение); `code` — в теле запроса
+  `apple_authorization_code`, `nonce` (защита входа), `token` (приглашение); `code` — в теле запроса
   `/auth/telegram/link` (в ответах `code` — код ошибки, он виден). Появился новый
   секретный ключ — он сначала добавляется в `SecretMasker` и в тест, а уже потом
   используется в запросах. Логгер маскирует **копию**; настоящие запрос и ответ

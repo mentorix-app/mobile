@@ -43,6 +43,7 @@ void main() {
                 'id_token': 'SECRET',
                 'apple_id_token': 'SECRET',
                 'apple_authorization_code': 'SECRET',
+                'nonce': 'SECRET',
                 'user_id': 'user-1',
                 'token_type': 'Bearer',
                 'email': 'user@example.com',
@@ -55,6 +56,7 @@ void main() {
         'id_token',
         'apple_id_token',
         'apple_authorization_code',
+        'nonce',
       ]) {
         expect(masked[key], mask, reason: key);
       }

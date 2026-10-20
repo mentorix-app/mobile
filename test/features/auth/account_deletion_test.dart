@@ -33,7 +33,7 @@ class _FakeGoogle implements SocialAuthProvider {
   bool get isAvailable => true;
 
   @override
-  Future<SocialCredential> signIn() async =>
+  Future<SocialCredential> signIn({bool withNonce = false}) async =>
       throw const SocialSignInUnavailableFailure();
 
   @override
@@ -117,7 +117,7 @@ void main() {
     appleWindows = 0;
     google = _FakeGoogle();
     final apple = AppleAuthProvider(
-      request: ({required scopes, webAuthenticationOptions, state}) async {
+      request: ({required scopes, webAuthenticationOptions, nonce, state}) async {
         appleWindows++;
         if (appleCancels) {
           throw const SignInWithAppleAuthorizationException(

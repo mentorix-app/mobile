@@ -7,6 +7,7 @@ class SocialCredential extends Equatable {
     this.name,
     this.authorizationCode,
     this.webRedirectUri,
+    this.nonce,
   });
 
   final String idToken;
@@ -22,11 +23,16 @@ class SocialCredential extends Equatable {
   /// На iOS `null`.
   final String? webRedirectUri;
 
+  /// Исходная строка `nonce` этой попытки входа (провайдеру ушёл её хеш). `null`,
+  /// если вход без `nonce`: Google и удаление аккаунта через Apple.
+  final String? nonce;
+
   @override
   List<Object?> get props => [
     idToken,
     name,
     authorizationCode,
     webRedirectUri,
+    nonce,
   ];
 }

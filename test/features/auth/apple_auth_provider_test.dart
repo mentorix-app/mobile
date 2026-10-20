@@ -44,7 +44,7 @@ void main() {
   }) {
     return AppleAuthProvider(
       request:
-          ({required scopes, webAuthenticationOptions, state}) async {
+          ({required scopes, webAuthenticationOptions, nonce, state}) async {
             calls.add(_Call(scopes, webAuthenticationOptions, state));
             return answer(state);
           },
@@ -239,7 +239,7 @@ void main() {
 
   test('отмена в диалоге — не ошибка', () async {
     final provider = AppleAuthProvider(
-      request: ({required scopes, webAuthenticationOptions, state}) async =>
+      request: ({required scopes, webAuthenticationOptions, nonce, state}) async =>
           throw const SignInWithAppleAuthorizationException(
             code: AuthorizationErrorCode.canceled,
             message: 'canceled',

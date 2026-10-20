@@ -159,7 +159,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get errorSessionExpired => 'Сессия закончилась. Войдите снова.';
 
   @override
-  String get errorSocialRejected => 'Вход не принят. Попробуйте ещё раз.';
+  String get errorSocialRejected => 'Вход не удался. Попробуйте ещё раз.';
 
   @override
   String get errorSocialUnavailable => 'Этот способ входа сейчас недоступен.';
