@@ -185,7 +185,16 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<InviteAcceptance> acceptInvite(String tokenOrLink) {
-    return _remote.acceptInvite(tokenOrLink.trim());
+    // Токен приглашения чувствителен к регистру: только обрезка краёв, в
+    // отличие от кода Telegram никакой нормализации.
+    final input = tokenOrLink.trim();
+    // Безопасная подсказка для отладки: длина и первые 4 символа, не токен.
+    final start = input.length < 4 ? input.length : 4;
+    DebugLog.write(
+      'mentorix.invite',
+      'invite input len=${input.length} start=${input.substring(0, start)}',
+    );
+    return _remote.acceptInvite(input);
   }
 
   @override
