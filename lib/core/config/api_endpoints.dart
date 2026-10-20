@@ -35,6 +35,11 @@ abstract final class ApiEndpoints {
   /// тренера нет. Вызывается после `GET /auth/me`.
   static const clientTrainers = '/client/trainers';
 
+  /// `GET` (Bearer) — программа клиента у тренера: назначение, недели, дни,
+  /// блоки, `completed_days`. Контракт: `docs/backend_client_api.md`.
+  static String clientTrainerProgram(String trainerId) =>
+      '/client/trainers/$trainerId/program';
+
   /// `POST` — возврат из веб-потока Apple на Android (Return URL Services ID).
   /// Сессию не создаёт: приложение после возврата само шлёт `id_token`.
   static const authAppleCallback = '/auth/apple/callback';
