@@ -1,0 +1,4792 @@
+openapi: 3.0.3
+info:
+  title: Mentorix Backend API
+  version: 1.0.0
+  description: >
+    REST API for Mentorix: authentication, exercise catalog, training programs
+    (draft/publish workflow), and admin operations.
+
+    Every error response has the JSON body `ErrorResponse`: `{"code": "...",
+    "message": "..."}`. `code` is a stable identifier to branch on; `message`
+    is text for people and may change. The one exception is `GET /health/ready`,
+    which answers `503` with its readiness body. An error without a code of its
+    own carries the code of its HTTP status. Today a client can receive these
+    from the status alone: `bad_request`, `unauthorized`, `forbidden`,
+    `not_found`, `method_not_allowed`, `conflict`, `payload_too_large`,
+    `unprocessable_entity`, `internal_error` and `service_unavailable`. A `410`,
+    `415` or `429` would map to `gone`, `unsupported_media_type` or
+    `too_many_requests`, but today every `410` and `429` carries a specific code
+    and nothing answers `415`. Any other status from 500 up is `internal_error`,
+    and any other status below 500 is `bad_request`. Operations list the
+    specific codes next to the statuses where one status has several meanings.
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: https://mentorix-api-stage.onrender.com
+    description: Render stage (mentorix-api-stage)
+
+tags:
+  - name: health
+  - name: auth
+  - name: admin
+  - name: exercises
+  - name: programs
+  - name: trainer
+  - name: analytics
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Liveness probe
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /health/ready:
+    get:
+      tags: [health]
+      summary: Readiness probe (database and Redis)
+      operationId: getHealthReady
+      responses:
+        "200":
+          description: Ready or dependencies skipped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadyResponse"
+        "503":
+          description: Required dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadyResponse"
+
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Register trainer account
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Registered
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Email already registered (code `email_taken`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Login with email and password
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthCredentials"
+      responses:
+        "200":
+          description: Authenticated
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          description: Invalid credentials (code `invalid_credentials`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /auth/google:
+    post:
+      tags: [auth]
+      summary: Sign in with a Google ID token (mobile app)
+      description: >
+        Verifies the token, creates a client account on the first sign-in and
+        returns the refresh token in the JSON body. No cookie is set. The name
+        from the token is saved when the account is created, and fills the name
+        of an existing account only while that name is empty.
+      operationId: googleSignIn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IDTokenRequest"
+      responses:
+        "200":
+          description: Authenticated; refresh_token is in the body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Invalid ID token (code `invalid_id_token`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          description: Google sign-in is not configured (GOOGLE_CLIENT_IDS is empty; code `provider_not_configured`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/apple:
+    post:
+      tags: [auth]
+      summary: Sign in with an Apple ID token (mobile app)
+      description: >
+        Verifies the token, creates a client account on the first sign-in and
+        returns the refresh token in the JSON body. No cookie is set. The
+        optional name is used when the account is created, and fills the name
+        of an existing account only while that name is empty.
+      operationId: appleSignIn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppleSignInRequest"
+      responses:
+        "200":
+          description: Authenticated; refresh_token is in the body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Invalid ID token (code `invalid_id_token`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          description: Apple sign-in is not configured (APPLE_CLIENT_IDS is empty; code `provider_not_configured`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/apple/callback:
+    post:
+      tags: [auth]
+      summary: Return address of Sign in with Apple on Android
+      description: >
+        Called by the user's browser when Apple ends the web sign-in with a
+        form POST. Creates no session and checks no token. Answers with a
+        redirect that sends the browser back into the Android app, carrying the
+        form fields in the intent link. The app then sends the id_token to
+        `POST /auth/apple`. The app never calls this address itself. Its errors
+        carry the code of their HTTP status.
+      operationId: appleSignInCallback
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              description: >
+                The fields Apple posts. Every other field is passed through as well.
+              properties:
+                code:
+                  type: string
+                id_token:
+                  type: string
+                state:
+                  type: string
+                user:
+                  type: string
+                  description: JSON string with the name and email, sent on the first authorization only
+                error:
+                  type: string
+                  description: Sent instead of code, id_token and user when sign-in failed, for example user_cancelled_authorize. state is still sent.
+      responses:
+        "307":
+          description: Redirect into the app
+          headers:
+            Location:
+              description: >
+                intent://callback?{form fields, url-encoded}#Intent;package={APPLE_ANDROID_PACKAGE};scheme=signinwithapple;end
+              schema:
+                type: string
+            Cache-Control:
+              description: Always no-store, the link carries the ID token and the authorization code
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "413":
+          description: The form body is over 16 KB
+        "503":
+          description: The return address is not configured (APPLE_ANDROID_PACKAGE is empty)
+
+  /auth/telegram/link:
+    post:
+      tags: [auth]
+      summary: Link Telegram to the signed-in account with a one-time code
+      description: >
+        The client opens the bot with `/start link`; the bot answers with a code
+        that works once for 10 minutes. The code is spent by this call even when
+        the link is refused. A Telegram nobody uses yet is attached to the
+        account. A Telegram that already has an account absorbs the caller's
+        Google and Apple sign-in and the caller's empty account is removed. The
+        answer carries new tokens for the account that remains (the refresh
+        token is in the body, no cookie is set); the app replaces its tokens
+        with them.
+      operationId: telegramLink
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelegramLinkRequest"
+      responses:
+        "200":
+          description: Linked; tokens are for the account that remains
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          description: >
+            Invalid JSON (code `bad_request`), or the code is empty, unknown or
+            expired (code `invalid_link_code`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: The signed-in account no longer exists (code `user_not_found`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: >
+            The Telegram belongs to an account that cannot be merged (the caller's
+            account has a trainer link or a role besides client; code
+            `telegram_link_conflict`), or the caller's account already has
+            another Telegram (code `telegram_already_linked`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          description: Link codes are unavailable (Redis is not configured or down; code `telegram_link_unavailable`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: Rotate access token using refresh cookie or body token
+      description: >
+        Cookie mode (no body): reads the refresh cookie and sets a new one.
+        Body mode (refresh_token in the JSON body): returns the new refresh
+        token in the body and never sets or clears a cookie.
+      operationId: refresh
+      parameters:
+        - $ref: "#/components/parameters/RefreshCookie"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: New access token issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          description: >
+            No refresh token was sent (code `missing_refresh_token`), or the
+            token is unknown, expired or revoked (code `invalid_refresh_token`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Revoke current refresh session
+      description: >
+        With refresh_token in the JSON body the session is revoked and no
+        cookie is touched; without it the refresh cookie is used and cleared.
+      operationId: logout
+      parameters:
+        - $ref: "#/components/parameters/RefreshCookie"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "204":
+          description: Logged out
+
+  /auth/logout-all:
+    post:
+      tags: [auth]
+      summary: Revoke all refresh sessions for the user
+      operationId: logoutAll
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RefreshCookie"
+      responses:
+        "204":
+          description: All sessions revoked
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: Current user profile
+      operationId: getMe
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: User not found (code `user_not_found`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags: [auth]
+      summary: Update current user profile name
+      operationId: updateMe
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MePatchRequest"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: User not found (code `user_not_found`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags: [auth]
+      summary: Delete the signed-in client's account
+      description: >
+        Deletes the account and every row that belongs to it: sign-in methods,
+        sessions, trainer links, program assignments, block visibility rules,
+        workout completions with the trainer's comments on them, and the
+        invites the client used. No program, version or exercise of the
+        trainer is touched. The call sets no cookie; the app clears its own
+        tokens. An access token issued earlier works until it expires and finds
+        nothing (`GET /auth/me` answers `404`). Signing in again with the same
+        Google or Apple account creates a new empty account. An account whose
+        roles are not exactly client, or that still owns content, is refused.
+
+        An account with a Sign in with Apple identity is revoked at Apple
+        first. The app asks Apple for a fresh authorization right before the
+        call and sends `apple_id_token` and `apple_authorization_code` in the
+        body, and `apple_redirect_uri` when the authorization request had one
+        (Android; iOS sends none). The token must belong to one of the
+        account's Apple identities. Apple confirms the revocation and only then
+        is the account deleted, so a failed revocation deletes nothing and the
+        call can be repeated with a new authorization. If the database step
+        fails after Apple confirmed, the account still exists: the person signs
+        in with Apple again and repeats the call. Nothing from Apple is stored.
+        An account without an Apple identity needs no body; Apple fields sent
+        for it are checked for shape and not used. The body is optional and at
+        most 16 KB; a body that has text needs `Content-Type: application/json`.
+      operationId: deleteMe
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteAccountRequest"
+      responses:
+        "204":
+          description: Account deleted
+        "400":
+          description: >
+            Invalid JSON or another Content-Type, one of `apple_id_token` and
+            `apple_authorization_code` without the other, `apple_redirect_uri` without the pair or not an
+            absolute https URL (code `bad_request`), or Apple refused the
+            authorization code: wrong, expired, already used or issued to
+            another client (code `invalid_apple_authorization_code`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: >
+            Missing or invalid access token (codes `missing_authorization`,
+            `invalid_token`), or `apple_id_token` failed verification (code
+            `invalid_id_token`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: >
+            The Apple account in the token is not one the account signs in with,
+            or the authorization code was issued to another Apple account than the
+            token (code `apple_account_mismatch`); nothing was revoked or deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: The account no longer exists (code `user_not_found`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: >
+            The account's roles are not exactly client, or the database still has
+            rows that reference it (code `account_deletion_unavailable`); nothing
+            was changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: The body is over 16 KB
+        "422":
+          description: >
+            The account has an Apple sign-in and the body has no Apple fields,
+            or an Apple sign-in arrived while the call ran (code
+            `apple_authorization_required`); nothing was changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: >
+            Apple did not confirm the revocation: no answer, or any other
+            refusal (code `apple_revocation_failed`); nothing was deleted. A wrong
+            `apple_redirect_uri` lands here, and so does a problem with the
+            server's Apple settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: >
+            The account has an Apple sign-in and the server cannot revoke it:
+            the Apple revocation settings or the Apple client ids are missing
+            (code `provider_not_configured`); nothing was changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /plans:
+    get:
+      tags: [subscription]
+      summary: Plan catalog (authenticated)
+      operationId: listPlans
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: All subscription tiers with their limits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanCatalogResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /admin/trainers/{user_id}/plan:
+    put:
+      tags: [admin]
+      summary: Grant a perpetual plan to a trainer (admin only)
+      operationId: grantTrainerPlan
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GrantPlanRequest"
+      responses:
+        "200":
+          description: Updated effective subscription of the trainer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrainerPlanResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Admin role required
+        "404":
+          description: Trainer not found
+    delete:
+      tags: [admin]
+      summary: Revoke the admin-issued plan of a trainer (admin only)
+      operationId: revokeTrainerPlan
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Updated effective subscription of the trainer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrainerPlanResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Admin role required
+        "404":
+          description: Trainer not found
+
+  /exercises:
+    get:
+      tags: [exercises]
+      summary: List exercises (authenticated)
+      operationId: listExercises
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/SortBy"
+        - $ref: "#/components/parameters/SortOrder"
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search in name and name_ru (ILIKE)
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/ExerciseType"
+        - name: muscle_group
+          in: query
+          schema:
+            $ref: "#/components/schemas/MuscleGroup"
+        - name: difficulty
+          in: query
+          schema:
+            $ref: "#/components/schemas/Difficulty"
+        - name: equipment
+          in: query
+          schema:
+            oneOf:
+              - $ref: "#/components/schemas/Equipment"
+              - type: string
+                enum: [none]
+          description: Filter by equipment; use `none` for exercises without equipment
+        - name: scope
+          in: query
+          schema:
+            type: string
+            enum: [global, private]
+          description: Filter by ownership; trainers see global plus their own private exercises
+      responses:
+        "200":
+          description: Paginated exercise list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExerciseListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      tags: [exercises]
+      summary: Create exercise (trainer or admin)
+      description: >
+        Admins create global exercises shared with everyone. Trainers create
+        private exercises subject to the plan quota.
+      operationId: createExercise
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExerciseUpsert"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exercise"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Trainer or admin role required
+        "409":
+          $ref: "#/components/responses/QuotaExceeded"
+
+    delete:
+      tags: [exercises]
+      summary: Delete exercises by IDs (admin only)
+      description: >
+        Idempotent batch soft-delete. Sets `deleted_at` on existing exercises matching the given IDs.
+        Any user with the `admin` role may delete exercises created by other admins.
+        Soft-deleted exercises are hidden from list/get and cannot be added to programs.
+        `deleted_count` may be less than the number of IDs if some were not found or already deleted.
+        Duplicate IDs in the request are deduplicated before delete.
+      operationId: deleteExercises
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExerciseDeleteRequest"
+      responses:
+        "200":
+          description: Exercises deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExerciseDeleteResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Admin role required
+
+  /exercises/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ExerciseId"
+    get:
+      tags: [exercises]
+      summary: Get exercise by ID (authenticated)
+      operationId: getExercise
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Exercise
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exercise"
+        "400":
+          description: Invalid UUID
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Exercise not found
+
+    put:
+      tags: [exercises]
+      summary: Update exercise (admin only)
+      description: >
+        Any user with the `admin` role may update any exercise in the shared catalog,
+        including entries created by other admins.
+      operationId: updateExercise
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExerciseUpsert"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exercise"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Trainer or admin role required
+        "404":
+          description: Exercise not found
+        "409":
+          $ref: "#/components/responses/QuotaExceeded"
+
+  /programs:
+    get:
+      tags: [programs]
+      summary: List programs with pagination, sort, search, and filters
+      description: >
+        Trainers see own programs; admins see all. Soft-deleted programs are excluded.
+        Search matches program name and name_ru (ILIKE). Filter by status (comma-separated), category, difficulty.
+      operationId: listPrograms
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/ProgramSortBy"
+        - $ref: "#/components/parameters/SortOrder"
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search in program name and name_ru (ILIKE)
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: Comma-separated statuses (draft, published, archived)
+        - name: category
+          in: query
+          schema:
+            $ref: "#/components/schemas/ProgramCategory"
+        - name: difficulty
+          in: query
+          schema:
+            $ref: "#/components/schemas/Difficulty"
+      responses:
+        "200":
+          description: Paginated program list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Trainer or admin role required
+
+    post:
+      tags: [programs]
+      summary: Create draft program with week 1 and seven days
+      description: >
+        Creates a program in `draft` status with empty `name`, `name_ru`, `description`, `description_ru`, and `preview_image_url`,
+        and auto-creates week 1 with seven empty days. Step-1 fields can be filled later via PATCH.
+      operationId: createProgram
+      security:
+        - bearerAuth: []
+      responses:
+        "201":
+          description: Draft program created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+              example:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+                created_by: "550e8400-e29b-41d4-a716-446655440001"
+                modified_by: "550e8400-e29b-41d4-a716-446655440001"
+                status: draft
+                name: ""
+                description: ""
+                preview_image_url: ""
+                created_at: "2026-06-21T12:00:00Z"
+                modified_at: "2026-06-21T12:00:00Z"
+                weeks:
+                  - id: "550e8400-e29b-41d4-a716-446655440010"
+                    week_number: 1
+                    sort_order: 1
+                    created_at: "2026-06-21T12:00:00Z"
+                    days:
+                      - id: "550e8400-e29b-41d4-a716-446655440002"
+                        day_number: 1
+                        sort_order: 1
+                        exercises: []
+                        created_at: "2026-06-21T12:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Trainer or admin role required
+        "409":
+          $ref: "#/components/responses/QuotaExceeded"
+
+  /programs/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+    get:
+      tags: [programs]
+      summary: Get program with weeks, days, and exercises
+      description: >
+        Owner (`created_by`) or any user with the `admin` role may read the program.
+      operationId: getProgram
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Program detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program not found
+
+    patch:
+      tags: [programs]
+      summary: Update program fields (step 1)
+      description: >
+        Partial update for wizard step 1. All fields are optional.
+        Owner (`created_by`) or any user with the `admin` role may update the program.
+        Empty `name` is allowed while the program is in `draft`; publish requires a non-empty trimmed name.
+      operationId: updateProgram
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramPatch"
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program not found
+
+    delete:
+      tags: [programs]
+      summary: Soft-delete program
+      description: >
+        Owner (`created_by`) or any user with the `admin` role may soft-delete the program.
+      operationId: deleteProgram
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Program deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program not found
+
+  /programs/{id}/publish:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+    post:
+      tags: [programs]
+      summary: Publish program (validates required fields)
+      operationId: publishProgram
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Published program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program not found
+        "409":
+          description: Invalid status transition or plan quota exceeded
+
+  /programs/{id}/archive:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+    post:
+      tags: [programs]
+      summary: Archive published program
+      operationId: archiveProgram
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Archived program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program not found
+        "409":
+          description: Invalid status transition
+
+  /programs/{id}/publish-update:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+    post:
+      tags: [programs]
+      summary: Publish update for an already published program
+      description: >
+        Freezes the current program tree as a new program_version (v2, v3, …).
+        Clients on older versions are unchanged until sync. Requires the same
+        validation as the first publish.
+      operationId: publishProgramUpdate
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Program with new frozen version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program not found
+        "409":
+          description: Program is not published
+        "422":
+          description: Publish validation failed
+
+  /programs/{id}/discard-unpublished:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+    post:
+      tags: [programs]
+      summary: Discard unpublished changes
+      description: >
+        Restores the working program tree from the latest frozen program_version.
+        Does not create a new version and does not change client assignments.
+        Week/day/block/exercise row IDs are regenerated; day_key values are preserved.
+        Requires has_unpublished_changes.
+      operationId: discardProgramUnpublished
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Program restored to latest published version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program not found
+        "409":
+          description: Program is not published
+        "422":
+          description: No unpublished changes to discard
+
+  /programs/{id}/assignments:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+    get:
+      tags: [programs]
+      summary: List client assignments for a program
+      description: >
+        Read-only list for the program page: who is on which frozen version,
+        including is_behind_latest for sync UI.
+      operationId: listProgramAssignments
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Assignments for this program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramAssignmentListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program not found
+
+  /programs/{id}/assignments/sync:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+    post:
+      tags: [programs]
+      summary: Sync assignments to the latest frozen version
+      description: >
+        Updates program_version_id to latest_program_version_id for selected or
+        all active assignments. Only the latest version is supported (no arbitrary
+        older version).
+      operationId: syncProgramAssignments
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramAssignmentSyncRequest"
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramAssignmentSyncResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (caller is not the program owner)
+        "404":
+          description: Program not found
+        "422":
+          description: >
+            Invalid sync request, for example an empty selection (code
+            `unprocessable_entity`), or the program has no published version
+            (code `program_not_published`)
+
+  /programs/{id}/versions:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+    get:
+      tags: [programs]
+      summary: List frozen program versions
+      operationId: listProgramVersions
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Version history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramVersionListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program not found
+
+  /programs/{id}/versions/cleanup:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+    post:
+      tags: [programs]
+      summary: Delete all unused program versions
+      description: >-
+        Removes versions with assignment_count = 0. Skips the sole version and
+        the latest version, because new assignments and sync land on the latest
+        one. Every skipped version is listed with its reason.
+      operationId: cleanupProgramVersions
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Cleanup result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramVersionCleanupResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program not found
+
+  /programs/{id}/versions/{version_id}:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramVersionId"
+    delete:
+      tags: [programs]
+      summary: Delete an unused program version
+      operationId: deleteProgramVersion
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Version deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program or version not found
+        "409":
+          description: Version has assignments, is the sole version, or is the latest version
+
+  /trainer/invites:
+    post:
+      tags: [trainer]
+      summary: Create one-time Telegram client invite
+      description: >
+        Returns a deep link for the Telegram bot (`t.me/<bot>?start=inv_<token>`).
+        Requires `TELEGRAM_BOT_USERNAME` on the server.
+      operationId: createTrainerInvite
+      security:
+        - bearerAuth: []
+      responses:
+        "201":
+          description: Invite created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrainerInvite"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Trainer role required
+        "409":
+          $ref: "#/components/responses/QuotaExceeded"
+        "503":
+          description: Telegram invite not configured (code `invite_not_configured`)
+
+  /client/invites/accept:
+    post:
+      tags: [trainer]
+      summary: Accept a trainer invite as the signed-in user
+      description: >
+        The app sends the invite the trainer shared. `token` may be the bare
+        token, `inv_<token>`, or the whole invite link. Same rules as accepting
+        in the Telegram bot: the invite works once, expires, and counts against
+        the trainer's client limit. The caller gets the `client` role when
+        missing. Repeating the call with an invite the caller already used
+        returns `already_linked: true`.
+      operationId: clientAcceptInvite
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientAcceptInviteRequest"
+      responses:
+        "200":
+          description: The caller is now the trainer's client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientAcceptInviteResponse"
+        "400":
+          description: Invalid JSON (code `bad_request`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The caller is an admin, and an admin cannot become a client (code `admin_cannot_accept`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: >
+            The invite does not exist (code `invite_not_found`), or the signed-in
+            account no longer exists (code `user_not_found`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: >
+            The invite was used by someone else (code `invite_consumed`), or the
+            trainer has no free client places (code `client_limit_reached`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "410":
+          description: The invite expired (code `invite_expired`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: >
+            The invite is the caller's own (code `self_invite`), or the trainer
+            blocked the caller (code `client_blocked`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /client/trainers:
+    get:
+      tags: [trainer]
+      summary: List the signed-in user's trainers
+      description: >
+        The trainers the caller has an active link with, newest link first.
+        An empty `items` array means the caller has no active trainer link, so
+        the app shows the invite screen. A trainer the caller is blocked by is not
+        listed. A token of an account that no longer exists also gets an empty
+        list; `GET /auth/me` answers `404` for it. No role is required.
+      operationId: clientListTrainers
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The caller's trainers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientTrainerListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /client/trainers/{trainer_id}/program:
+    parameters:
+      - $ref: "#/components/parameters/ClientTrainerId"
+    get:
+      tags: [trainer]
+      summary: Read the signed-in client's program from one trainer
+      description: >
+        The same view the Telegram bot shows: the trainer, the client's current
+        assignment, the version of the program it points to with only the blocks
+        this client may see, and the days already marked done in this assignment.
+        `program` is the content for the app (name, description, weeks, days, blocks),
+        not the trainer's editor view: it has no owner ids, counters or draft state.
+        The trainer is named in the path (ids come from `GET /client/trainers`); the
+        caller needs an active link with that trainer. `assignment` and `program`
+        are `null` while the trainer has not assigned a program. Every day carries
+        `day_key`, the stable id that `completed_days` and
+        `POST /client/trainers/{trainer_id}/completions` use. `completed_days`
+        is always an array of objects with a `day_key`, ordered by that key, and may
+        name days that a newer version of the program no longer has. In a block, `client_user_ids` is `[]`
+        for a block shared with everyone and holds only the caller's id for a block
+        limited to chosen clients; other clients are never named.
+      operationId: clientGetTrainerProgram
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The program view
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientProgramResponse"
+        "400":
+          description: The trainer id is not a UUID (code `bad_request`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The caller has no active link with this trainer (code `client_not_linked`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: The trainer blocked the caller (code `client_blocked`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /client/trainers/{trainer_id}/completions:
+    parameters:
+      - $ref: "#/components/parameters/ClientTrainerId"
+    post:
+      tags: [trainer]
+      summary: Mark a workout day done
+      description: >
+        Marks one day of the caller's current program done with a text result, as in
+        the Telegram bot. The request names the assignment and version the app was
+        looking at; if the trainer changed them in the meantime the call is refused
+        with `program_changed` and nothing is written, so the app reloads the program.
+        The request names the assignment, the version and the completion cycle of the
+        program answer. A reassignment starts a new cycle, also when the trainer assigns
+        the program the client had before, so a request from an older cycle is refused;
+        the check is part of the write itself, so one that lands between a reload and the
+        insert is refused too. A day can be marked once per cycle. Only days that hold at
+        least one exercise the caller may see can be marked. `result_text` is required,
+        at most 1000 characters after trimming, and may not contain control characters
+        other than line breaks and tabs. The body is limited to 16000 bytes.
+      operationId: clientCompleteTrainerDay
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientCompletionRequest"
+      responses:
+        "201":
+          description: The day is marked done
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientCompletionResponse"
+        "400":
+          description: >
+            Invalid JSON, a missing or zero id, or an empty, too long or control-character
+            `result_text` (code `bad_request`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The caller has no active link with this trainer (code `client_not_linked`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: >
+            The day key is not a workout day of the program the caller sees
+            (code `day_not_found`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: >
+            The caller has no assignment from this trainer, or the assignment, version or
+            cycle in the request is no longer the current one (code `program_changed`),
+            or the day is already marked in this cycle (code `workout_already_completed`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: The body is over 16000 bytes (code `payload_too_large`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: The trainer blocked the caller (code `client_blocked`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /client/trainers/{trainer_id}/analytics:
+    parameters:
+      - $ref: "#/components/parameters/ClientTrainerId"
+    get:
+      tags: [analytics]
+      summary: Client self analytics by token
+      description: >
+        The same body as the signed-link page `GET /client/analytics`, for the
+        signed-in caller and the trainer in the path: progress, activity and the
+        latest 30 completions with the trainer's replies. `expires_at` belongs to the
+        signed link; here it is `null`.
+      operationId: clientGetTrainerAnalytics
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Client self analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientSelfAnalytics"
+        "400":
+          description: The trainer id is not a UUID (code `bad_request`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: The caller is not linked to the trainer, or the trainer blocked the caller (code `client_not_found`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /trainer/clients:
+    get:
+      tags: [trainer]
+      summary: List trainer clients
+      description: >
+        Clients linked via accepted invites, with optional active program assignment.
+        Trainer: only clients linked to the caller. Admin: all clients linked to any trainer
+        (deduplicated by client_user_id; picks the most recent link). Program assignment follows
+        the chosen link. Admin role is exclusive with trainer, so there is no "own link" preference.
+        Search matches client display_name (ILIKE). Default sort: linked_at desc.
+      operationId: listTrainerClients
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/TrainerClientSortBy"
+        - $ref: "#/components/parameters/TrainerClientSortOrder"
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search in client display_name (ILIKE)
+      responses:
+        "200":
+          description: Paginated client list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrainerClientListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Trainer role required
+
+  /trainer/clients/{client_user_id}/avatar:
+    parameters:
+      - $ref: "#/components/parameters/ClientUserId"
+    get:
+      tags: [trainer]
+      summary: Get client avatar image
+      description: >
+        Proxies the client's Telegram profile photo. Requires a signed URL from
+        `avatar_url` in the client list (`exp` and `sig` query params, valid 24h).
+        No Bearer token; suitable for `<img src>`.
+      operationId: getTrainerClientAvatar
+      parameters:
+        - name: exp
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: Unix expiry timestamp from avatar_url
+        - name: sig
+          in: query
+          required: true
+          schema:
+            type: string
+          description: HMAC signature from avatar_url
+      responses:
+        "200":
+          description: Avatar image
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: Link signature invalid or expired (code `unauthorized`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Avatar not found
+
+  /trainer/clients/program-assignment:
+    put:
+      tags: [trainer]
+      summary: Set or clear program for one or more clients
+      description: >
+        Assign a published program (latest frozen version) or clear assignments
+        (`program_id: null`) for 1 to 100 linked clients. Pass a single id in
+        `client_user_ids` for one client. Per-client failures are returned in
+        `skipped`; program validation errors fail the whole request.
+      operationId: setTrainerClientProgramAssignment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkSetClientProgramAssignmentRequest"
+      responses:
+        "200":
+          description: Bulk assignment result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkClientProgramAssignmentResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (program not owned)
+        "404":
+          description: Program not found
+        "422":
+          description: Program is not published (code `program_not_published`)
+
+  /trainer/clients/{client_user_id}/program-assignment:
+    parameters:
+      - $ref: "#/components/parameters/ClientUserId"
+    get:
+      tags: [trainer]
+      summary: Get client's active program assignment
+      description: >
+        Used by the clients page Select to show the current program. Returns null
+        body when the client has no active program.
+      operationId: getTrainerClientProgramAssignment
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Active assignment or null
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramAssignment"
+                nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (client is not linked to trainer; code `client_not_linked`)
+        "422":
+          description: The client is blocked by the trainer (code `client_blocked`)
+
+  /trainer/clients/{client_user_id}/analytics:
+    parameters:
+      - $ref: "#/components/parameters/ClientUserId"
+    get:
+      tags: [analytics]
+      summary: Client analytics summary
+      description: >
+        Per-client analytics for the trainer dashboard: client card, current
+        program progress (completed vs total training days of the assigned
+        frozen version, per-week breakdown; the completion cycle survives
+        version sync) and lifetime activity (totals, 7/30-day counts, week
+        streak, per-program totals across all cycles and versions).
+        Client must be linked to the caller.
+      operationId: getTrainerClientAnalytics
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Client analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientAnalytics"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Trainer role required
+        "404":
+          description: Client is not linked to the trainer (code `client_not_found`)
+
+  /trainer/clients/{client_user_id}/completions:
+    parameters:
+      - $ref: "#/components/parameters/ClientUserId"
+    get:
+      tags: [analytics]
+      summary: Client workout completion history
+      description: >
+        Paginated feed of completed workout days (newest first) across all
+        programs and cycles. Suitable for a calendar or history list.
+        `from`/`to` filter by completed_at (RFC3339 or YYYY-MM-DD, `to` exclusive).
+      operationId: listTrainerClientCompletions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Only completions at or after this time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Only completions before this time (exclusive)
+      responses:
+        "200":
+          description: Paginated completion feed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientCompletionsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Trainer role required
+        "404":
+          description: Client is not linked to the trainer (code `client_not_found`)
+
+  /trainer/clients/{client_user_id}/completions/{completion_id}/comments:
+    parameters:
+      - $ref: "#/components/parameters/ClientUserId"
+      - $ref: "#/components/parameters/CompletionId"
+    post:
+      tags: [analytics]
+      summary: Reply to a client workout result
+      description: >
+        Creates the trainer's reply on a workout completion. One reply per
+        completion; a second attempt returns 409. The reply is shown in the
+        completions feed (`items[].comments`) and pushed to the client in
+        Telegram (best-effort).
+      operationId: createTrainerCompletionComment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCompletionCommentRequest"
+      responses:
+        "201":
+          description: Reply created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompletionComment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Trainer role required
+        "404":
+          description: Completion not found for this trainer/client pair
+        "409":
+          description: Reply already exists for this completion
+
+  /client/analytics:
+    get:
+      tags: [analytics]
+      summary: Client self analytics (signed link)
+      description: >
+        The page a client opens from the Telegram bot button «Статистика».
+        No Bearer token: access is proven by the signed query string the bot
+        issued (`client_user_id`, `trainer_id`, `exp`, `sig`; HMAC over all
+        four, valid 30 minutes). The frontend forwards the link's query string
+        verbatim. Data is scoped to one trainer (the client's active trainer in
+        the bot) and mirrors the trainer's client analytics plus the latest 30
+        completions with trainer replies.
+      operationId: getClientSelfAnalytics
+      parameters:
+        - name: client_user_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: trainer_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: trainers.id of the client's active trainer
+        - name: exp
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: Unix expiry timestamp from the link
+        - name: sig
+          in: query
+          required: true
+          schema:
+            type: string
+          description: HMAC signature from the link
+      responses:
+        "200":
+          description: Client self analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientSelfAnalytics"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Link signature invalid or expired
+        "404":
+          description: Client is not linked to the trainer or the link is blocked (code `client_not_found`)
+
+  /trainer/programs/analytics:
+    get:
+      tags: [analytics]
+      summary: Programs analytics list
+      description: >
+        All non-deleted programs owned by the trainer with completion
+        aggregates: active clients, lifetime and 30-day completion counts
+        (across all versions), average completion percent of current cycles,
+        last activity. Default sort: last_activity desc.
+      operationId: listTrainerProgramsAnalytics
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/ProgramAnalyticsSortBy"
+        - $ref: "#/components/parameters/TrainerClientSortOrder"
+      responses:
+        "200":
+          description: Paginated program analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramsAnalyticsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Trainer role required
+
+  /trainer/programs/{program_id}/analytics:
+    parameters:
+      - $ref: "#/components/parameters/AnalyticsProgramId"
+    get:
+      tags: [analytics]
+      summary: Program analytics detail
+      description: >
+        Detail for one owned program: summary aggregates, per-client progress
+        of active assignees (current cycle vs assigned version) and per-week
+        drop-off (current-cycle completions grouped by program week).
+      operationId: getTrainerProgramAnalytics
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Program analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramAnalytics"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Trainer role required
+        "404":
+          description: Program not found or not owned by the trainer
+
+  /trainer/programs/{program_id}/weeks/{week_number}/results:
+    parameters:
+      - $ref: "#/components/parameters/AnalyticsProgramId"
+      - $ref: "#/components/parameters/AnalyticsWeekNumber"
+    get:
+      tags: [analytics]
+      summary: Program week results matrix
+      description: >
+        Client × day matrix for one program week. Columns are training days
+        (days with blocks) of `week_number` in the latest published version.
+        Cells are filled from each assignee's current completion cycle matched
+        by `day_key`. Cell `status` is `submitted` or `no_result`; submitted
+        cells include `result_text`, `completed_at`, `completion_id`, and
+        trainer `comments` for hover / reply.
+      operationId: getTrainerProgramWeekResults
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Week results matrix
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramWeekResults"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Trainer role required
+        "404":
+          description: Program not found, not owned, or week has no training days
+
+  /programs/{id}/weeks:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+    post:
+      tags: [programs]
+      summary: Add program week with seven empty days
+      operationId: addProgramWeek
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Program with new week
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program not found
+
+  /programs/{id}/weeks/reorder:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+    put:
+      tags: [programs]
+      summary: Reorder program weeks
+      description: >
+        Sets the order of all weeks in the program. Request body must list **every**
+        week ID exactly once in the desired order. Partial lists, unknown IDs, or
+        duplicates return 400 (e.g. `invalid reorder: week count mismatch`).
+      operationId: reorderProgramWeeks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramWeeksReorder"
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program not found
+
+  /programs/{id}/weeks/{week_id}:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramWeekId"
+    delete:
+      tags: [programs]
+      summary: Delete program week
+      description: Returns 409 when deleting the last week in the program.
+      operationId: deleteProgramWeek
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program or week not found
+        "409":
+          description: Cannot delete the last week
+
+  /programs/{id}/weeks/{week_id}/days:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramWeekId"
+    post:
+      tags: [programs]
+      summary: Add day to program week
+      description: Returns 409 when the week already has 7 days (maximum).
+      operationId: addProgramDay
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Program with new day
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program or week not found
+        "409":
+          description: Week already has the maximum of 7 days
+
+  /programs/{id}/weeks/{week_id}/days/reorder:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramWeekId"
+    put:
+      tags: [programs]
+      summary: Reorder days within a program week
+      description: >
+        Sets the order of all days in the week. Request body must list **every**
+        day ID exactly once in the desired order. Partial lists, unknown IDs, or
+        duplicates return 400 (e.g. `invalid reorder: day count mismatch`).
+      operationId: reorderProgramDays
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramDaysReorder"
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program or week not found
+
+  /programs/{id}/weeks/{week_id}/days/{day_id}:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramWeekId"
+      - $ref: "#/components/parameters/ProgramDayId"
+    delete:
+      tags: [programs]
+      summary: Delete day from program week
+      description: Returns 409 when deleting the last day in the week.
+      operationId: deleteProgramDay
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program, week, or day not found
+        "409":
+          description: Cannot delete the last day in week
+
+  /programs/{id}/weeks/{week_id}/days/{day_id}/blocks/reorder:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramWeekId"
+      - $ref: "#/components/parameters/ProgramDayId"
+    put:
+      tags: [programs]
+      summary: Reorder blocks within a program day
+      description: >
+        Sets the order of all blocks in the day. Request body must list **every**
+        block ID exactly once in the desired order. Partial lists, unknown IDs, or
+        duplicates return 400 (e.g. `invalid reorder: block count mismatch`).
+      operationId: reorderProgramDayBlocks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramDayBlocksReorder"
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program, week, or day not found
+
+  /programs/{id}/weeks/{week_id}/blocks/{block_id}/exercises/reorder:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramWeekId"
+      - $ref: "#/components/parameters/ProgramDayBlockId"
+    put:
+      tags: [programs]
+      summary: Reorder exercises within a program day block
+      description: >
+        Sets the order of all exercises in the block. Request body must list **every**
+        exercise item ID exactly once in the desired order. Partial lists, unknown IDs,
+        or duplicates return 400 (e.g. `invalid reorder: exercise_item count mismatch`).
+      operationId: reorderProgramBlockExercises
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramBlockExercisesReorder"
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program, week, or block not found
+
+  /programs/{id}/weeks/{week_id}/days/{day_id}/blocks:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramWeekId"
+      - $ref: "#/components/parameters/ProgramDayId"
+    post:
+      tags: [programs]
+      summary: Create program day block
+      description: >
+        Creates a single block (one exercise) in the day. Group blocks are
+        created only via merge.
+      operationId: createProgramDayBlock
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramDayBlockCreate"
+      responses:
+        "201":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program, week, or day not found
+
+  /programs/{id}/weeks/{week_id}/blocks/{block_id}/exercises/{item_id}:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramWeekId"
+      - $ref: "#/components/parameters/ProgramDayBlockId"
+      - $ref: "#/components/parameters/ProgramDayExerciseId"
+    put:
+      tags: [programs]
+      summary: Update exercise in program day block
+      operationId: updateProgramBlockExercise
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramDayExerciseUpsert"
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program, week, block, or exercise item not found
+    delete:
+      tags: [programs]
+      summary: Remove exercise from program day block
+      description: Deleting the only exercise from a `single` block removes the block.
+      operationId: deleteProgramBlockExercise
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program, week, block, or exercise item not found
+
+  /programs/{id}/weeks/{week_id}/days/{day_id}/blocks/merge:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramWeekId"
+      - $ref: "#/components/parameters/ProgramDayId"
+    post:
+      tags: [programs]
+      summary: Merge program day blocks into one group
+      operationId: mergeProgramDayBlocks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramDayBlocksMerge"
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program, week, or day not found
+
+  /programs/{id}/weeks/{week_id}/blocks/{block_id}:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramWeekId"
+      - $ref: "#/components/parameters/ProgramDayBlockId"
+    patch:
+      tags: [programs]
+      summary: Update group block type or instruction
+      description: >
+        For group blocks only. `single` blocks return 400; use PUT
+        `.../exercises/{item_id}` for exercise fields. `single` cannot be set
+        via patch; use ungroup or extract.
+      operationId: patchProgramDayBlock
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramDayBlockPatch"
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program, week, or block not found
+    delete:
+      tags: [programs]
+      summary: Delete a group block from program day
+      description: Only non-single blocks can be deleted directly.
+      operationId: deleteProgramDayBlock
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program, week, or block not found
+
+  /programs/{id}/weeks/{week_id}/blocks/{block_id}/ungroup:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramWeekId"
+      - $ref: "#/components/parameters/ProgramDayBlockId"
+    post:
+      tags: [programs]
+      summary: Split group block into single blocks
+      operationId: ungroupProgramDayBlock
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program, week, or block not found
+
+  /programs/{id}/weeks/{week_id}/blocks/{block_id}/exercises:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramWeekId"
+      - $ref: "#/components/parameters/ProgramDayBlockId"
+    post:
+      tags: [programs]
+      summary: Add exercise to a program day group block
+      operationId: addProgramBlockExercise
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramDayExerciseUpsert"
+      responses:
+        "201":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program, week, or block not found
+
+  /programs/{id}/weeks/{week_id}/blocks/{block_id}/move:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramWeekId"
+      - $ref: "#/components/parameters/ProgramDayBlockId"
+    post:
+      tags: [programs]
+      summary: Move a block to another day in the same week
+      operationId: moveProgramDayBlock
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramDayBlockMove"
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program, week, or block not found
+
+  /programs/{id}/weeks/{week_id}/blocks/{block_id}/clients:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramWeekId"
+      - $ref: "#/components/parameters/ProgramDayBlockId"
+    put:
+      tags: [programs]
+      summary: Replace the visibility rules of a block
+      description: >
+        Full replace: the body carries the complete client list. An empty
+        list makes the block shared (visible to every client assigned to the
+        program) again. Restricting a block is refused with 400 when it would
+        leave a day without a shared block, checked against the working copy
+        and against every published version a client is currently assigned
+        to.
+      operationId: setProgramBlockClients
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramBlockClientsSet"
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program, week, or block not found
+
+  /programs/{id}/weeks/{week_id}/blocks/{block_id}/exercises/{item_id}/extract:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramWeekId"
+      - $ref: "#/components/parameters/ProgramDayBlockId"
+      - $ref: "#/components/parameters/ProgramDayExerciseId"
+    post:
+      tags: [programs]
+      summary: Extract exercise from group into a new single block
+      operationId: extractProgramBlockExercise
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramBlockExerciseExtract"
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program, week, block, or exercise item not found
+
+  /programs/{id}/weeks/{week_id}/blocks/{block_id}/exercises/{item_id}/move:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: "#/components/parameters/ProgramWeekId"
+      - $ref: "#/components/parameters/ProgramDayBlockId"
+      - $ref: "#/components/parameters/ProgramDayExerciseId"
+    post:
+      tags: [programs]
+      summary: Move exercise into another block in the same week
+      operationId: moveProgramExerciseToBlock
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramExerciseMove"
+      responses:
+        "200":
+          description: Updated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden (not owner and not admin)
+        "404":
+          description: Program, week, or exercise item not found
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    RefreshCookie:
+      name: mentorix_refresh
+      in: cookie
+      required: false
+      schema:
+        type: string
+      description: HttpOnly refresh token (name configurable via REFRESH_COOKIE_NAME)
+
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100000
+        default: 1
+
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    SortBy:
+      name: sort_by
+      in: query
+      schema:
+        type: string
+        enum:
+          - name
+          - name_ru
+          - created_at
+          - modified_at
+          - difficulty
+          - type
+          - muscle_group
+          - equipment
+        default: name
+
+    SortOrder:
+      name: sort_order
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: asc
+
+    ExerciseId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ProgramId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ProgramVersionId:
+      name: version_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ClientUserId:
+      name: client_user_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ClientTrainerId:
+      name: trainer_id
+      in: path
+      required: true
+      description: trainers.id, as listed by `GET /client/trainers`.
+      schema:
+        type: string
+        format: uuid
+
+    CompletionId:
+      name: completion_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ProgramWeekId:
+      name: week_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ProgramDayId:
+      name: day_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ProgramDayExerciseId:
+      name: item_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ProgramDayBlockId:
+      name: block_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ProgramSortBy:
+      name: sort_by
+      in: query
+      schema:
+        type: string
+        enum: [name, name_ru, created_at, modified_at, status, category, difficulty]
+        default: created_at
+
+    TrainerClientSortBy:
+      name: sort_by
+      in: query
+      schema:
+        type: string
+        enum: [name, linked_at]
+        default: linked_at
+
+    TrainerClientSortOrder:
+      name: sort_order
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+
+    AnalyticsProgramId:
+      name: program_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    AnalyticsWeekNumber:
+      name: week_number
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+
+    ProgramAnalyticsSortBy:
+      name: sort_by
+      in: query
+      schema:
+        type: string
+        enum: [name, last_activity]
+        default: last_activity
+
+  responses:
+    BadRequest:
+      description: Invalid request (code `bad_request` unless the operation lists another)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: >
+        Missing or invalid access token: code `missing_authorization` when the
+        Authorization header is missing or is not a Bearer token, `invalid_token`
+        when the token is malformed, expired or signed with another key
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    TooManyRequests:
+      description: Rate limit exceeded (code `rate_limited`)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    QuotaExceeded:
+      description: Plan quota exceeded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/QuotaExceededError"
+
+  schemas:
+    ErrorResponse:
+      type: object
+      description: >
+        Body of every error response. `code` is stable: clients may branch on it.
+        `message` is text for people and may change, so clients must not parse it.
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Stable snake_case identifier of the error
+          example: invite_expired
+        message:
+          type: string
+          example: invite expired
+
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
+        commit:
+          type: string
+          description: Git commit the running binary was deployed from. Omitted when the deploy platform does not provide it (for example local runs). Not returned by /health/ready.
+          example: 0123abcd4567ef890123abcd4567ef890123abcd
+
+    ReadyResponse:
+      type: object
+      required: [status, checks]
+      properties:
+        status:
+          type: string
+          enum: [ready, not_ready, no_dependencies_configured]
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [ok, error, skipped]
+
+    AuthCredentials:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          maxLength: 254
+          format: email
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+        name:
+          type: string
+          maxLength: 100
+          description: Optional display name; defaults to empty string
+
+    IDTokenRequest:
+      type: object
+      required: [id_token]
+      properties:
+        id_token:
+          type: string
+          description: Google ID token from the app
+
+    AppleSignInRequest:
+      type: object
+      required: [id_token]
+      properties:
+        id_token:
+          type: string
+          description: Apple ID token from the app
+        name:
+          type: string
+          description: Display name the app received from Apple; optional, cut to 100 characters, used when the account is created or fills an empty name of an existing account
+
+    DeleteAccountRequest:
+      type: object
+      description: >
+        Optional body of `DELETE /auth/me`. The two Apple fields go together; the
+        redirect address needs both.
+      properties:
+        apple_id_token:
+          type: string
+          description: Apple ID token of a Sign in with Apple the app just ran; must belong to one of the account's Apple identities
+        apple_authorization_code:
+          type: string
+          description: Authorization code of the same sign-in. Single use, valid for five minutes
+        apple_redirect_uri:
+          type: string
+          description: >
+            Redirect address of the authorization request, an absolute https URL
+            without a fragment, at most 2048 characters. Android sends the
+            address it gave Apple; iOS sends none
+
+    TelegramLinkRequest:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          description: One-time code the bot sent to the Telegram user; case and surrounding spaces are ignored
+
+    RefreshRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+          description: Refresh token kept by the app; empty or absent means cookie mode
+
+    MePatchRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: Display name; empty string clears the name
+
+    TokenResponse:
+      type: object
+      required: [access_token, token_type, expires_at, user_id, email]
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          example: Bearer
+        expires_at:
+          type: string
+          format: date-time
+        user_id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        refresh_token:
+          type: string
+          description: Present for Google sign-in and body-mode refresh; absent when the cookie carries it
+
+    MeResponse:
+      type: object
+      required: [user_id, email, name, created_at, roles, telegram_linked]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        roles:
+          type: array
+          items:
+            type: string
+            enum: [admin, trainer, client]
+        subscription:
+          $ref: "#/components/schemas/Subscription"
+        telegram_linked:
+          type: boolean
+          description: True when the account has a Telegram sign-in
+
+    Subscription:
+      type: object
+      nullable: true
+      description: Effective plan of the trainer profile; null for users without one.
+      required: [plan, source, valid_until, limits, usage, permissions]
+      properties:
+        plan:
+          $ref: "#/components/schemas/PlanCode"
+        source:
+          type: string
+          nullable: true
+          enum: [admin, app_store, google_play, null]
+          description: Who issued the active entitlement; null on the free tier.
+        valid_until:
+          type: string
+          format: date-time
+          nullable: true
+          description: Expiry of the active entitlement; null means perpetual.
+        limits:
+          $ref: "#/components/schemas/PlanLimits"
+        usage:
+          $ref: "#/components/schemas/PlanUsage"
+        permissions:
+          $ref: "#/components/schemas/PlanPermissions"
+
+    PlanCode:
+      type: string
+      enum: [free, advance, elite]
+
+    PlanLimits:
+      type: object
+      required: [exercises, active_programs, active_clients]
+      properties:
+        exercises:
+          type: integer
+          nullable: true
+          description: Null means unlimited.
+        active_programs:
+          type: integer
+          nullable: true
+          description: Null means unlimited.
+        active_clients:
+          type: integer
+          nullable: true
+          description: Null means unlimited.
+
+    PlanUsage:
+      type: object
+      required: [exercises, active_programs, active_clients]
+      properties:
+        exercises:
+          type: integer
+        active_programs:
+          type: integer
+        active_clients:
+          type: integer
+
+    PlanPermissions:
+      type: object
+      required:
+        - can_create_exercise
+        - can_edit_exercises
+        - can_create_program
+        - can_edit_programs
+        - can_create_invite
+        - can_manage_clients
+      properties:
+        can_create_exercise:
+          type: boolean
+        can_edit_exercises:
+          type: boolean
+        can_create_program:
+          type: boolean
+        can_edit_programs:
+          type: boolean
+        can_create_invite:
+          type: boolean
+        can_manage_clients:
+          type: boolean
+
+    PlanCatalogResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlanCatalogItem"
+
+    PlanCatalogItem:
+      type: object
+      required: [code, limits]
+      properties:
+        code:
+          $ref: "#/components/schemas/PlanCode"
+        limits:
+          $ref: "#/components/schemas/PlanLimits"
+
+    GrantPlanRequest:
+      type: object
+      required: [plan]
+      properties:
+        plan:
+          $ref: "#/components/schemas/PlanCode"
+
+    TrainerPlanResponse:
+      type: object
+      required: [user_id, subscription]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        subscription:
+          $ref: "#/components/schemas/Subscription"
+
+    QuotaExceededError:
+      type: object
+      required: [code, message, error, resource, plan, limit, usage]
+      properties:
+        code:
+          type: string
+          enum: [quota_exceeded]
+        message:
+          type: string
+          example: quota exceeded
+        error:
+          type: string
+          description: Repeats `code`; the web cabinet's quota parser reads it
+          enum: [quota_exceeded]
+        resource:
+          type: string
+          enum: [exercises, programs, clients]
+        plan:
+          $ref: "#/components/schemas/PlanCode"
+        limit:
+          type: integer
+        usage:
+          type: integer
+
+    ExerciseListResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Exercise"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    ExerciseDeleteRequest:
+      type: object
+      required: [ids]
+      properties:
+        ids:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+
+    ExerciseDeleteResponse:
+      type: object
+      required: [deleted_count]
+      properties:
+        deleted_count:
+          type: integer
+          format: int64
+          minimum: 0
+
+    Pagination:
+      type: object
+      required: [page, limit, total, total_pages]
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+
+    Exercise:
+      type: object
+      required:
+        - id
+        - name
+        - name_ru
+        - created_by
+        - created_by_name
+        - modified_by
+        - modified_at
+        - created_at
+        - type
+        - muscle_group
+        - description
+        - description_ru
+        - difficulty
+        - video_url
+        - preview_image_url
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        name_ru:
+          type: string
+        created_by:
+          type: string
+          format: uuid
+        created_by_name:
+          type: string
+        modified_by:
+          type: string
+          format: uuid
+        modified_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        equipment:
+          $ref: "#/components/schemas/Equipment"
+        type:
+          $ref: "#/components/schemas/ExerciseType"
+        muscle_group:
+          $ref: "#/components/schemas/MuscleGroup"
+        description:
+          type: string
+        description_ru:
+          type: string
+        difficulty:
+          $ref: "#/components/schemas/Difficulty"
+        video_url:
+          type: string
+          description: Optional YouTube video URL (HTTPS). Empty string when not set.
+        preview_image_url:
+          type: string
+        scope:
+          type: string
+          enum: [global, private]
+          description: Global exercises are admin-owned and visible to everyone; private ones belong to a trainer.
+        owner_user_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: User id of the owning trainer; null for global exercises.
+
+    ExerciseUpsert:
+      type: object
+      required: [name, type, muscle_group, difficulty]
+      properties:
+        name:
+          type: string
+          maxLength: 1000
+        name_ru:
+          type: string
+          maxLength: 1000
+        equipment:
+          $ref: "#/components/schemas/Equipment"
+        type:
+          $ref: "#/components/schemas/ExerciseType"
+        muscle_group:
+          $ref: "#/components/schemas/MuscleGroup"
+        description:
+          type: string
+          maxLength: 5000
+        description_ru:
+          type: string
+          maxLength: 5000
+        difficulty:
+          $ref: "#/components/schemas/Difficulty"
+        video_url:
+          type: string
+          description: Optional YouTube video URL (HTTPS). Empty string when not set.
+        preview_image_url:
+          type: string
+
+    MuscleGroup:
+      type: string
+      enum:
+        - compound
+        - chest
+        - back
+        - legs
+        - shoulders
+        - arms
+        - core
+        - full_body
+
+    ExerciseType:
+      type: string
+      enum:
+        - strength
+        - cardio
+        - mixed_modal
+        - intervals
+        - stretching
+        - metcon
+        - skill_work
+        - accessory
+
+    Equipment:
+      type: string
+      enum:
+        - barbell
+        - dumbbells
+        - kettlebell
+        - pull_up_bar
+        - squat_rack
+        - rowing_machine
+        - assault_bike
+        - bike_erg
+        - ski_erg
+        - jump_rope
+        - plyo_box
+        - medicine_ball
+        - wall_ball
+        - resistance_bands
+        - battle_ropes
+        - gymnastic_rings
+        - sandbag
+        - sled
+        - weight_plates
+
+    Difficulty:
+      type: string
+      enum:
+        - beginner
+        - intermediate
+        - advanced
+        - expert
+
+    ProgramStatus:
+      type: string
+      enum: [draft, published, archived]
+
+    ProgramCategory:
+      type: string
+      enum:
+        - weight_loss
+        - muscle_gain
+        - rehabilitation
+        - endurance
+        - functional
+
+    Program:
+      type: object
+      required:
+        - id
+        - created_by
+        - created_by_name
+        - modified_by
+        - status
+        - name
+        - name_ru
+        - description
+        - description_ru
+        - preview_image_url
+        - has_unpublished_changes
+        - assignment_count
+        - training_days_count
+        - created_at
+        - modified_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        created_by:
+          type: string
+          format: uuid
+        created_by_name:
+          type: string
+        modified_by:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/ProgramStatus"
+        name:
+          type: string
+        name_ru:
+          type: string
+        description:
+          type: string
+        description_ru:
+          type: string
+        category:
+          $ref: "#/components/schemas/ProgramCategory"
+          nullable: true
+        difficulty:
+          $ref: "#/components/schemas/Difficulty"
+          nullable: true
+        preview_image_url:
+          type: string
+        latest_program_version_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Latest frozen plan for clients; null before first publish.
+        latest_client_plan_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the latest frozen plan was published.
+        has_unpublished_changes:
+          type: boolean
+          description: >
+            True when the editable program differs from the latest frozen version.
+        assignment_count:
+          type: integer
+          minimum: 0
+          description: Number of active client assignments on this program.
+        training_days_count:
+          type: integer
+          minimum: 0
+          description: >
+            Total days with at least one block or exercise across all weeks.
+            Empty days (no blocks) are not counted.
+        created_at:
+          type: string
+          format: date-time
+        modified_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ProgramDayExercise:
+      type: object
+      required:
+        - id
+        - exercise_id
+        - exercise_name
+        - exercise_name_ru
+        - sort_order
+        - instruction
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        exercise_id:
+          type: string
+          format: uuid
+        exercise_name:
+          type: string
+        exercise_name_ru:
+          type: string
+        sort_order:
+          type: integer
+        sets:
+          type: string
+          nullable: true
+          pattern: '^[0-9]+([/-][0-9]+)?$'
+          description: >
+            Optional volume string: digits only (`3`), one slash (`5/4`), or one
+            hyphen (`3-6`).
+          example: "3"
+        reps:
+          type: string
+          nullable: true
+          pattern: '^[0-9]+([/-][0-9]+)?$'
+          description: >
+            Optional volume string: digits only (`10`), one slash (`5/4`), or one
+            hyphen (`8-12`).
+          example: "10"
+        instruction:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    ProgramDayBlock:
+      type: object
+      required: [id, block_type, instruction, sort_order, client_user_ids, exercises, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        block_type:
+          $ref: "#/components/schemas/ProgramBlockType"
+        instruction:
+          type: string
+        sort_order:
+          type: integer
+        client_user_ids:
+          type: array
+          description: >-
+            Clients allowed to see this block. An empty array means the block
+            is visible to every client assigned to the program.
+          items:
+            type: string
+            format: uuid
+        exercises:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramDayExercise"
+        created_at:
+          type: string
+          format: date-time
+
+    ProgramBlockType:
+      type: string
+      enum:
+        - single
+        - emom
+        - amrap
+        - for_time
+        - intervals
+        - chipper
+        - ladder
+        - death_by
+        - superset
+        - complex
+        - skill_work
+        - strength
+        - conditioning
+        - gymnastics
+        - weightlifting
+
+    ProgramBlockGroupType:
+      type: string
+      enum:
+        - emom
+        - amrap
+        - for_time
+        - intervals
+        - chipper
+        - ladder
+        - death_by
+        - superset
+        - complex
+        - skill_work
+        - strength
+        - conditioning
+        - gymnastics
+        - weightlifting
+      description: Group block types only; `single` is not patchable.
+
+    ProgramDay:
+      type: object
+      required: [id, day_key, day_number, sort_order, blocks, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        day_key:
+          type: string
+          format: uuid
+          description: >
+            Stable id of the day. It survives publishing and syncing, while `id` is
+            regenerated. Workout marks and the `completed_days` of the client app use it.
+        day_number:
+          type: integer
+        sort_order:
+          type: integer
+        blocks:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramDayBlock"
+        created_at:
+          type: string
+          format: date-time
+
+    ProgramWeek:
+      type: object
+      required: [id, week_number, sort_order, days, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        week_number:
+          type: integer
+        sort_order:
+          type: integer
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramDay"
+        created_at:
+          type: string
+          format: date-time
+
+    ProgramDetail:
+      allOf:
+        - $ref: "#/components/schemas/Program"
+        - type: object
+          required: [weeks]
+          properties:
+            weeks:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProgramWeek"
+
+    ProgramWeeksReorder:
+      type: object
+      required: [week_ids]
+      description: >
+        Complete ordered list of all week IDs in the program (every week exactly once).
+      properties:
+        week_ids:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+
+    ProgramDaysReorder:
+      type: object
+      required: [day_ids]
+      description: >
+        Complete ordered list of all day IDs in the week (every day exactly once).
+      properties:
+        day_ids:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+
+    ProgramDayBlockCreate:
+      type: object
+      required: [exercise]
+      properties:
+        block_type:
+          type: string
+          enum: [single]
+          default: single
+          description: Only `single` is allowed; omit or use default.
+        sort_order:
+          type: integer
+          minimum: 1
+          description: >
+            Optional 1-based position in the day. Omit to append at the end.
+        exercise:
+          $ref: "#/components/schemas/ProgramDayExerciseUpsert"
+      description: >
+        Adds one exercise to the day as a `single` block. To create a group,
+        add singles and call merge.
+
+    ProgramDayBlocksReorder:
+      type: object
+      required: [block_ids]
+      description: >
+        Complete ordered list of all block IDs in the day (every block exactly once).
+      properties:
+        block_ids:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+
+    ProgramBlockExercisesReorder:
+      type: object
+      required: [exercise_item_ids]
+      description: >
+        Complete ordered list of all exercise item IDs in the block (every item exactly once).
+      properties:
+        exercise_item_ids:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+
+    ProgramDayBlocksMerge:
+      type: object
+      required: [block_ids]
+      properties:
+        block_ids:
+          type: array
+          minItems: 2
+          items:
+            type: string
+            format: uuid
+
+    ProgramDayBlockPatch:
+      type: object
+      properties:
+        block_type:
+          $ref: "#/components/schemas/ProgramBlockGroupType"
+        instruction:
+          type: string
+          maxLength: 5000
+      description: Patch group block metadata. At least one field required.
+
+    ProgramDayBlockMove:
+      type: object
+      required: [target_day_id]
+      properties:
+        target_day_id:
+          type: string
+          format: uuid
+        sort_order:
+          type: integer
+          minimum: 1
+          description: >
+            Optional 1-based position among blocks in the target day.
+            Omit to append at the end.
+
+    ProgramBlockClientsSet:
+      type: object
+      required: [client_user_ids]
+      properties:
+        client_user_ids:
+          type: array
+          description: >-
+            Complete replacement list. Empty makes the block shared again.
+          items:
+            type: string
+            format: uuid
+
+    ProgramBlockExerciseExtract:
+      type: object
+      properties:
+        sort_order:
+          type: integer
+          minimum: 1
+          description: >
+            Optional 1-based position for the new single block in the day.
+            Omit to append at the end.
+
+    ProgramExerciseMove:
+      type: object
+      required: [target_block_id]
+      properties:
+        target_block_id:
+          type: string
+          format: uuid
+
+    ProgramListResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Program"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    ProgramPatch:
+      type: object
+      description: >
+        Partial update for draft and published programs. Archived programs are
+        read-only (403 on mutations). Empty `name` is allowed in draft; publish
+        validates that name is non-empty.
+      properties:
+        name:
+          type: string
+          maxLength: 1000
+        name_ru:
+          type: string
+          maxLength: 1000
+        description:
+          type: string
+          maxLength: 5000
+        description_ru:
+          type: string
+          maxLength: 5000
+        category:
+          $ref: "#/components/schemas/ProgramCategory"
+        difficulty:
+          $ref: "#/components/schemas/Difficulty"
+        preview_image_url:
+          type: string
+
+    ProgramDayExerciseUpsert:
+      type: object
+      required: [exercise_id]
+      description: >
+        `sets` and `reps` are optional and may be omitted or `null`. When set,
+        each must be digits only (`3`), digits with one `/` (`5/4`), or digits
+        with one `-` (`3-6`).
+      properties:
+        exercise_id:
+          type: string
+          format: uuid
+        sets:
+          type: string
+          nullable: true
+          pattern: '^[0-9]+([/-][0-9]+)?$'
+          description: >
+            Optional volume string: digits only (`3`), one slash (`5/4`), or one
+            hyphen (`3-6`).
+          example: "3"
+        reps:
+          type: string
+          nullable: true
+          pattern: '^[0-9]+([/-][0-9]+)?$'
+          description: >
+            Optional volume string: digits only (`10`), one slash (`5/4`), or one
+            hyphen (`8-12`).
+          example: "10"
+        instruction:
+          type: string
+          maxLength: 5000
+
+    ProgramAssignmentStatus:
+      type: string
+      enum:
+        - active
+        - completed
+        - cancelled
+
+    ProgramAssignment:
+      type: object
+      required:
+        - id
+        - program_id
+        - program_version_id
+        - trainer_id
+        - client_user_id
+        - status
+        - assigned_at
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        program_id:
+          type: string
+          format: uuid
+        program_version_id:
+          type: string
+          format: uuid
+        trainer_id:
+          type: string
+          format: uuid
+        client_user_id:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/ProgramAssignmentStatus"
+        assigned_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        client_plan_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the assigned frozen version was published.
+        is_behind_latest:
+          type: boolean
+          description: Present in program assignment lists when client is not on latest version.
+
+    ProgramAssignmentListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramAssignment"
+        latest_program_version_id:
+          type: string
+          format: uuid
+          nullable: true
+
+    BulkSetClientProgramAssignmentRequest:
+      type: object
+      required: [client_user_ids]
+      properties:
+        program_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Published program to assign; null clears active assignments.
+        client_user_ids:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: string
+            format: uuid
+
+    BulkClientProgramAssignmentSkipped:
+      type: object
+      required: [client_user_id, reason]
+      properties:
+        client_user_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          description: not_linked, blocked, or not_found
+
+    BulkClientProgramAssignmentResponse:
+      type: object
+      required: [assigned, cleared, skipped]
+      properties:
+        assigned:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramAssignment"
+        cleared:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Client user IDs whose active assignment was removed
+        skipped:
+          type: array
+          items:
+            $ref: "#/components/schemas/BulkClientProgramAssignmentSkipped"
+
+    ProgramAssignmentSyncRequest:
+      type: object
+      description: Provide either all_active or assignment_ids (not both empty).
+      properties:
+        all_active:
+          type: boolean
+        assignment_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    ProgramAssignmentSyncSkipped:
+      type: object
+      required: [assignment_id, reason]
+      properties:
+        assignment_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+
+    ProgramAssignmentSyncResponse:
+      type: object
+      required: [synced, skipped]
+      properties:
+        synced:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramAssignment"
+        skipped:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramAssignmentSyncSkipped"
+
+    ProgramVersionSummary:
+      type: object
+      required:
+        - id
+        - version_number
+        - published_at
+        - created_at
+        - assignment_count
+        - can_delete
+      properties:
+        id:
+          type: string
+          format: uuid
+        version_number:
+          type: integer
+          minimum: 1
+        published_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        assignment_count:
+          type: integer
+          minimum: 0
+        can_delete:
+          type: boolean
+
+    ProgramVersionListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramVersionSummary"
+
+    ProgramVersionCleanupSkipped:
+      type: object
+      required: [version_id, reason]
+      properties:
+        version_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          description: >-
+            Why the version was kept. `sole_version`: it is the only version.
+            `has_assignments`: a client is still assigned to it.
+            `latest_version`: it is the newest version, so the next assignment
+            and sync land on it.
+
+    ProgramVersionCleanupResponse:
+      type: object
+      required: [deleted_version_ids, skipped]
+      properties:
+        deleted_version_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        skipped:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramVersionCleanupSkipped"
+
+    TrainerInvite:
+      type: object
+      required: [id, invite_url, expires_at, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        invite_url:
+          type: string
+          format: uri
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    ClientAcceptInviteRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: Bare invite token, `inv_<token>`, or the whole invite link; surrounding spaces are ignored
+
+    ClientAcceptInviteResponse:
+      type: object
+      required: [trainer_id, trainer_display_name, already_linked]
+      properties:
+        trainer_id:
+          type: string
+          format: uuid
+        trainer_display_name:
+          type: string
+        already_linked:
+          type: boolean
+
+    ClientTrainer:
+      type: object
+      required: [trainer_id, trainer_display_name, linked_at]
+      properties:
+        trainer_id:
+          type: string
+          format: uuid
+          description: trainers.id, the same id `POST /client/invites/accept` returns.
+        trainer_display_name:
+          type: string
+          description: May be an empty string when the trainer has not set a name.
+        linked_at:
+          type: string
+          format: date-time
+
+    ClientTrainerListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          description: Newest link first. Empty when the caller has no active trainer link.
+          items:
+            $ref: "#/components/schemas/ClientTrainer"
+
+    ClientProgramAssignment:
+      type: object
+      required: [assignment_id, program_id, program_version_id, completion_cycle_id, assigned_at]
+      properties:
+        assignment_id:
+          type: string
+          format: uuid
+          description: Send it back as `program_assignment_id` when marking a day.
+        program_id:
+          type: string
+          format: uuid
+        program_version_id:
+          type: string
+          format: uuid
+          description: The version the `program` below shows. Send it back when marking a day.
+        completion_cycle_id:
+          type: string
+          format: uuid
+          description: >
+            The cycle the checkmarks belong to. A new one starts with every reassignment.
+            Send it back when marking a day.
+        assigned_at:
+          type: string
+          format: date-time
+
+    ClientProgram:
+      type: object
+      required: [program_id, name, name_ru, description, description_ru, category, difficulty, preview_image_url, weeks]
+      description: >
+        The program as the app shows it. The weeks, days and blocks are the ones of
+        `ProgramDetail`, cut to the blocks the caller may see, with `day_key` on every day.
+        In a block `client_user_ids` is `[]` for a shared block and only the caller for a
+        block limited to chosen clients.
+      properties:
+        program_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        name_ru:
+          type: string
+        description:
+          type: string
+        description_ru:
+          type: string
+        category:
+          $ref: "#/components/schemas/ProgramCategory"
+          nullable: true
+        difficulty:
+          $ref: "#/components/schemas/Difficulty"
+          nullable: true
+        preview_image_url:
+          type: string
+        weeks:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramWeek"
+
+    ClientCompletedDay:
+      type: object
+      required: [day_key]
+      properties:
+        day_key:
+          type: string
+          format: uuid
+
+    ClientProgramResponse:
+      type: object
+      required: [trainer_id, trainer_display_name, assignment, program, completed_days]
+      properties:
+        trainer_id:
+          type: string
+          format: uuid
+          description: trainers.id
+        trainer_display_name:
+          type: string
+          description: May be an empty string when the trainer has not set a name.
+        assignment:
+          $ref: "#/components/schemas/ClientProgramAssignment"
+          nullable: true
+        program:
+          allOf:
+            - $ref: "#/components/schemas/ClientProgram"
+          nullable: true
+          description: The version of the assignment, with only the blocks the caller may see.
+        completed_days:
+          type: array
+          description: Days marked done in the current cycle. Empty without an assignment.
+          items:
+            $ref: "#/components/schemas/ClientCompletedDay"
+
+    ClientCompletionRequest:
+      type: object
+      required: [program_assignment_id, program_version_id, completion_cycle_id, day_key, result_text]
+      properties:
+        program_assignment_id:
+          type: string
+          format: uuid
+          description: "`assignment.assignment_id` of the program answer the app was showing."
+        program_version_id:
+          type: string
+          format: uuid
+          description: "`assignment.program_version_id` of the program answer the app was showing."
+        completion_cycle_id:
+          type: string
+          format: uuid
+          description: "`assignment.completion_cycle_id` of the program answer the app was showing."
+        day_key:
+          type: string
+          format: uuid
+        result_text:
+          type: string
+          maxLength: 1000
+          description: >
+            Free text, required, trimmed, at most 1000 characters. Control characters other
+            than line breaks and tabs are refused.
+
+    ClientCompletionResponse:
+      type: object
+      required: [id, day_key, week_number, day_number, completed_at, result_text]
+      properties:
+        id:
+          type: string
+          format: uuid
+        day_key:
+          type: string
+          format: uuid
+        week_number:
+          type: integer
+        day_number:
+          type: integer
+        completed_at:
+          type: string
+          format: date-time
+        result_text:
+          type: string
+          description: The stored text, trimmed.
+
+    TrainerClientProgramSummary:
+      type: object
+      required:
+        - assignment_id
+        - program_id
+        - program_version_id
+        - assigned_at
+        - program_name
+        - program_name_ru
+      properties:
+        assignment_id:
+          type: string
+          format: uuid
+          description: Active program_assignments.id; use for POST /programs/{id}/assignments/sync.
+        program_id:
+          type: string
+          format: uuid
+        program_version_id:
+          type: string
+          format: uuid
+        assigned_at:
+          type: string
+          format: date-time
+        program_name:
+          type: string
+          description: Frozen version display name (English).
+        program_name_ru:
+          type: string
+          description: Frozen version display name (Russian).
+        is_behind_latest:
+          type: boolean
+          description: >
+            True when the client's frozen version differs from the program's latest
+            frozen version. Omitted when there is no active program assignment.
+
+    TrainerClient:
+      type: object
+      required:
+        - client_user_id
+        - trainer_user_id
+        - trainer_display_name
+        - display_name
+        - status
+        - linked_at
+        - last_active_at
+        - avatar_url
+      properties:
+        client_user_id:
+          type: string
+          format: uuid
+        trainer_user_id:
+          type: string
+          format: uuid
+          description: >
+            User id of the trainer for the client link shown in this item.
+            Compare with user_id from GET /auth/me to allow program assignment.
+        trainer_display_name:
+          type: string
+          description: Display name of the trainer for the link shown in this item.
+        display_name:
+          type: string
+        status:
+          type: string
+          enum: [active, blocked]
+        linked_at:
+          type: string
+          format: date-time
+        last_active_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: >
+            Latest `client_workout_completions.completed_at` for this client
+            (any trainer). Null when the client has never completed a workout day.
+        avatar_url:
+          type: string
+          description: >
+            Signed relative URL to avatar proxy (`/trainer/clients/{id}/avatar?exp=&sig=`),
+            or empty string when the client has no Telegram profile photo.
+        program_assignment:
+          $ref: "#/components/schemas/TrainerClientProgramSummary"
+          nullable: true
+
+    TrainerClientListResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrainerClient"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    ClientAnalytics:
+      type: object
+      required: [client, current_assignment, activity]
+      properties:
+        client:
+          $ref: "#/components/schemas/AnalyticsClientInfo"
+        current_assignment:
+          $ref: "#/components/schemas/AnalyticsAssignment"
+          nullable: true
+        activity:
+          $ref: "#/components/schemas/AnalyticsActivity"
+
+    ClientSelfAnalytics:
+      type: object
+      required: [client, trainer, current_assignment, activity, recent_completions, expires_at]
+      properties:
+        client:
+          $ref: "#/components/schemas/ClientSelfInfo"
+        trainer:
+          $ref: "#/components/schemas/ClientSelfTrainer"
+        current_assignment:
+          $ref: "#/components/schemas/AnalyticsAssignment"
+          nullable: true
+        activity:
+          $ref: "#/components/schemas/AnalyticsActivity"
+        recent_completions:
+          type: array
+          description: Latest completions with this trainer, newest first, at most 30
+          items:
+            $ref: "#/components/schemas/ClientCompletionItem"
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: >
+            When the signed link stops working. `null` on `GET /client/trainers/{trainer_id}/analytics`,
+            which has no link.
+
+    ClientSelfInfo:
+      type: object
+      required: [client_user_id, display_name]
+      properties:
+        client_user_id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+
+    ClientSelfTrainer:
+      type: object
+      required: [trainer_id, display_name]
+      properties:
+        trainer_id:
+          type: string
+          format: uuid
+          description: trainers.id
+        display_name:
+          type: string
+
+    AnalyticsClientInfo:
+      type: object
+      required: [client_user_id, display_name, avatar_url, status, linked_at, last_active_at]
+      properties:
+        client_user_id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          description: Signed avatar proxy URL or empty string
+        status:
+          type: string
+          enum: [active, blocked]
+        linked_at:
+          type: string
+          format: date-time
+        last_active_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    AnalyticsAssignment:
+      type: object
+      required:
+        [program_id, program_version_id, program_name, program_name_ru,
+         assigned_at, is_behind_latest, progress]
+      properties:
+        program_id:
+          type: string
+          format: uuid
+        program_version_id:
+          type: string
+          format: uuid
+        program_name:
+          type: string
+        program_name_ru:
+          type: string
+        assigned_at:
+          type: string
+          format: date-time
+        is_behind_latest:
+          type: boolean
+        progress:
+          $ref: "#/components/schemas/AnalyticsProgress"
+
+    AnalyticsProgress:
+      type: object
+      required: [completed_days, total_training_days, completion_percent, weeks]
+      description: >
+        Current completion cycle vs the assigned frozen version. The cycle
+        survives version sync, so progress spans all versions of one assignment.
+      properties:
+        completed_days:
+          type: integer
+        total_training_days:
+          type: integer
+          description: Days with at least one block in the assigned version
+        completion_percent:
+          type: number
+          format: double
+          description: 0-100, one decimal, clamped at 100
+        weeks:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnalyticsWeekProgress"
+
+    AnalyticsWeekProgress:
+      type: object
+      required: [week_number, total_days, completed_days]
+      properties:
+        week_number:
+          type: integer
+        total_days:
+          type: integer
+        completed_days:
+          type: integer
+
+    AnalyticsActivity:
+      type: object
+      required:
+        [total_completions, completions_last_7_days, completions_last_30_days,
+         first_completed_at, last_completed_at, week_streak, by_program]
+      description: Lifetime activity with this trainer, across all cycles and programs.
+      properties:
+        total_completions:
+          type: integer
+        completions_last_7_days:
+          type: integer
+        completions_last_30_days:
+          type: integer
+        first_completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        week_streak:
+          type: integer
+          description: >
+            Consecutive calendar weeks (Mon-Sun, UTC) with at least one
+            completion. The streak is alive while the current week is still
+            in progress.
+        by_program:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnalyticsProgramActivity"
+
+    AnalyticsProgramActivity:
+      type: object
+      required:
+        [program_id, program_name, program_name_ru, total_completions,
+         first_completed_at, last_completed_at]
+      properties:
+        program_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Null when the program row was deleted (name from journal snapshot)
+        program_name:
+          type: string
+        program_name_ru:
+          type: string
+        total_completions:
+          type: integer
+        first_completed_at:
+          type: string
+          format: date-time
+        last_completed_at:
+          type: string
+          format: date-time
+
+    ClientCompletionsResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClientCompletionItem"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    ClientCompletionItem:
+      type: object
+      required:
+        [id, completed_at, program_id, program_name, program_name_ru,
+         week_number, day_number, result_text, is_current_cycle, comments]
+      properties:
+        id:
+          type: string
+          format: uuid
+        completed_at:
+          type: string
+          format: date-time
+        program_id:
+          type: string
+          format: uuid
+          nullable: true
+        program_name:
+          type: string
+        program_name_ru:
+          type: string
+        week_number:
+          type: integer
+        day_number:
+          type: integer
+        result_text:
+          type: string
+          description: Client's free-text workout result from Telegram
+        is_current_cycle:
+          type: boolean
+          description: True when the completion belongs to the client's current assignment cycle
+        comments:
+          type: array
+          description: Trainer replies on this result (at most one for now), oldest first
+          items:
+            $ref: "#/components/schemas/CompletionComment"
+
+    CompletionComment:
+      type: object
+      required: [id, text, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        text:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    CreateCompletionCommentRequest:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: Trainer reply text
+
+    ProgramsAnalyticsResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramAnalyticsItem"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    ProgramAnalyticsItem:
+      type: object
+      required:
+        [program_id, name, name_ru, status, training_days_count,
+         active_clients_count, total_completions, completions_last_30_days,
+         avg_completion_percent, last_activity_at]
+      properties:
+        program_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        name_ru:
+          type: string
+        status:
+          type: string
+          enum: [draft, published, archived]
+        training_days_count:
+          type: integer
+          description: Non-empty days in the draft tree
+        active_clients_count:
+          type: integer
+        total_completions:
+          type: integer
+          description: Lifetime completions across all versions and cycles
+        completions_last_30_days:
+          type: integer
+        avg_completion_percent:
+          type: number
+          format: double
+          nullable: true
+          description: >
+            Average current-cycle completion percent of active assignees
+            (0-100, one decimal). Null when there are no active clients.
+        last_activity_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ProgramAnalytics:
+      type: object
+      required: [program, summary, clients, weeks]
+      properties:
+        program:
+          $ref: "#/components/schemas/ProgramAnalyticsHeader"
+        summary:
+          $ref: "#/components/schemas/ProgramAnalyticsSummary"
+        clients:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramAnalyticsClient"
+        weeks:
+          type: array
+          description: Current-cycle completions of active assignees grouped by program week
+          items:
+            $ref: "#/components/schemas/ProgramAnalyticsWeek"
+
+    ProgramAnalyticsHeader:
+      type: object
+      required: [program_id, name, name_ru, status, latest_version_number, training_days_count]
+      properties:
+        program_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        name_ru:
+          type: string
+        status:
+          type: string
+          enum: [draft, published, archived]
+        latest_version_number:
+          type: integer
+          description: 0 when the program has never been published
+        training_days_count:
+          type: integer
+
+    ProgramAnalyticsSummary:
+      type: object
+      required:
+        [active_clients_count, total_completions, completions_last_30_days,
+         avg_completion_percent, last_activity_at]
+      properties:
+        active_clients_count:
+          type: integer
+        total_completions:
+          type: integer
+        completions_last_30_days:
+          type: integer
+        avg_completion_percent:
+          type: number
+          format: double
+          nullable: true
+        last_activity_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ProgramAnalyticsClient:
+      type: object
+      required:
+        [client_user_id, display_name, avatar_url, assigned_at, is_behind_latest,
+         completed_days, total_training_days, completion_percent, last_completed_at]
+      properties:
+        client_user_id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+        assigned_at:
+          type: string
+          format: date-time
+        is_behind_latest:
+          type: boolean
+        completed_days:
+          type: integer
+        total_training_days:
+          type: integer
+        completion_percent:
+          type: number
+          format: double
+        last_completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ProgramAnalyticsWeek:
+      type: object
+      required: [week_number, completions_count, distinct_clients_count]
+      properties:
+        week_number:
+          type: integer
+        completions_count:
+          type: integer
+        distinct_clients_count:
+          type: integer
+
+    ProgramWeekResults:
+      type: object
+      required:
+        [program_id, program_name, program_name_ru, week_number, days, summary, clients]
+      properties:
+        program_id:
+          type: string
+          format: uuid
+        program_name:
+          type: string
+        program_name_ru:
+          type: string
+        week_number:
+          type: integer
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramWeekDayColumn"
+        summary:
+          $ref: "#/components/schemas/ProgramWeekMatrixSummary"
+        clients:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramWeekMatrixClient"
+
+    ProgramWeekDayColumn:
+      type: object
+      required: [day_number]
+      properties:
+        day_number:
+          type: integer
+
+    ProgramWeekMatrixSummary:
+      type: object
+      required:
+        [total_training_slots, submitted_count, missing_count,
+         completion_percent, behind_clients_count]
+      properties:
+        total_training_slots:
+          type: integer
+          description: clients × training days in the week
+        submitted_count:
+          type: integer
+        missing_count:
+          type: integer
+        completion_percent:
+          type: number
+          format: double
+        behind_clients_count:
+          type: integer
+          description: Assignees whose assigned version is behind latest
+
+    ProgramWeekMatrixClient:
+      type: object
+      required:
+        [client_user_id, display_name, avatar_url, is_behind_latest,
+         completed_days, total_days, days]
+      properties:
+        client_user_id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+        is_behind_latest:
+          type: boolean
+        completed_days:
+          type: integer
+          description: Submitted cells in this week
+        total_days:
+          type: integer
+          description: Training day columns in this week
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramWeekMatrixCell"
+
+    ProgramWeekMatrixCell:
+      type: object
+      required: [day_number, status, completion_id, result_text, completed_at, comments]
+      properties:
+        day_number:
+          type: integer
+        status:
+          type: string
+          enum: [submitted, no_result]
+        completion_id:
+          type: string
+          format: uuid
+          nullable: true
+        result_text:
+          type: string
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        comments:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompletionComment"

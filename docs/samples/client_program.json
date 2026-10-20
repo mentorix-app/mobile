@@ -1,0 +1,292 @@
+{
+  "trainer_id": "909027e1-fc56-4969-8fc5-943a949f0441",
+  "trainer_display_name": "Test free trainer",
+  "assignment": {
+    "assignment_id": "aac4e535-3af3-4224-bc8c-ce7396a487a2",
+    "program_id": "72400cfe-6b06-4b01-9420-2fbfd06f4069",
+    "program_version_id": "62ac5eb9-20bb-4f39-a388-868b95c8a504",
+    "completion_cycle_id": "a68b74d6-9f1c-486f-8495-2228fe9d89d5",
+    "assigned_at": "2026-10-20T15:24:33.085477Z"
+  },
+  "program": {
+    "program_id": "72400cfe-6b06-4b01-9420-2fbfd06f4069",
+    "name": "Mentorix Mobile Test",
+    "name_ru": "Тест мобилки",
+    "description": "Test program for the mobile app: two weeks, a rest day and different block types. English only on purpose.",
+    "description_ru": "Тестовая прога для мобилки",
+    "category": "functional",
+    "difficulty": "intermediate",
+    "preview_image_url": "",
+    "weeks": [
+      {
+        "id": "5562e411-66fb-4d70-93f7-cc69a6a76501",
+        "week_number": 1,
+        "sort_order": 1,
+        "days": [
+          {
+            "id": "86e02cc6-f2e6-460e-9b3b-40b21fc046a8",
+            "day_key": "0d879dc0-9365-43ab-8222-a95c6c477d24",
+            "day_number": 1,
+            "sort_order": 1,
+            "blocks": [
+              {
+                "id": "43d4e8aa-5160-49aa-89e2-5ff7798f699a",
+                "block_type": "single",
+                "instruction": "",
+                "sort_order": 1,
+                "client_user_ids": [],
+                "exercises": [
+                  {
+                    "id": "62d62190-2d99-4e60-a8bf-7d66be0fc89b",
+                    "exercise_id": "c37d4d7c-3d47-433d-855d-dcf132934168",
+                    "exercise_name": "Back Squat",
+                    "exercise_name_ru": "Приседания со штангой на спине",
+                    "sort_order": 1,
+                    "sets": "5",
+                    "reps": "5",
+                    "instruction": "80 кг, отдых 2 мин",
+                    "created_at": "2026-10-20T10:01:20.730464Z"
+                  }
+                ],
+                "created_at": "2026-10-20T10:01:20.730464Z"
+              },
+              {
+                "id": "80f664cf-f1be-45c8-8444-0b049a2eed9e",
+                "block_type": "single",
+                "instruction": "",
+                "sort_order": 2,
+                "client_user_ids": [],
+                "exercises": [
+                  {
+                    "id": "bd6e6a89-29a6-4a34-8bcf-d9763c14326d",
+                    "exercise_id": "c857a5eb-727e-4b99-a6a8-8d9cf0dc7b57",
+                    "exercise_name": "Barbell Bench Press",
+                    "exercise_name_ru": "Жим штанги лёжа",
+                    "sort_order": 1,
+                    "sets": "3",
+                    "reps": "8-12",
+                    "instruction": "",
+                    "created_at": "2026-10-20T10:01:20.730464Z"
+                  }
+                ],
+                "created_at": "2026-10-20T10:01:20.730464Z"
+              }
+            ],
+            "created_at": "2026-10-20T10:01:20.730464Z"
+          },
+          {
+            "id": "7758a3e3-2508-4a7d-9284-d24567ba04eb",
+            "day_key": "037cac26-cec3-453e-ad80-cdab86242558",
+            "day_number": 2,
+            "sort_order": 2,
+            "blocks": [],
+            "created_at": "2026-10-20T10:01:20.730464Z"
+          },
+          {
+            "id": "50580e01-5044-46cc-b060-a7790737667d",
+            "day_key": "181f8343-0ec6-4290-b462-bc70a39e19ef",
+            "day_number": 3,
+            "sort_order": 3,
+            "blocks": [
+              {
+                "id": "f1bfea33-8207-4a36-b97a-9962f1fdd663",
+                "block_type": "superset",
+                "instruction": "Без отдыха между упражнениями, 90 сек между кругами",
+                "sort_order": 1,
+                "client_user_ids": [],
+                "exercises": [
+                  {
+                    "id": "17a05f8a-1479-4e3e-a19a-b8533ccd3af2",
+                    "exercise_id": "d47553ec-2b32-4914-8e02-1ecb4c6b1332",
+                    "exercise_name": "Barbell Row",
+                    "exercise_name_ru": "Тяга штанги в наклоне",
+                    "sort_order": 1,
+                    "sets": "4",
+                    "reps": "10",
+                    "instruction": "",
+                    "created_at": "2026-10-20T10:01:20.730464Z"
+                  },
+                  {
+                    "id": "7cd05b5b-f68e-4b4a-832b-7641acd326e2",
+                    "exercise_id": "28125778-b244-4278-b725-11727aac6dc3",
+                    "exercise_name": "Barbell Biceps Curl",
+                    "exercise_name_ru": "Подъём штанги на бицепс",
+                    "sort_order": 2,
+                    "sets": "4",
+                    "reps": "12",
+                    "instruction": "",
+                    "created_at": "2026-10-20T10:01:20.730464Z"
+                  }
+                ],
+                "created_at": "2026-10-20T10:01:20.730464Z"
+              }
+            ],
+            "created_at": "2026-10-20T10:01:20.730464Z"
+          },
+          {
+            "id": "0aae8a2e-bf6e-403c-8007-98503c7384f8",
+            "day_key": "102d6ee5-7280-4e91-9318-b4128ab2cc3a",
+            "day_number": 4,
+            "sort_order": 4,
+            "blocks": [
+              {
+                "id": "167a2218-817c-4dbc-ad0b-390736e8038e",
+                "block_type": "amrap",
+                "instruction": "12 минут, максимум раундов",
+                "sort_order": 1,
+                "client_user_ids": [],
+                "exercises": [
+                  {
+                    "id": "301155a6-85bc-40de-a06d-41595a5d2137",
+                    "exercise_id": "62f4b387-b25a-4c56-aca9-6379b08b6e22",
+                    "exercise_name": "Assault Bike",
+                    "exercise_name_ru": "Эйр-байк",
+                    "sort_order": 1,
+                    "reps": "15",
+                    "instruction": "Считаем калории, не повторы",
+                    "created_at": "2026-10-20T10:01:20.730464Z"
+                  },
+                  {
+                    "id": "2ede031b-309a-41df-bfdb-5beb33e6342d",
+                    "exercise_id": "314c23ec-723e-4d7a-a8be-e63a1f385a84",
+                    "exercise_name": "Back Extension",
+                    "exercise_name_ru": "Гиперэкстензия",
+                    "sort_order": 2,
+                    "reps": "12",
+                    "instruction": "",
+                    "created_at": "2026-10-20T10:01:20.730464Z"
+                  }
+                ],
+                "created_at": "2026-10-20T10:01:20.730464Z"
+              }
+            ],
+            "created_at": "2026-10-20T10:01:20.730464Z"
+          },
+          {
+            "id": "a8e19ed9-5649-4389-8697-f952e807f5c6",
+            "day_key": "13aa8a83-5820-49d7-ad39-6194b5da7533",
+            "day_number": 5,
+            "sort_order": 5,
+            "blocks": [],
+            "created_at": "2026-10-20T10:01:20.730464Z"
+          },
+          {
+            "id": "4ce29d08-2903-4b52-a33d-1a3b67546d57",
+            "day_key": "38a0c499-effa-41d7-9294-7613302d21f6",
+            "day_number": 6,
+            "sort_order": 6,
+            "blocks": [],
+            "created_at": "2026-10-20T10:01:20.730464Z"
+          },
+          {
+            "id": "831a2931-4cd9-4741-8fad-a027503e1b1f",
+            "day_key": "4e2cd814-8d0a-43af-bfe9-c6093e8dd61a",
+            "day_number": 7,
+            "sort_order": 7,
+            "blocks": [],
+            "created_at": "2026-10-20T10:01:20.730464Z"
+          }
+        ],
+        "created_at": "2026-10-20T10:01:20.730464Z"
+      },
+      {
+        "id": "35fe6edd-1f61-441f-9f14-0164bda5ba8c",
+        "week_number": 2,
+        "sort_order": 2,
+        "days": [
+          {
+            "id": "abc08c7e-45f4-451d-b625-50cecc4fc125",
+            "day_key": "e465cab5-0932-43cf-8f60-c0905d9d489a",
+            "day_number": 1,
+            "sort_order": 1,
+            "blocks": [
+              {
+                "id": "066004e1-8cd7-4c6f-b855-b2522835664f",
+                "block_type": "emom",
+                "instruction": "20 минут: чётные минуты жим, нечётные шраги",
+                "sort_order": 1,
+                "client_user_ids": [],
+                "exercises": [
+                  {
+                    "id": "e40ad1ee-7a34-46b6-a8cb-ee052baf5a90",
+                    "exercise_id": "a0e48db6-969a-4518-9683-15958e61f3f1",
+                    "exercise_name": "Arnold Press",
+                    "exercise_name_ru": "Жим Арнольда",
+                    "sort_order": 1,
+                    "sets": "10",
+                    "reps": "5",
+                    "instruction": "",
+                    "created_at": "2026-10-20T10:01:20.730464Z"
+                  },
+                  {
+                    "id": "84a3fa55-f1c0-484b-b7b9-677be744843a",
+                    "exercise_id": "a22235c4-bdc1-4f7c-bb65-faa811b54c73",
+                    "exercise_name": "Barbell Shrug",
+                    "exercise_name_ru": "Шраги со штангой",
+                    "sort_order": 2,
+                    "sets": "10",
+                    "reps": "8",
+                    "instruction": "",
+                    "created_at": "2026-10-20T10:01:20.730464Z"
+                  }
+                ],
+                "created_at": "2026-10-20T10:01:20.730464Z"
+              }
+            ],
+            "created_at": "2026-10-20T10:01:20.730464Z"
+          },
+          {
+            "id": "cc0c5407-88f2-459a-add7-b3afb11154f5",
+            "day_key": "73e88bd5-1032-426f-b451-76e859e58b76",
+            "day_number": 2,
+            "sort_order": 2,
+            "blocks": [],
+            "created_at": "2026-10-20T10:01:20.730464Z"
+          },
+          {
+            "id": "49aa731e-a835-4f64-b624-cc3e60971db6",
+            "day_key": "566b6cec-2744-4d1c-8b7b-d79f601a527d",
+            "day_number": 3,
+            "sort_order": 3,
+            "blocks": [],
+            "created_at": "2026-10-20T10:01:20.730464Z"
+          },
+          {
+            "id": "fededa7c-6ca0-4c07-9fa7-a80e0dd859eb",
+            "day_key": "575cfb29-df97-4210-8205-85d7c9a6bf15",
+            "day_number": 4,
+            "sort_order": 4,
+            "blocks": [],
+            "created_at": "2026-10-20T10:01:20.730464Z"
+          },
+          {
+            "id": "0cd4937f-61ee-4dbe-a4a4-88893b0d88d5",
+            "day_key": "58148337-1bf6-4df6-9039-b39ed7f1d4c9",
+            "day_number": 5,
+            "sort_order": 5,
+            "blocks": [],
+            "created_at": "2026-10-20T10:01:20.730464Z"
+          },
+          {
+            "id": "490d92db-c6e4-42dc-ab12-775b011e7635",
+            "day_key": "896eb4ab-0c3e-460c-b445-d3313c3f6dca",
+            "day_number": 6,
+            "sort_order": 6,
+            "blocks": [],
+            "created_at": "2026-10-20T10:01:20.730464Z"
+          },
+          {
+            "id": "c6d4be36-6dbd-419f-b3db-ec1bc78b322a",
+            "day_key": "f873a027-6c5b-4e25-a773-52c38e495c5d",
+            "day_number": 7,
+            "sort_order": 7,
+            "blocks": [],
+            "created_at": "2026-10-20T10:01:20.730464Z"
+          }
+        ],
+        "created_at": "2026-10-20T10:01:20.730464Z"
+      }
+    ]
+  },
+  "completed_days": []
+}
