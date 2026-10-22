@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mentorix_app/core/network/session_expired_notifier.dart';
 import 'package:mentorix_app/core/router/route_names.dart';
 import 'package:mentorix_app/core/theme/app_theme.dart';
 import 'package:mentorix_app/core/widgets/error_state.dart';
 import 'package:mentorix_app/core/widgets/skeleton_box.dart';
 import 'package:mentorix_app/features/auth/domain/entities/linked_trainer.dart';
+import 'package:mentorix_app/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:mentorix_app/features/home/presentation/screens/home_screen.dart';
 import 'package:mentorix_app/features/theme/data/repositories/theme_repository_impl.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
@@ -19,13 +21,22 @@ import 'package:mentorix_app/features/workout/presentation/widgets/trainer_card.
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../helpers/auth_fakes.dart';
 import '../../helpers/workout_fakes.dart';
 
 void main() {
   late FakeWorkoutRepository repository;
+  late FakeAuthRepository auth;
+  late SessionCubit session;
   late GoRouter router;
 
-  setUp(() => repository = FakeWorkoutRepository()..trainersResult = [aziz]);
+  setUp(() {
+    repository = FakeWorkoutRepository()..trainersResult = [aziz];
+    auth = FakeAuthRepository();
+    session = SessionCubit(auth, SessionExpiredNotifier());
+  });
+
+  tearDown(() => session.close());
 
   Future<AppLocalizations> pumpHome(
     WidgetTester tester, {
@@ -74,8 +85,11 @@ void main() {
     addTearDown(themeCubit.close);
 
     await tester.pumpWidget(
-      BlocProvider<ThemeCubit>.value(
-        value: themeCubit,
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<ThemeCubit>.value(value: themeCubit),
+          BlocProvider<SessionCubit>.value(value: session),
+        ],
         child: MaterialApp.router(
         theme: (theme ?? AppTheme.light).copyWith(platform: platform),
         locale: locale,
@@ -355,6 +369,52 @@ void main() {
 
     expect(router.state.matchedLocation, '/trainers/${aziz.trainerId}');
     expect(find.text('program-screen ${aziz.trainerId}'), findsOneWidget);
+  });
+
+  group('смена аккаунта в сессии (привязка Telegram слила аккаунты)', () {
+    testWidgets('сменился пользователь или тренеры — список запрашивается заново', (
+      tester,
+    ) async {
+      auth.profile = testProfile;
+      auth.trainers = [aziz];
+      await session.authenticate();
+      await pumpHome(tester);
+      expect(repository.trainersCalls, 1);
+      expect(find.text('Aziz Geidar'), findsOneWidget);
+
+      repository.trainersResult = const [
+        LinkedTrainer(trainerId: 'other', trainerDisplayName: 'Другой тренер'),
+      ];
+      auth.profile = unlinkedProfileWithRoles(['client']);
+      auth.trainers = repository.trainersResult;
+      await session.authenticate();
+      await tester.pumpAndSettle();
+
+      expect(repository.trainersCalls, 2);
+      expect(find.text('Другой тренер'), findsOneWidget);
+      expect(find.text('Aziz Geidar'), findsNothing);
+    });
+
+    testWidgets('тот же пользователь и те же тренеры — лишнего запроса нет', (tester) async {
+      auth.profile = testProfile;
+      auth.trainers = [aziz];
+      await session.authenticate();
+      await pumpHome(tester);
+
+      await session.authenticate();
+      await tester.pumpAndSettle();
+
+      expect(repository.trainersCalls, 1);
+    });
+
+    testWidgets('сессия не меняется (вход, выход) — запрос не уходит', (tester) async {
+      await pumpHome(tester);
+
+      await session.logout();
+      await tester.pumpAndSettle();
+
+      expect(repository.trainersCalls, 1);
+    });
   });
 
   group('вёрстка', () {

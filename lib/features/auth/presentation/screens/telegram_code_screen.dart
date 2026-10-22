@@ -22,8 +22,14 @@ import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 /// Раскладка прижата к верху, а не центрирована, и всё динамическое
 /// (индикатор, сообщение об ошибке) лежит **ниже** поля и кнопок: клавиатура,
 /// загрузка и сообщения не двигают то, во что целится палец.
+///
+/// Экран один на два сценария. В онбординге после успеха открывается следующий шаг
+/// (приглашение); из профиля [onLinked] возвращает в профиль.
 class TelegramCodeScreen extends StatefulWidget {
-  const TelegramCodeScreen({super.key});
+  const TelegramCodeScreen({super.key, this.onLinked});
+
+  /// Что делать после успешной привязки. `null` — продолжить онбординг.
+  final VoidCallback? onLinked;
 
   @override
   State<TelegramCodeScreen> createState() => _TelegramCodeScreenState();
@@ -45,7 +51,7 @@ class _TelegramCodeScreenState extends State<TelegramCodeScreen> {
 
     return BlocConsumer<TelegramLinkCubit, TelegramLinkState>(
       listener: (context, state) => switch (state) {
-        TelegramLinkSuccess() => context.go(RouteNames.invite),
+        TelegramLinkSuccess() => _onLinked(context),
         TelegramLinkFailed(:final failure, :final codeSpent) => _onFailed(
           context,
           l10n,
@@ -148,6 +154,11 @@ class _TelegramCodeScreenState extends State<TelegramCodeScreen> {
         );
       },
     );
+  }
+
+  void _onLinked(BuildContext context) {
+    final callback = widget.onLinked;
+    callback != null ? callback() : context.go(RouteNames.invite);
   }
 
   void _submit(BuildContext context) {

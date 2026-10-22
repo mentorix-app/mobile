@@ -132,6 +132,24 @@ GoRouter createAppRouter({
           child: const ProfileScreen(),
         ),
       ),
+      // Привязка Telegram из профиля: свой TelegramLinkCubit и тот же экран
+      // ввода кода; после успеха — назад в профиль (профиль к тому времени уже
+      // обновлён через /auth/me).
+      GoRoute(
+        path: RouteNames.profileTelegram,
+        builder: (context, state) {
+          final router = GoRouter.of(context);
+
+          return BlocProvider(
+            create: (_) => GetIt.I<TelegramLinkCubit>(),
+            child: TelegramCodeScreen(
+              onLinked: () => router.canPop()
+                  ? router.pop()
+                  : router.go(RouteNames.profile),
+            ),
+          );
+        },
+      ),
     ],
   );
 }
@@ -152,7 +170,11 @@ String? _authenticatedRedirect(
   // Режим задан ролями из /auth/me. Тренер и администратор видят только свой
   // экран и профиль (выход, удаление); онбординг и главный экран — не для них.
   if (profile.mode != AppMode.client) {
-    return location == next || location == RouteNames.profile ? null : next;
+    return location == next ||
+            location == RouteNames.profile ||
+            location == RouteNames.profileTelegram
+        ? null
+        : next;
   }
 
   // Клиенту экраны тренера и администратора недоступны.

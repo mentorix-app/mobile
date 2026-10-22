@@ -799,6 +799,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Continue: week {week}, day {day}'**
   String programContinueAction(int week, int day);
+
+  /// No description provided for @profileTelegramLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Telegram'**
+  String get profileTelegramLabel;
+
+  /// No description provided for @profileTelegramLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked'**
+  String get profileTelegramLinked;
+
+  /// No description provided for @profileTelegramNotLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Not linked'**
+  String get profileTelegramNotLinked;
+
+  /// No description provided for @profileTelegramLinkAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get profileTelegramLinkAction;
 }
 
 class _AppLocalizationsDelegate

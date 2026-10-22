@@ -334,6 +334,241 @@ void main() {
     });
   });
 
+  group('Telegram в профиле', () {
+    GoRouter routerOf(WidgetTester tester) =>
+        GoRouter.of(tester.element(find.byType(Scaffold).first));
+
+    Future<_Harness> openProfile(
+      WidgetTester tester, {
+      UserProfile profile = unlinkedProfile,
+      Locale locale = const Locale('en'),
+    }) async {
+      // Предложение привязать Telegram при входе пропущено («Нет, пропустить»):
+      // иначе клиент без Telegram до главного экрана не дошёл бы.
+      final app = await pumpApp(
+        tester,
+        profile: profile,
+        locale: locale,
+        stored: {StorageKeys.onboardingTelegramOfferDone(profile.userId): true},
+      );
+      await tester.tap(find.byTooltip(app.l10n.profileOpenAction));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProfileScreen), findsOneWidget);
+      return app;
+    }
+
+    Finder linkButton(_Harness app) =>
+        find.widgetWithText(OutlinedButton, app.l10n.profileTelegramLinkAction);
+
+    Future<void> submitCode(WidgetTester tester, _Harness app) async {
+      await tester.enterText(find.byType(TextField), 'ABCD1234');
+      await tester.pump();
+      await tester.tap(find.text(app.l10n.continueAction));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('привязан: «Привязан» без кнопки', (tester) async {
+      final app = await openProfile(tester, profile: testProfile);
+
+      expect(find.text(app.l10n.profileTelegramLabel), findsOneWidget);
+      expect(find.text(app.l10n.profileTelegramLinked), findsOneWidget);
+      expect(find.text(app.l10n.profileTelegramNotLinked), findsNothing);
+      expect(linkButton(app), findsNothing);
+    });
+
+    testWidgets('не привязан: «Не привязан» и кнопка «Привязать»', (tester) async {
+      final app = await openProfile(tester);
+
+      expect(find.text(app.l10n.profileTelegramNotLinked), findsOneWidget);
+      expect(find.text(app.l10n.profileTelegramLinked), findsNothing);
+      expect(linkButton(app), findsOneWidget);
+    });
+
+    testWidgets('русский: «Привязан» / «Не привязан» / «Привязать»', (tester) async {
+      final app = await openProfile(tester, locale: const Locale('ru'));
+
+      expect(find.text('Telegram'), findsOneWidget);
+      expect(find.text('Не привязан'), findsOneWidget);
+      expect(find.text('Привязать'), findsOneWidget);
+      expect(app.l10n.profileTelegramLinked, 'Привязан');
+    });
+
+    testWidgets('отвязки в интерфейсе нет: ни у привязанного, ни у нет', (tester) async {
+      final app = await openProfile(tester, profile: testProfile);
+
+      expect(find.textContaining('Unlink'), findsNothing);
+      expect(find.textContaining('Отвяз'), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(ProfileScreen),
+          matching: find.widgetWithText(OutlinedButton, app.l10n.profileTelegramLinkAction),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('«Привязать» открывает тот же ввод кода, что и онбординг', (tester) async {
+      final app = await openProfile(tester);
+
+      await tester.tap(linkButton(app));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TelegramCodeScreen), findsOneWidget);
+      expect(find.byType(TelegramOfferScreen), findsNothing);
+      expect(routerOf(tester).state.matchedLocation, RouteNames.profileTelegram);
+      // Те же три шага и кнопка «Открыть бота».
+      expect(find.text(app.l10n.telegramStep1), findsOneWidget);
+      expect(find.text(app.l10n.telegramOpenBotAction), findsOneWidget);
+      expect(find.byType(TextField), findsOneWidget);
+    });
+
+    testWidgets('успех: возврат в профиль, /auth/me обновлён, строка «Привязан»', (
+      tester,
+    ) async {
+      final app = await openProfile(tester);
+      final callsBefore = app.repository.profileCalls;
+
+      await tester.tap(linkButton(app));
+      await tester.pumpAndSettle();
+      await submitCode(tester, app);
+
+      expect(app.repository.linkedCodes, ['ABCD1234']);
+      expect(app.repository.profileCalls, greaterThan(callsBefore));
+      expect(find.byType(TelegramCodeScreen), findsNothing);
+      expect(find.byType(ProfileScreen), findsOneWidget);
+      expect(routerOf(tester).state.matchedLocation, RouteNames.profile);
+      expect(find.text(app.l10n.profileTelegramLinked), findsOneWidget);
+      expect(linkButton(app), findsNothing);
+    });
+
+    testWidgets('после привязки из профиля приглашение не открывается', (tester) async {
+      final app = await openProfile(tester);
+
+      await tester.tap(linkButton(app));
+      await tester.pumpAndSettle();
+      await submitCode(tester, app);
+
+      expect(find.byType(InviteScreen), findsNothing);
+      expect(find.byType(TelegramOfferScreen), findsNothing);
+    });
+
+    testWidgets('«назад» из профиля после привязки ведёт на главный экран', (tester) async {
+      final app = await openProfile(tester);
+      await tester.tap(linkButton(app));
+      await tester.pumpAndSettle();
+      await submitCode(tester, app);
+
+      routerOf(tester).pop();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(HomeScreen), findsOneWidget);
+    });
+
+    testWidgets('код потрачен: остаёмся на вводе, профиль не менялся', (tester) async {
+      final app = await openProfile(tester);
+      app.repository.linkFailure = const TelegramCodeInvalidFailure();
+      final callsBefore = app.repository.profileCalls;
+
+      await tester.tap(linkButton(app));
+      await tester.pumpAndSettle();
+      await submitCode(tester, app);
+
+      expect(find.byType(TelegramCodeScreen), findsOneWidget);
+      expect(find.text(app.l10n.telegramCodeSpentHint), findsOneWidget);
+      expect(app.repository.profileCalls, callsBefore);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ProfileScreen), findsOneWidget);
+      expect(find.text(app.l10n.profileTelegramNotLinked), findsOneWidget);
+      expect(linkButton(app), findsOneWidget);
+    });
+
+    testWidgets('429: поле остаётся, снекбар, привязки нет', (tester) async {
+      final app = await openProfile(tester);
+      app.repository.linkFailure = const TooManyRequestsFailure();
+
+      await tester.tap(linkButton(app));
+      await tester.pumpAndSettle();
+      await submitCode(tester, app);
+
+      expect(find.text(app.l10n.errorTooManyRequests), findsOneWidget);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        'ABCD1234',
+      );
+    });
+
+    testWidgets('вернулись без ввода кода: запросов нет, строка прежняя', (tester) async {
+      final app = await openProfile(tester);
+
+      await tester.tap(linkButton(app));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(app.repository.linkedCodes, isEmpty);
+      expect(find.text(app.l10n.profileTelegramNotLinked), findsOneWidget);
+    });
+
+    testWidgets('«Открыть бота» открывает https://t.me/<бот>?start=link', (tester) async {
+      final app = await openProfile(tester);
+      await tester.tap(linkButton(app));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(app.l10n.telegramOpenBotAction));
+      await tester.pumpAndSettle();
+
+      expect(app.launcher.opened.single.toString(), 'https://t.me/mentorix_test_bot?start=link');
+    });
+
+    testWidgets('аккаунт тренера: строка и привязка тоже работают', (tester) async {
+      final app = await pumpApp(tester, profile: unlinkedProfileWithRoles(['trainer']));
+      expect(find.byType(TrainerWebOnlyScreen), findsOneWidget);
+      await tester.tap(find.text(app.l10n.profileOpenAction));
+      await tester.pumpAndSettle();
+
+      expect(find.text(app.l10n.profileTelegramNotLinked), findsOneWidget);
+
+      await tester.tap(linkButton(app));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TelegramCodeScreen), findsOneWidget);
+      expect(find.byType(TrainerWebOnlyScreen), findsNothing);
+    });
+
+    testWidgets('профиль не обрезается: 320 px, шрифт ×2, русский', (tester) async {
+      tester.view
+        ..physicalSize = const Size(320, 568)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearAllTestValues);
+
+      await openProfile(tester, locale: const Locale('ru'));
+
+      expect(tester.takeException(), isNull);
+      // Все кнопки достижимы прокруткой.
+      await tester.dragUntilVisible(
+        find.text('Удалить аккаунт'),
+        find.byType(CustomScrollView),
+        const Offset(0, -100),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('прямая ссылка /profile/telegram без сессии ведёт на вход', (tester) async {
+      await pumpApp(tester, sessionState: _Session.unauthenticated);
+
+      routerOf(tester).go(RouteNames.profileTelegram);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TelegramCodeScreen), findsNothing);
+      expect(find.byType(LoginScreen), findsOneWidget);
+    });
+  });
+
   group('профиль и удаление аккаунта', () {
     Future<_Harness> openProfile(WidgetTester tester) async {
       final app = await pumpApp(tester);

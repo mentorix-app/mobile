@@ -38,6 +38,9 @@ class FakeAuthRepository implements AuthRepository {
   AuthFailure? trainersFailure;
   int trainersCalls = 0;
 
+  /// Сколько раз запрашивали профиль (`GET /auth/me`).
+  int profileCalls = 0;
+
   /// Если задан — `linkTelegram` бросает его (код при этом считается принятым
   /// сервером к отправке: он попадает в [linkedCodes]).
   AuthFailure? linkFailure;
@@ -94,6 +97,7 @@ class FakeAuthRepository implements AuthRepository {
 
   @override
   Future<UserProfile> getProfile({bool forceRefresh = false}) async {
+    profileCalls++;
     final failure = profileFailure;
     if (failure != null) throw failure;
     return profile;

@@ -123,5 +123,9 @@
   "exerciseSetsRepsSemantics": "Подходы {sets}, повторы {reps}",
   "showMoreAction": "Показать полностью",
   "showLessAction": "Свернуть",
-  "programContinueAction": "Продолжить: неделя {week}, день {day}"
+  "programContinueAction": "Продолжить: неделя {week}, день {day}",
+  "profileTelegramLabel": "Telegram",
+  "profileTelegramLinked": "Привязан",
+  "profileTelegramNotLinked": "Не привязан",
+  "profileTelegramLinkAction": "Привязать"
 }

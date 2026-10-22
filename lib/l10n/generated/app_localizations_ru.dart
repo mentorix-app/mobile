@@ -419,4 +419,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String programContinueAction(int week, int day) {
     return 'Продолжить: неделя $week, день $day';
   }
+
+  @override
+  String get profileTelegramLabel => 'Telegram';
+
+  @override
+  String get profileTelegramLinked => 'Привязан';
+
+  @override
+  String get profileTelegramNotLinked => 'Не привязан';
+
+  @override
+  String get profileTelegramLinkAction => 'Привязать';
 }

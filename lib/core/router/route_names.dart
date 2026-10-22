@@ -6,6 +6,10 @@ abstract final class RouteNames {
   static const invite = '/onboarding/invite';
   static const home = '/';
   static const profile = '/profile';
+
+  /// Привязка Telegram из профиля: тот же экран ввода кода, что в онбординге
+  /// ([telegramCode]), но успех возвращает в профиль, а не ведёт к приглашению.
+  static const profileTelegram = '/profile/telegram';
   static const trainerWebOnly = '/trainer';
   static const adminWebOnly = '/admin';
 
