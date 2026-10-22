@@ -64,6 +64,7 @@ grep -rn "Text('" lib/features | grep -v "l10n\." | head -20
     исходное — в `AppLogger`.
 13. **Размер файла** — экран больше ~250 строк почти всегда означает, что в нём живут
     виджеты, которым пора в свои файлы.
+14. **Прокрутка и pull-to-refresh** — `CustomScrollView` + `AdaptiveRefreshScrollView` (`lib/core/widgets/adaptive_refresh_scroll_view.dart`, `CLAUDE.md` §6.1); `grep -rn "ListView\|RefreshIndicator" lib` вне этого виджета — нарушение.
 
 ## После правок
 

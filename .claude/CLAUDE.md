@@ -290,6 +290,21 @@ const storage = FlutterSecureStorage(
 - Загрузка — скелетоны, не спиннеры по центру.
 - Тактильный отклик на значимые действия (`HapticFeedback`), но не на каждый тап.
 
+## 6.1 Списки и pull-to-refresh
+
+- Скроллящиеся экраны — `CustomScrollView` со сливерами (`SliverList.builder` /
+  `SliverList.separated`, `SliverToBoxAdapter`, `SliverFillRemaining`, `SliverAppBar`);
+  `ListView` внутри `Column` не используем.
+- Pull-to-refresh — только через `AdaptiveRefreshScrollView`
+  ([`lib/core/widgets/adaptive_refresh_scroll_view.dart`](../lib/core/widgets/adaptive_refresh_scroll_view.dart)):
+  iOS — `CupertinoSliverRefreshControl`, Android — `RefreshIndicator`.
+  `RefreshIndicator.adaptive` не используем: он меняет только вид индикатора.
+- Физика: `BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics())` на iOS,
+  `AlwaysScrollableScrollPhysics` на Android — виджет задаёт её сам, поэтому обновление
+  работает и при коротком списке. Платформа — `Theme.of(context).platform`.
+- `onRefresh` возвращает `Future`, который завершается, когда кубит закончил
+  `refresh()` (успех или ошибка): индикатор не прячется раньше.
+
 ## 7. Локализация
 
 - Строка добавляется **сразу во все ARB-файлы**, затем `flutter gen-l10n`.

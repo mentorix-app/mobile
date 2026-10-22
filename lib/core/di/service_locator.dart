@@ -23,6 +23,10 @@ import 'package:mentorix_app/features/mode/presentation/cubit/dashboard_link_cub
 import 'package:mentorix_app/features/theme/data/repositories/theme_repository_impl.dart';
 import 'package:mentorix_app/features/theme/domain/repositories/theme_repository.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
+import 'package:mentorix_app/features/workout/data/datasources/workout_remote_datasource.dart';
+import 'package:mentorix_app/features/workout/data/repositories/workout_repository_impl.dart';
+import 'package:mentorix_app/features/workout/domain/repositories/workout_repository.dart';
+import 'package:mentorix_app/features/workout/presentation/cubit/trainers_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Имена экземпляров `Dio` в `get_it`.
@@ -120,6 +124,18 @@ Future<void> configureDependencies() async {
       getIt<SessionCubit>(),
       getIt<OnboardingFlow>(),
     ),
+  );
+
+  // --- тренировки ------------------------------------------------------------
+  getIt.registerLazySingleton<WorkoutRepository>(
+    () => WorkoutRepositoryImpl(
+      remote: WorkoutRemoteDataSource(
+        apiDio: getIt<Dio>(instanceName: DioNames.api),
+      ),
+    ),
+  );
+  getIt.registerFactory<TrainersCubit>(
+    () => TrainersCubit(getIt<WorkoutRepository>()),
   );
 
   // --- тема ------------------------------------------------------------------

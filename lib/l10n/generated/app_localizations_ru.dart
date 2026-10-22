@@ -102,12 +102,20 @@ class AppLocalizationsRu extends AppLocalizations {
   String get inviteAcceptedNoName => 'Приглашение принято';
 
   @override
-  String get homeTitle => 'Главная';
+  String get trainersTitle => 'Мои тренеры';
 
   @override
-  String homeSignedInAs(String identity) {
-    return 'Вы вошли как $identity';
-  }
+  String get trainerDefaultName => 'Тренер';
+
+  @override
+  String get trainersEmptyTitle => 'У вас пока нет тренера';
+
+  @override
+  String get trainersEmptyBody =>
+      'Введите ссылку или код приглашения от тренера, чтобы увидеть программу.';
+
+  @override
+  String get trainersEmptyAction => 'Ввести приглашение';
 
   @override
   String get logoutAction => 'Выйти';

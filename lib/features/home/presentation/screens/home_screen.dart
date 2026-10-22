@@ -1,64 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mentorix_app/core/router/route_names.dart';
-import 'package:mentorix_app/core/theme/app_spacing.dart';
-import 'package:mentorix_app/features/auth/presentation/cubit/session_cubit.dart';
-import 'package:mentorix_app/features/auth/presentation/cubit/session_state.dart';
+import 'package:mentorix_app/core/widgets/app_snack_bar.dart';
+import 'package:mentorix_app/core/widgets/error_state.dart';
 import 'package:mentorix_app/features/theme/presentation/widgets/theme_mode_button.dart';
-import 'package:mentorix_app/generated/assets.dart';
+import 'package:mentorix_app/features/workout/presentation/cubit/trainers_cubit.dart';
+import 'package:mentorix_app/features/workout/presentation/cubit/trainers_state.dart';
+import 'package:mentorix_app/features/workout/presentation/widgets/no_trainer_view.dart';
+import 'package:mentorix_app/features/workout/presentation/widgets/trainers_list.dart';
+import 'package:mentorix_app/features/workout/presentation/widgets/trainers_skeleton.dart';
+import 'package:mentorix_app/features/workout/presentation/workout_failure_message.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
-/// Заглушка главного экрана: кто вошёл и переход в профиль (там выход и
-/// удаление аккаунта). Заменяется настоящим экраном в следующих этапах.
+/// Главный экран клиента: его тренеры (`GET /client/trainers`). Список
+/// показывается и при одном тренере. Профиль и переключатель темы — в шапке.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cubit = context.read<TrainersCubit>();
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.homeTitle),
-        actions: const [ThemeModeButton()],
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: BlocBuilder<SessionCubit, SessionState>(
-            builder: (context, state) {
-              final identity = state is SessionAuthenticated
-                  ? state.profile.displayName
-                  : '';
-
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SvgPicture.asset(
-                    isDark ? Assets.iconsFullLogoDark : Assets.iconsFullLogo,
-                    width: 240,
-                    semanticsLabel: l10n.appTitle,
-                  ),
-                  if (identity.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.xl),
-                    Text(
-                      l10n.homeSignedInAs(identity),
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                  const SizedBox(height: AppSpacing.lg),
-                  OutlinedButton(
-                    onPressed: () => context.push(RouteNames.profile),
-                    child: Text(l10n.profileOpenAction),
-                  ),
-                ],
-              );
-            },
+        title: Text(l10n.trainersTitle),
+        actions: [
+          const ThemeModeButton(),
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            tooltip: l10n.profileOpenAction,
+            onPressed: () => context.push(RouteNames.profile),
           ),
+        ],
+      ),
+      body: SafeArea(
+        child: BlocConsumer<TrainersCubit, TrainersState>(
+          listener: (context, state) => switch (state) {
+            TrainersLoaded(refreshFailure: final failure?) =>
+              AppSnackBar.showError(context, failure.message(l10n)),
+            _ => null,
+          },
+          builder: (context, state) => switch (state) {
+            TrainersLoading() => const TrainersSkeleton(),
+            TrainersFailed(:final failure) => ErrorState(
+              message: failure.message(l10n),
+              onRetry: cubit.load,
+            ),
+            TrainersLoaded(trainers: final trainers) when trainers.isEmpty =>
+              NoTrainerView(
+                onRefresh: cubit.refresh,
+                onEnterInvite: () => context.push(RouteNames.invite),
+              ),
+            TrainersLoaded(trainers: final trainers) => TrainersList(
+              trainers: trainers,
+              onRefresh: cubit.refresh,
+            ),
+          },
         ),
       ),
     );

@@ -38,6 +38,7 @@ import 'package:mentorix_app/features/mode/presentation/cubit/dashboard_link_cub
 import 'package:mentorix_app/features/mode/presentation/screens/admin_web_only_screen.dart';
 import 'package:mentorix_app/features/mode/presentation/screens/trainer_web_only_screen.dart';
 import 'package:mentorix_app/features/profile/presentation/screens/profile_screen.dart';
+import 'package:mentorix_app/features/workout/presentation/cubit/trainers_cubit.dart';
 import 'package:mentorix_app/features/theme/data/repositories/theme_repository_impl.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
 import 'package:mentorix_app/features/theme/presentation/widgets/theme_mode_button.dart';
@@ -48,6 +49,7 @@ import 'package:talker_flutter/talker_flutter.dart';
 import 'helpers/auth_fakes.dart';
 import 'helpers/fake_external_link_launcher.dart';
 import 'helpers/talker_capture.dart';
+import 'helpers/workout_fakes.dart';
 
 class _Harness {
   _Harness({
@@ -125,6 +127,9 @@ void main() {
       )
       ..registerFactory<InviteCubit>(
         () => InviteCubit(repository, session, flow),
+      )
+      ..registerFactory<TrainersCubit>(
+        () => TrainersCubit(FakeWorkoutRepository()..trainersResult = trainers),
       )
       ..registerFactory<DashboardLinkCubit>(
         () => DashboardLinkCubit(launcher, url: dashboardUrl),
@@ -312,7 +317,7 @@ void main() {
       expect(find.byType(HomeScreen), findsOneWidget);
 
       // Выход — в профиле, с главного экрана туда ведёт отдельная кнопка.
-      await tester.tap(find.text(app.l10n.profileOpenAction));
+      await tester.tap(find.byTooltip(app.l10n.profileOpenAction));
       await tester.pumpAndSettle();
       expect(find.byType(ProfileScreen), findsOneWidget);
 
@@ -327,7 +332,7 @@ void main() {
   group('профиль и удаление аккаунта', () {
     Future<_Harness> openProfile(WidgetTester tester) async {
       final app = await pumpApp(tester);
-      await tester.tap(find.text(app.l10n.profileOpenAction));
+      await tester.tap(find.byTooltip(app.l10n.profileOpenAction));
       await tester.pumpAndSettle();
       return app;
     }
@@ -360,7 +365,7 @@ void main() {
         telegramLinked: true,
       );
       final app = await pumpApp(tester, profile: nameless);
-      await tester.tap(find.text(app.l10n.profileOpenAction));
+      await tester.tap(find.byTooltip(app.l10n.profileOpenAction));
       await tester.pumpAndSettle();
 
       expect(find.text(app.l10n.profileValueEmpty), findsOneWidget);
@@ -681,8 +686,15 @@ void main() {
     GoRouter routerOf(WidgetTester tester) =>
         GoRouter.of(tester.element(find.byType(Scaffold).first));
 
+    /// На главном экране клиента профиль — значок с подсказкой, на экранах
+    /// тренера и администратора — кнопка с текстом.
     Future<void> openProfileFrom(WidgetTester tester, _Harness app) async {
-      await tester.tap(find.text(app.l10n.profileOpenAction));
+      final icon = find.byTooltip(app.l10n.profileOpenAction);
+      await tester.tap(
+        icon.evaluate().isNotEmpty
+            ? icon
+            : find.text(app.l10n.profileOpenAction),
+      );
       await tester.pumpAndSettle();
     }
 

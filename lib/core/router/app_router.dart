@@ -23,6 +23,7 @@ import 'package:mentorix_app/features/mode/presentation/cubit/dashboard_link_cub
 import 'package:mentorix_app/features/mode/presentation/screens/admin_web_only_screen.dart';
 import 'package:mentorix_app/features/mode/presentation/screens/trainer_web_only_screen.dart';
 import 'package:mentorix_app/features/profile/presentation/screens/profile_screen.dart';
+import 'package:mentorix_app/features/workout/presentation/cubit/trainers_cubit.dart';
 
 /// Роутер зависит от сессии: куда можно попасть, решает [SessionCubit],
 /// а порядок экранов после входа — [OnboardingFlow].
@@ -85,7 +86,10 @@ GoRouter createAppRouter({
       ),
       GoRoute(
         path: RouteNames.home,
-        builder: (context, state) => const HomeScreen(),
+        builder: (context, state) => BlocProvider(
+          create: (_) => GetIt.I<TrainersCubit>()..load(),
+          child: const HomeScreen(),
+        ),
       ),
       GoRoute(
         path: RouteNames.trainerWebOnly,

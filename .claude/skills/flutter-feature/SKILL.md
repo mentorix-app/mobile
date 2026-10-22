@@ -211,5 +211,6 @@ redirect: (context, state) => state.extra is FeatureRouteExtra ? null : RouteNam
       сырой текст — в `AppLogger`.
 - [ ] Все строки в `app_ru.arb` и `app_en.arb`, `flutter gen-l10n` выполнен.
 - [ ] Экран без `setState`, без приватных виджет-классов и build-методов.
+- [ ] Прокрутка и pull-to-refresh — `AdaptiveRefreshScrollView` (`lib/core/widgets/adaptive_refresh_scroll_view.dart`, `CLAUDE.md` §6.1), без `ListView` в `Column`.
 - [ ] `flutter analyze` чистый, `flutter test` зелёный.
 - [ ] `docs/APP_LOGIC.md` описывает новое поведение.

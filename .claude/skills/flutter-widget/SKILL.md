@@ -110,6 +110,7 @@ class _SomeToggleState extends State<SomeToggle> {
 7. Конструктор с `const`, где возможно; `super.key` первым параметром.
 8. Если виджет повторяется в списке из изменяемой коллекции — у вызывающей стороны
    обязателен `key: ValueKey(<стабильный id>)`.
+9. Прокрутка и pull-to-refresh — `AdaptiveRefreshScrollView` (`lib/core/widgets/adaptive_refresh_scroll_view.dart`, `CLAUDE.md` §6.1).
 
 ## Вынос существующего виджета
 

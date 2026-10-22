@@ -47,15 +47,11 @@
   },
   "inviteAcceptedNoName": "Invitation accepted",
 
-  "homeTitle": "Home",
-  "homeSignedInAs": "Signed in as {identity}",
-  "@homeSignedInAs": {
-    "placeholders": {
-      "identity": {
-        "type": "String"
-      }
-    }
-  },
+  "trainersTitle": "My trainers",
+  "trainerDefaultName": "Trainer",
+  "trainersEmptyTitle": "No trainer yet",
+  "trainersEmptyBody": "Enter your trainer's invitation link or code to see your program.",
+  "trainersEmptyAction": "Enter invitation",
   "logoutAction": "Sign out",
   "cancelAction": "Cancel",
   "profileTitle": "Profile",

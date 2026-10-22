@@ -34,8 +34,11 @@
   "inviteAccepted": "Вы привязаны к тренеру: {trainer}",
   "inviteAcceptedNoName": "Приглашение принято",
 
-  "homeTitle": "Главная",
-  "homeSignedInAs": "Вы вошли как {identity}",
+  "trainersTitle": "Мои тренеры",
+  "trainerDefaultName": "Тренер",
+  "trainersEmptyTitle": "У вас пока нет тренера",
+  "trainersEmptyBody": "Введите ссылку или код приглашения от тренера, чтобы увидеть программу.",
+  "trainersEmptyAction": "Ввести приглашение",
   "logoutAction": "Выйти",
   "cancelAction": "Отмена",
   "profileTitle": "Профиль",

@@ -272,17 +272,35 @@ abstract class AppLocalizations {
   /// **'Invitation accepted'**
   String get inviteAcceptedNoName;
 
-  /// No description provided for @homeTitle.
+  /// No description provided for @trainersTitle.
   ///
   /// In en, this message translates to:
-  /// **'Home'**
-  String get homeTitle;
+  /// **'My trainers'**
+  String get trainersTitle;
 
-  /// No description provided for @homeSignedInAs.
+  /// No description provided for @trainerDefaultName.
   ///
   /// In en, this message translates to:
-  /// **'Signed in as {identity}'**
-  String homeSignedInAs(String identity);
+  /// **'Trainer'**
+  String get trainerDefaultName;
+
+  /// No description provided for @trainersEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No trainer yet'**
+  String get trainersEmptyTitle;
+
+  /// No description provided for @trainersEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your trainer\'s invitation link or code to see your program.'**
+  String get trainersEmptyBody;
+
+  /// No description provided for @trainersEmptyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter invitation'**
+  String get trainersEmptyAction;
 
   /// No description provided for @logoutAction.
   ///

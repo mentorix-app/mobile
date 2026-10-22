@@ -80,8 +80,24 @@
   `comments`; в debug-экране образцов третья кнопка — `GET …/analytics`. Тест паритета
   ключей ru/en в ARB. `flutter analyze` чистый, `flutter test` зелёный (477 тестов).
   Образец пустой статистики снимает пользователь: `docs/samples/client_analytics_empty.json`.
+- 2026-10-22: шаг 2 закоммичен (`6ab5017`), образец `client_analytics_empty.json` снят и
+  сверен с `ClientSelfAnalytics` (все обязательные поля на месте; `completion_percent`
+  приходит целым, `client.display_name` может быть пустым).
+- 2026-10-22: **шаг 3 «Тренеры» сделан, проверен на iOS (список, нативный pull-to-refresh):** главный экран
+  `HomeScreen` — список тренеров (`TrainersCubit`, `WorkoutRepository`,
+  `WorkoutRemoteDataSource`): скелетон, список (в том числе при одном тренере),
+  «Тренера нет» с переходом к приглашению, ошибка с «Повторить», ошибка обновления
+  уведомлением, pull-to-refresh. Общие виджеты `SkeletonBox`, `ErrorState`,
+  `EmptyState` в `lib/core/widgets/`. Профиль — значок в шапке (вместо кнопки).
+  Карточка пока не нажимается (программа — шаг 4). **Pull-to-refresh** — общий
+  `AdaptiveRefreshScrollView` (`lib/core/widgets/adaptive_refresh_scroll_view.dart`): iOS —
+  `CupertinoSliverRefreshControl`, Android — `RefreshIndicator`, экраны на
+  `CustomScrollView`; правило закреплено в `.claude/CLAUDE.md` §6.1 и в скиллах
+  `flutter-feature`, `flutter-widget`, `screen-audit`. Строки `homeTitle` и
+  `homeSignedInAs` удалены из ARB. `flutter analyze` чистый, `flutter test` зелёный
+  (533 теста).
 - Следующий этап: 2 «Язык» (тема уже сделана); этап 4 «Тренировки» идёт по шагам плана
-  (шаг 3 — список тренеров).
+  (шаг 4 — программа).
 
 ## Таблица этапов
 
@@ -90,7 +106,7 @@
 | 1 | Каркас: токены `globals.css`, тема, Inter, `get_it`, `go_router`, локали ru/en, `ThemeCubit` | ✅ 2026-10-11 |
 | 2 | Язык: `LocaleCubit`, хранение в `shared_preferences`, экран настроек (`ThemeCubit` сделан в этапе 1) | ⬜ |
 | 3 | Авторизация: сеть (два `Dio`), `TokenStorage`, `AuthInterceptor`, сессия, вход Google и Apple, привязка Telegram, приглашение (объединяет бывшие этапы «Сеть и хранилище» и «Авторизация») | ✅ 2026-10-19 |
-| 4 | Тренировки: список тренеров, программа, день, отметка выполнения, статистика и ответы тренера (`docs/plans/workouts_plan.md`, 8 шагов; шаги 1–2 сделаны) | 🔄 |
+| 4 | Тренировки: список тренеров, программа, день, отметка выполнения, статистика и ответы тренера (`docs/plans/workouts_plan.md`, 8 шагов; шаги 1–3 закоммичены) | 🔄 |
 
 ---
 
@@ -151,7 +167,7 @@
 
 ### На что обратить внимание
 
-- Файлы в `.claude/` в `.gitignore`, поэтому правки `CLAUDE.md` в коммит не попадут.
+- `.claude/CLAUDE.md` и скиллы под git (в `.gitignore` только `.claude/skills/apple-design/` и `.claude/*.local.*`), правки правил попадают в коммит.
 
 ### Правки по итогам проверки (2026-10-11)
 

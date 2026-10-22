@@ -103,12 +103,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inviteAcceptedNoName => 'Invitation accepted';
 
   @override
-  String get homeTitle => 'Home';
+  String get trainersTitle => 'My trainers';
 
   @override
-  String homeSignedInAs(String identity) {
-    return 'Signed in as $identity';
-  }
+  String get trainerDefaultName => 'Trainer';
+
+  @override
+  String get trainersEmptyTitle => 'No trainer yet';
+
+  @override
+  String get trainersEmptyBody =>
+      'Enter your trainer\'s invitation link or code to see your program.';
+
+  @override
+  String get trainersEmptyAction => 'Enter invitation';
 
   @override
   String get logoutAction => 'Sign out';
