@@ -74,7 +74,7 @@ flutter:
   # Inter встроен в приложение (лицензия SIL OFL — assets/fonts/OFL.txt): шрифт
   # есть в первом кадре, без скачивания и без подмены системным. Статические
   # начертания оптического размера 18 pt подходят всей шкале 12–24 sp;
-  # веса: 400 — текст, 500 — кнопки, 600 — заголовки.
+  # веса: 400 — текст, 500 — кнопки, 600 — заголовки, 700 — крупный заголовок экрана.
   fonts:
     - family: Inter
       fonts:
@@ -84,3 +84,5 @@ flutter:
           weight: 500
         - asset: assets/fonts/Inter_18pt-SemiBold.ttf
           weight: 600
+        - asset: assets/fonts/Inter_18pt-Bold.ttf
+          weight: 700

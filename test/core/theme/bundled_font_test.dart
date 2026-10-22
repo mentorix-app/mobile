@@ -46,8 +46,9 @@ void main() {
     return end <= bytes.length;
   }
 
-  test('объявлены веса 400, 500 и 600 семейства Inter', () {
-    expect(declaredFonts().values.toSet(), {400, 500, 600});
+  test('объявлены веса 400, 500, 600 и 700 семейства Inter', () {
+    expect(declaredFonts().values.toSet(), {400, 500, 600, 700});
+    expect(declaredFonts().keys, contains('assets/fonts/Inter_18pt-Bold.ttf'));
     expect(pubspec, contains('family: Inter'));
   });
 
@@ -91,5 +92,45 @@ void main() {
     }
     expect(text.headlineLarge?.fontWeight, FontWeight.w600);
     expect(text.bodyMedium?.fontWeight, FontWeight.w400);
+  });
+
+  test('Bold той же версии Inter, что и остальные начертания', () {
+    String version(String path) {
+      // Запись `name` ID 5 («Version 4.001;git-…») в кодировке UTF-16BE.
+      final bytes = File(path).readAsBytesSync();
+      final data = ByteData.sublistView(bytes);
+      final tables = data.getUint16(4);
+      for (var i = 0; i < tables; i++) {
+        final record = 12 + 16 * i;
+        final tag = String.fromCharCodes(bytes.sublist(record, record + 4));
+        if (tag != 'name') continue;
+        final offset = data.getUint32(record + 8);
+        final count = data.getUint16(offset + 2);
+        final strings = offset + data.getUint16(offset + 4);
+        for (var r = 0; r < count; r++) {
+          final at = offset + 6 + 12 * r;
+          if (data.getUint16(at) != 3 || data.getUint16(at + 6) != 5) continue;
+          final length = data.getUint16(at + 8);
+          final start = strings + data.getUint16(at + 10);
+          return String.fromCharCodes([
+            for (var b = 0; b < length; b += 2) data.getUint16(start + b),
+          ]);
+        }
+      }
+      return '';
+    }
+
+    final versions = {
+      for (final path in declaredFonts().keys) path: version(path),
+    };
+
+    expect(versions.values.toSet(), hasLength(1), reason: '$versions');
+    expect(versions.values.toSet().single, startsWith('Version 4.001'));
+  });
+
+  test('w700 рисуется настоящим Bold: вес объявлен, синтетического утолщения нет', () {
+    expect(declaredFonts()['assets/fonts/Inter_18pt-Bold.ttf'], 700);
+    expect(AppTheme.light.textTheme.displaySmall?.fontWeight, FontWeight.w700);
+    expect(AppTheme.light.textTheme.displaySmall?.fontFamily, AppTextTheme.fontFamily);
   });
 }
