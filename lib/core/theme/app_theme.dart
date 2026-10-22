@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mentorix_app/core/theme/app_component_themes.dart';
 import 'package:mentorix_app/core/theme/app_radii.dart';
 import 'package:mentorix_app/core/theme/app_text_theme.dart';
 import 'package:mentorix_app/core/theme/app_theme_extension.dart';
@@ -39,17 +40,32 @@ abstract final class AppTheme {
       surfaceTint: Colors.transparent,
     );
 
+    final textTheme = AppTextTheme.build(
+      brightness: brightness,
+      color: tokens.foreground,
+    );
+
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
+      fontFamily: AppTextTheme.fontFamily,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: tokens.background,
       cardColor: tokens.card,
       dividerColor: tokens.border,
-      textTheme: AppTextTheme.build(
-        brightness: brightness,
-        color: tokens.foreground,
+      textTheme: textTheme,
+      appBarTheme: AppComponentThemes.appBar(tokens, textTheme),
+      inputDecorationTheme: AppComponentThemes.inputDecoration(
+        tokens,
+        textTheme,
       ),
+      filledButtonTheme: AppComponentThemes.filledButton(),
+      outlinedButtonTheme: AppComponentThemes.outlinedButton(),
+      textButtonTheme: AppComponentThemes.textButton(),
+      chipTheme: AppComponentThemes.chip(tokens, textTheme),
+      dialogTheme: AppComponentThemes.dialog(tokens, textTheme),
+      bottomSheetTheme: AppComponentThemes.bottomSheet(tokens),
+      progressIndicatorTheme: AppComponentThemes.progress(tokens),
       cardTheme: CardThemeData(
         color: tokens.card,
         surfaceTintColor: Colors.transparent,
