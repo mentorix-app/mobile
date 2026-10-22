@@ -1,0 +1,42 @@
+
+{
+  "client": {
+    "client_user_id": "6b13d2be-282b-4fb1-9c52-c253cbf94f2edsdsadsdsadsadsadsadsadsa",
+    "display_name": ""
+  },
+  "trainer": {
+    "trainer_id": "404dd1be-d973-4b97-8294-28a9e1fe38a932132132132131231223123231321",
+    "display_name": "Aziz Geidar"
+  },
+  "current_assignment": {
+    "program_id": "e0d804ee-09b5-4d8b-9dd9-a503158cb3bb",
+    "program_version_id": "696be677-9bf8-4126-95f6-bd989174771c",
+    "program_name": "Mentorix-app",
+    "program_name_ru": "Mentorix-app (тест)",
+    "assigned_at": "2026-10-22T17:51:40.283916Z",
+    "is_behind_latest": false,
+    "progress": {
+      "completed_days": 0,
+      "total_training_days": 3,
+      "completion_percent": 0,
+      "weeks": [
+        {
+          "week_number": 1,
+          "total_days": 3,
+          "completed_days": 0
+        }
+      ]
+    }
+  },
+  "activity": {
+    "total_completions": 0,
+    "completions_last_7_days": 0,
+    "completions_last_30_days": 0,
+    "first_completed_at": null,
+    "last_completed_at": null,
+    "week_streak": 0,
+    "by_program": []
+  },
+  "recent_completions": [],
+  "expires_at": null
+}

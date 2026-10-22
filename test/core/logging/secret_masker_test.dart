@@ -116,6 +116,92 @@ void main() {
     });
   });
 
+  group('тексты тренировок', () {
+    test('result_text скрыт в запросе отметки', () {
+      final masked =
+          SecretMasker.maskBody({
+                'program_assignment_id': 'a-1',
+                'day_key': 'd-1',
+                'result_text': 'Колено болело, 3x10',
+              })!
+              as Map;
+
+      expect(masked['result_text'], mask);
+      expect(masked['program_assignment_id'], 'a-1');
+      expect(masked['day_key'], 'd-1');
+    });
+
+    test('в статистике: result_text записи и text ответа тренера скрыты', () {
+      final masked =
+          SecretMasker.maskBody({
+                'recent_completions': [
+                  {
+                    'id': 'c-1',
+                    'week_number': 1,
+                    'result_text': 'Сделал всё, поясница',
+                    'comments': [
+                      {
+                        'id': 'k-1',
+                        'text': 'Снизь вес, проверь технику',
+                        'created_at': '2026-10-22T10:00:00Z',
+                      },
+                    ],
+                  },
+                ],
+              })!
+              as Map;
+
+      final item = (masked['recent_completions'] as List).single as Map;
+      expect(item['result_text'], mask);
+      final comment = (item['comments'] as List).single as Map;
+      expect(comment['text'], mask);
+      expect(comment['id'], 'k-1');
+      expect(comment['created_at'], '2026-10-22T10:00:00Z');
+      expect(item['week_number'], 1);
+      expect(masked.toString(), isNot(contains('поясниц')));
+      expect(masked.toString(), isNot(contains('технику')));
+    });
+
+    test('text вне comments не трогается', () {
+      final masked =
+          SecretMasker.maskBody({
+                'text': 'видно',
+                'items': [
+                  {'text': 'тоже видно'},
+                ],
+              })!
+              as Map;
+
+      expect(masked['text'], 'видно');
+      expect(((masked['items'] as List).single as Map)['text'], 'тоже видно');
+    });
+
+    test('сырой ответ строкой с JSON маскируется так же', () {
+      final masked = SecretMasker.maskBody(
+        '{"recent_completions":[{"result_text":"секрет","comments":'
+        '[{"text":"ответ","id":"k"}]}]}',
+      )! as String;
+
+      expect(masked, isNot(contains('секрет')));
+      expect(masked, isNot(contains('ответ')));
+      expect(masked, contains('"id":"k"'));
+    });
+
+    test('исходный объект не изменяется', () {
+      final original = {
+        'result_text': 'секрет',
+        'comments': [
+          {'text': 'ответ'},
+        ],
+      };
+
+      SecretMasker.maskBody(original);
+
+      expect(original['result_text'], 'секрет');
+      expect(((original['comments']! as List).single as Map)['text'], 'ответ');
+    });
+  });
+
   group('code', () {
     test('по умолчанию — код ошибки, виден', () {
       final masked =

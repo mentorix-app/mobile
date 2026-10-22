@@ -494,6 +494,42 @@ abstract class AppLocalizations {
   /// **'Administrator accounts cannot accept invitations.'**
   String get errorAdminAccount;
 
+  /// No description provided for @errorWorkoutNotLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'You are no longer linked to this trainer.'**
+  String get errorWorkoutNotLinked;
+
+  /// No description provided for @errorWorkoutBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trainer has restricted your access to the program.'**
+  String get errorWorkoutBlocked;
+
+  /// No description provided for @errorWorkoutDayNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This day is no longer in the program.'**
+  String get errorWorkoutDayNotFound;
+
+  /// No description provided for @errorWorkoutAlreadyCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'This day is already marked as done.'**
+  String get errorWorkoutAlreadyCompleted;
+
+  /// No description provided for @errorWorkoutProgramChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trainer has updated the program. Check the day and send your result again.'**
+  String get errorWorkoutProgramChanged;
+
+  /// No description provided for @errorWorkoutInvalidResult.
+  ///
+  /// In en, this message translates to:
+  /// **'The result was not accepted. It must not be empty or longer than 1000 characters.'**
+  String get errorWorkoutInvalidResult;
+
   /// No description provided for @errorUnknown.
   ///
   /// In en, this message translates to:

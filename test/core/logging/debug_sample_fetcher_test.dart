@@ -59,6 +59,38 @@ void main() {
     );
   });
 
+  test('analytics: id первого тренера, путь из ApiEndpoints, тело строкой', () async {
+    setUpFetcher((options) async {
+      if (options.path == ApiEndpoints.clientTrainers) {
+        return jsonBody({
+          'items': [
+            {'trainer_id': trainerId, 'trainer_display_name': 'Coach'},
+          ],
+        });
+      }
+      return jsonBody({'recent_completions': [], 'expires_at': null});
+    });
+
+    final sample = await fetcher.analytics();
+
+    expect(sample.path, ApiEndpoints.clientTrainerAnalytics(trainerId));
+    expect(sample.status, 200);
+    expect(sample.body, contains('"recent_completions": []'));
+    expect(
+      adapter.requests.every((r) => r.responseType == ResponseType.plain),
+      isTrue,
+    );
+  });
+
+  test('analytics: тренеров нет — запрос статистики не уходит', () async {
+    setUpFetcher((_) async => jsonBody({'items': []}));
+
+    final sample = await fetcher.analytics();
+
+    expect(sample.status, isNull);
+    expect(adapter.requests, hasLength(1));
+  });
+
   test('program: ошибка API тоже образец (403 client_not_linked)', () async {
     setUpFetcher((options) async {
       if (options.path == ApiEndpoints.clientTrainers) {

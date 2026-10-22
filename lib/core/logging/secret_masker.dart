@@ -7,13 +7,17 @@ import 'dart:convert';
 ///   поля из [_bodyKeys].
 /// * `code` — секрет только в теле запроса `POST /auth/telegram/link` (код от
 ///   бота). В остальных ответах `code` — код ошибки, и он нужен для отладки.
+/// * Тексты тренировок — личные данные (могут касаться здоровья): `result_text`
+///   (результат клиента, в запросе отметки и в статистике) и `text` ответа
+///   тренера, но только внутри списка `comments`: `text` вне него не трогается.
 abstract final class SecretMasker {
   static const mask = '***';
 
   static const _headerNames = {'authorization', 'cookie', 'set-cookie'};
 
   /// `token` — одноразовый токен приглашения тренера (`/client/invites/accept`);
-  /// `nonce` — исходная строка защиты входа (`/auth/apple`, `/auth/google`).
+  /// `nonce` — исходная строка защиты входа (`/auth/apple`, `/auth/google`);
+  /// `result_text` — текст результата тренировки клиента.
   static const _bodyKeys = {
     'access_token',
     'refresh_token',
@@ -22,7 +26,12 @@ abstract final class SecretMasker {
     'apple_authorization_code',
     'token',
     'nonce',
+    'result_text',
   };
+
+  /// Список ответов тренера в статистике; `text` внутри его элементов скрывается.
+  static const _commentsKey = 'comments';
+  static const _commentTextKey = 'text';
 
   static bool isSecretHeader(String name) =>
       _headerNames.contains(name.toLowerCase());
@@ -47,6 +56,8 @@ abstract final class SecretMasker {
         for (final entry in data.entries)
           entry.key: _isSecretKey(entry.key, maskCode)
               ? mask
+              : _isComments(entry.key, entry.value)
+              ? _maskComments(entry.value! as List, maskCode)
               : maskBody(entry.value, maskCode: maskCode),
       },
       List() => [for (final item in data) maskBody(item, maskCode: maskCode)],
@@ -54,6 +65,24 @@ abstract final class SecretMasker {
       _ => data,
     };
   }
+
+  static bool _isComments(Object? key, Object? value) =>
+      key is String && key.toLowerCase() == _commentsKey && value is List;
+
+  /// Элементы `comments`: `text` скрыт, остальные поля обрабатываются как обычно.
+  static List<Object?> _maskComments(List<Object?> comments, bool maskCode) => [
+    for (final item in comments)
+      item is Map
+          ? {
+              for (final entry in item.entries)
+                entry.key:
+                    entry.key is String &&
+                        (entry.key! as String).toLowerCase() == _commentTextKey
+                    ? mask
+                    : maskBody(entry.value, maskCode: maskCode),
+            }
+          : maskBody(item, maskCode: maskCode),
+  ];
 
   static bool _isSecretKey(Object? key, bool maskCode) {
     if (key is! String) return false;

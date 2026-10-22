@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mentorix_app/core/network/api_error_details.dart';
 import 'package:mentorix_app/core/logging/debug_log.dart';
 import 'package:mentorix_app/features/auth/data/mappers/auth_error_mapper.dart';
 import 'package:mentorix_app/features/auth/domain/failures/auth_failure.dart';

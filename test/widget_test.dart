@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mentorix_app/core/network/api_error_details.dart';
 import 'package:mentorix_app/app.dart';
 import 'package:mentorix_app/core/config/telegram_config.dart';
 import 'package:mentorix_app/core/logging/app_talker.dart';

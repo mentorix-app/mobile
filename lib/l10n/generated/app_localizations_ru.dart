@@ -235,6 +235,26 @@ class AppLocalizationsRu extends AppLocalizations {
       'Учётная запись администратора не может принимать приглашения.';
 
   @override
+  String get errorWorkoutNotLinked => 'Вы больше не связаны с этим тренером.';
+
+  @override
+  String get errorWorkoutBlocked => 'Тренер ограничил вам доступ к программе.';
+
+  @override
+  String get errorWorkoutDayNotFound => 'Этого дня больше нет в программе.';
+
+  @override
+  String get errorWorkoutAlreadyCompleted => 'Этот день уже отмечен.';
+
+  @override
+  String get errorWorkoutProgramChanged =>
+      'Тренер обновил программу. Проверьте день и отправьте результат снова.';
+
+  @override
+  String get errorWorkoutInvalidResult =>
+      'Результат не принят. Он не должен быть пустым или длиннее 1000 символов.';
+
+  @override
   String get errorUnknown => 'Что-то пошло не так. Попробуйте ещё раз.';
 
   @override

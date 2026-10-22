@@ -40,6 +40,17 @@ abstract final class ApiEndpoints {
   static String clientTrainerProgram(String trainerId) =>
       '/client/trainers/$trainerId/program';
 
+  /// `POST` (Bearer) — отметить день выполненным: `{program_assignment_id,
+  /// program_version_id, completion_cycle_id, day_key, result_text}`. Ответ 201.
+  static String clientTrainerCompletions(String trainerId) =>
+      '/client/trainers/$trainerId/completions';
+
+  /// `GET` (Bearer) — статистика клиента у тренера: прогресс, активность и до 30
+  /// последних отметок с ответами тренера. Подписанную ссылку бота
+  /// (`/client/analytics`) приложение не использует.
+  static String clientTrainerAnalytics(String trainerId) =>
+      '/client/trainers/$trainerId/analytics';
+
   /// `POST` — возврат из веб-потока Apple на Android (Return URL Services ID).
   /// Сессию не создаёт: приложение после возврата само шлёт `id_token`.
   static const authAppleCallback = '/auth/apple/callback';

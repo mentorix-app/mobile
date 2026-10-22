@@ -239,6 +239,29 @@ class AppLocalizationsEn extends AppLocalizations {
       'Administrator accounts cannot accept invitations.';
 
   @override
+  String get errorWorkoutNotLinked =>
+      'You are no longer linked to this trainer.';
+
+  @override
+  String get errorWorkoutBlocked =>
+      'Your trainer has restricted your access to the program.';
+
+  @override
+  String get errorWorkoutDayNotFound => 'This day is no longer in the program.';
+
+  @override
+  String get errorWorkoutAlreadyCompleted =>
+      'This day is already marked as done.';
+
+  @override
+  String get errorWorkoutProgramChanged =>
+      'Your trainer has updated the program. Check the day and send your result again.';
+
+  @override
+  String get errorWorkoutInvalidResult =>
+      'The result was not accepted. It must not be empty or longer than 1000 characters.';
+
+  @override
   String get errorUnknown => 'Something went wrong. Try again.';
 
   @override

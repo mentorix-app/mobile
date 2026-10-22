@@ -29,6 +29,15 @@ abstract final class ApiErrorCodes {
   static const clientBlocked = 'client_blocked';
   static const adminCannotAccept = 'admin_cannot_accept';
 
+  // --- программа, отметки и статистика клиента ---------------------------------
+  /// 403 на программе и отметке; на статистике «нет связи» — 404 `client_not_found`.
+  static const clientNotLinked = 'client_not_linked';
+  static const clientNotFound = 'client_not_found';
+  static const dayNotFound = 'day_not_found';
+  static const workoutAlreadyCompleted = 'workout_already_completed';
+  static const programChanged = 'program_changed';
+  static const payloadTooLarge = 'payload_too_large';
+
   // --- удаление аккаунта (DELETE /auth/me) -------------------------------------
   static const appleAuthorizationRequired = 'apple_authorization_required';
   static const appleAccountMismatch = 'apple_account_mismatch';

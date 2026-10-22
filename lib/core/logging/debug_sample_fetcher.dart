@@ -33,7 +33,19 @@ class DebugSampleFetcher {
 
   /// Программа первого тренера из `GET /client/trainers`. Нет тренеров —
   /// образец с пустым телом и без статуса.
-  Future<DebugSample> program() async {
+  Future<DebugSample> program() => _forFirstTrainer(
+    ApiEndpoints.clientTrainerProgram,
+  );
+
+  /// Статистика у первого тренера из `GET /client/trainers`
+  /// (`GET /client/trainers/{id}/analytics`): прогресс, активность и последние
+  /// отметки с ответами тренера. В теле личные тексты — перед коммитом в
+  /// `docs/samples/` их заменяет человек.
+  Future<DebugSample> analytics() => _forFirstTrainer(
+    ApiEndpoints.clientTrainerAnalytics,
+  );
+
+  Future<DebugSample> _forFirstTrainer(String Function(String id) path) async {
     final trainerId = _firstTrainerId((await trainers()).body);
     if (trainerId == null) {
       return const DebugSample(
@@ -43,7 +55,7 @@ class DebugSampleFetcher {
       );
     }
 
-    return _get(ApiEndpoints.clientTrainerProgram(trainerId));
+    return _get(path(trainerId));
   }
 
   /// `ResponseType.plain` — тело приходит строкой без разбора, ровно как с

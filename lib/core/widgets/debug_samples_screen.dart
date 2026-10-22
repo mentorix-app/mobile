@@ -77,6 +77,11 @@ class _DebugSamplesScreenState extends State<DebugSamplesScreen> {
                   onPressed: busy ? null : () => _run(widget.fetcher.program),
                   child: const Text('GET /client/trainers/{id}/program'),
                 ),
+                const SizedBox(height: AppSpacing.md),
+                OutlinedButton(
+                  onPressed: busy ? null : () => _run(widget.fetcher.analytics),
+                  child: const Text('GET /client/trainers/{id}/analytics'),
+                ),
                 SizedBox(
                   height: AppSpacing.xs,
                   child: busy ? const LinearProgressIndicator() : null,
