@@ -739,6 +739,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Block'**
   String get blockTypeUnknown;
+
+  /// No description provided for @workoutDayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Week {week}, day {day}'**
+  String workoutDayTitle(int week, int day);
+
+  /// No description provided for @dayRestBody.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no workout on this day.'**
+  String get dayRestBody;
+
+  /// No description provided for @exerciseDefaultName.
+  ///
+  /// In en, this message translates to:
+  /// **'Exercise'**
+  String get exerciseDefaultName;
+
+  /// No description provided for @exerciseSetsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sets: {value}'**
+  String exerciseSetsLabel(String value);
+
+  /// No description provided for @exerciseRepsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reps: {value}'**
+  String exerciseRepsLabel(String value);
+
+  /// No description provided for @exerciseRoundsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Rounds / minutes: {value}'**
+  String exerciseRoundsLabel(String value);
+
+  /// No description provided for @exerciseSetsRepsSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Sets {sets}, reps {reps}'**
+  String exerciseSetsRepsSemantics(String sets, String reps);
+
+  /// No description provided for @showMoreAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Show more'**
+  String get showMoreAction;
+
+  /// No description provided for @showLessAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Show less'**
+  String get showLessAction;
+
+  /// No description provided for @programContinueAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue: week {week}, day {day}'**
+  String programContinueAction(int week, int day);
 }
 
 class _AppLocalizationsDelegate

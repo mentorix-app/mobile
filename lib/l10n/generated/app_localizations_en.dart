@@ -382,4 +382,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get blockTypeUnknown => 'Block';
+
+  @override
+  String workoutDayTitle(int week, int day) {
+    return 'Week $week, day $day';
+  }
+
+  @override
+  String get dayRestBody => 'There is no workout on this day.';
+
+  @override
+  String get exerciseDefaultName => 'Exercise';
+
+  @override
+  String exerciseSetsLabel(String value) {
+    return 'Sets: $value';
+  }
+
+  @override
+  String exerciseRepsLabel(String value) {
+    return 'Reps: $value';
+  }
+
+  @override
+  String exerciseRoundsLabel(String value) {
+    return 'Rounds / minutes: $value';
+  }
+
+  @override
+  String exerciseSetsRepsSemantics(String sets, String reps) {
+    return 'Sets $sets, reps $reps';
+  }
+
+  @override
+  String get showMoreAction => 'Show more';
+
+  @override
+  String get showLessAction => 'Show less';
+
+  @override
+  String programContinueAction(int week, int day) {
+    return 'Continue: week $week, day $day';
+  }
 }

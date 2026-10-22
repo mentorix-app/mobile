@@ -3,6 +3,7 @@ import 'package:mentorix_app/core/theme/app_spacing.dart';
 import 'package:mentorix_app/core/theme/app_theme_extension.dart';
 import 'package:mentorix_app/features/workout/domain/entities/program_day.dart';
 import 'package:mentorix_app/features/workout/presentation/block_type_label.dart';
+import 'package:mentorix_app/features/workout/presentation/widgets/completed_status.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
 /// Тренировочный день в списке недели: «День N», число упражнений, типы групповых
@@ -59,20 +60,7 @@ class DayCard extends StatelessWidget {
                       ),
                       if (completed) ...[
                         const SizedBox(height: AppSpacing.sm),
-                        Row(
-                          children: [
-                            Icon(Icons.check_circle, size: 18, color: tokens.primary),
-                            const SizedBox(width: AppSpacing.xs),
-                            Flexible(
-                              child: Text(
-                                l10n.dayCompleted,
-                                style: textTheme.bodySmall?.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        const CompletedStatus(),
                       ],
                     ],
                   ),

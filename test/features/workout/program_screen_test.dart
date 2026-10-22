@@ -4,41 +4,39 @@ import 'package:flutter/cupertino.dart'
     show CupertinoActivityIndicator, CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mentorix_app/core/router/route_names.dart';
 import 'package:mentorix_app/core/theme/app_theme.dart';
 import 'package:mentorix_app/core/theme/app_theme_extension.dart';
 import 'package:mentorix_app/core/widgets/error_state.dart';
+import 'package:mentorix_app/core/widgets/large_title_sliver_app_bar.dart';
 import 'package:mentorix_app/core/widgets/skeleton_box.dart';
 import 'package:mentorix_app/features/workout/domain/entities/block_type.dart';
 import 'package:mentorix_app/features/workout/domain/entities/trainer_program.dart';
 import 'package:mentorix_app/features/workout/domain/failures/workout_failure.dart';
-import 'package:mentorix_app/features/workout/presentation/cubit/program_cubit.dart';
+import 'package:mentorix_app/features/workout/presentation/screens/day_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/program_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/day_card.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/no_program_view.dart';
-import 'package:mentorix_app/features/workout/presentation/widgets/program_app_bar.dart';
-import 'package:mentorix_app/features/workout/presentation/widgets/program_scope.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/rest_day_card.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/week_selector.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
+import '../../helpers/workout_app_harness.dart';
 import '../../helpers/workout_builders.dart';
 import '../../helpers/workout_fakes.dart';
 
 void main() {
   late FakeWorkoutRepository repository;
+  late WorkoutAppHarness app;
   late GoRouter router;
 
   setUp(() {
     repository = FakeWorkoutRepository()..programResult = stageProgram();
-    GetIt.I.registerFactoryParam<ProgramCubit, String, void>(
-      (trainerId, _) => ProgramCubit(trainerId, repository),
-    );
+    app = WorkoutAppHarness(repository);
   });
 
-  tearDown(() => GetIt.I.reset());
+  tearDown(() => app.dispose());
 
   /// Экран программы под тем же `ShellRoute`, что и в приложении: так проверяется
   /// и чтение `trainerId` из пути, и общий кубит.
@@ -53,63 +51,19 @@ void main() {
     String trainerId = 'aziz',
     bool fromHome = false,
   }) async {
-    tester.view
-      ..physicalSize = size
-      ..devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-
-    router = GoRouter(
-      initialLocation: fromHome
-          ? RouteNames.home
-          : RouteNames.trainerProgramPath(trainerId),
-      routes: [
-        GoRoute(
-          path: RouteNames.home,
-          builder: (_, _) => const Scaffold(body: Text('home-screen')),
-        ),
-        ShellRoute(
-          builder: (context, state, child) => ProgramScope(
-            trainerId: state.pathParameters['trainerId']!,
-            child: child,
-          ),
-          routes: [
-            GoRoute(
-              path: RouteNames.trainerProgram,
-              builder: (_, _) => const ProgramScreen(),
-            ),
-          ],
-        ),
-      ],
+    final l10n = await app.pump(
+      tester,
+      locale: locale,
+      theme: theme,
+      size: size,
+      textScale: textScale,
+      settle: settle,
+      platform: platform,
+      trainerId: trainerId,
+      fromHome: fromHome,
     );
-
-    await tester.pumpWidget(
-      MaterialApp.router(
-        theme: (theme ?? AppTheme.light).copyWith(platform: platform),
-        locale: locale,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        routerConfig: router,
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(textScale),
-          ),
-          child: child!,
-        ),
-      ),
-    );
-    if (fromHome) {
-      // Как в приложении: со списка тренеров по нажатию на карточку.
-      await tester.pumpAndSettle();
-      router.push(RouteNames.trainerProgramPath(trainerId));
-    }
-    if (settle) {
-      await tester.pumpAndSettle();
-    } else {
-      // Навигация начинается на следующем кадре, переход — ещё на одном.
-      await tester.pump();
-      if (fromHome) await tester.pump(const Duration(milliseconds: 100));
-    }
-    return lookupAppLocalizations(locale);
+    router = app.router;
+    return l10n;
   }
 
   /// Левый край виджета в логических пикселях.
@@ -123,9 +77,10 @@ void main() {
       (element.renderObject! as RenderBox).localToGlobal(Offset.zero).dx,
   ];
 
-  /// Шапка программы как `AppBar`: сама `ProgramAppBar` — сливер, а не `RenderBox`.
-  Finder appBarBox() =>
-      find.descendant(of: find.byType(ProgramAppBar), matching: find.byType(AppBar));
+  /// Корневой блок шапки: сама `LargeTitleSliverAppBar` — сливер, а не `RenderBox`.
+  Finder appBarBox() => find
+      .descendant(of: find.byType(LargeTitleSliverAppBar), matching: find.byType(DecoratedBox))
+      .first;
 
   /// Жест «назад» с левого края: дальше половины экрана, иначе iOS его отменяет.
   Future<void> swipeBack(WidgetTester tester, {double y = 400}) async {
@@ -134,9 +89,9 @@ void main() {
   }
 
   /// Название программы в крупной шапке: развёрнутое и свёрнутое лежат в дереве
-  /// вместе, поэтому ищем внутри `ProgramAppBar`.
+  /// вместе, поэтому ищем внутри `LargeTitleSliverAppBar`.
   Finder appBarTitle(String name) =>
-      find.descendant(of: find.byType(ProgramAppBar), matching: find.text(name));
+      find.descendant(of: find.byType(LargeTitleSliverAppBar), matching: find.text(name));
 
   Future<void> pullToRefresh(WidgetTester tester) async {
     await tester.fling(find.byType(Scrollable).first, const Offset(0, 300), 1000);
@@ -263,7 +218,7 @@ void main() {
       final l10n = await pumpProgram(tester);
 
       expect(appBarTitle('Mentorix-app'), findsWidgets);
-      expect(find.byType(SliverAppBar), findsOneWidget);
+      expect(find.byType(LargeTitleSliverAppBar), findsOneWidget);
       expect(
         find.text(l10n.programTitle),
         findsNothing,
@@ -350,16 +305,6 @@ void main() {
       await pumpProgram(tester);
 
       expect(find.text('Trainer'), findsOneWidget);
-    });
-
-    testWidgets('карточки дней пока не нажимаются (день — шаг 5)', (tester) async {
-      await pumpProgram(tester);
-
-      await tester.tap(find.text('Day 1'));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(ProgramScreen), findsOneWidget);
-      expect(find.byIcon(Icons.chevron_right), findsNothing);
     });
 
     testWidgets('неизвестный тип блока подписан «Block»', (tester) async {
@@ -687,7 +632,7 @@ void main() {
     testWidgets('кнопка «назад» есть у крупной шапки с программой', (tester) async {
       await pumpProgram(tester, fromHome: true);
 
-      expect(find.byType(SliverAppBar), findsOneWidget);
+      expect(find.byType(LargeTitleSliverAppBar), findsOneWidget);
       expect(find.byType(BackButton), findsOneWidget);
     });
 
@@ -840,9 +785,27 @@ void main() {
     testWidgets('шрифт ×2 сетку не сдвигает', (tester) async {
       await pumpProgram(tester, textScale: 2);
 
-      expect(left(tester, find.byType(DayCard)), grid);
-      expect(left(tester, find.byType(RestDayCard)), grid);
       expect(left(tester, find.text('Week 1')), grid);
+      // Список ленивый, при крупном шрифте карточки ниже экрана: докручиваем.
+      await tester.dragUntilVisible(
+        find.text('Day 1'),
+        find.byType(CustomScrollView),
+        const Offset(0, -100),
+      );
+      expect(
+        left(tester, find.ancestor(of: find.text('Day 1'), matching: find.byType(DayCard))),
+        grid,
+      );
+
+      await tester.dragUntilVisible(
+        find.text('Day 7 · Rest day'),
+        find.byType(CustomScrollView),
+        const Offset(0, -100),
+      );
+      expect(
+        left(tester, find.ancestor(of: find.text('Day 7 · Rest day'), matching: find.byType(RestDayCard))),
+        grid,
+      );
     });
   });
 
@@ -957,7 +920,7 @@ void main() {
 
       final collapsedHeight = tester.getSize(appBarBox()).height;
       expect(collapsedHeight, lessThan(expandedHeight));
-      expect(collapsedHeight, lessThanOrEqualTo(64));
+      expect(collapsedHeight, lessThanOrEqualTo(kToolbarHeight));
       final titleTops = [
         for (final element in appBarTitle('Mentorix-app').evaluate())
           (element.renderObject! as RenderBox).localToGlobal(Offset.zero).dy,
@@ -990,7 +953,7 @@ void main() {
 
       final slivers = tester.widget<CustomScrollView>(find.byType(CustomScrollView)).slivers;
 
-      expect(slivers[0], isA<ProgramAppBar>());
+      expect(slivers[0], isA<LargeTitleSliverAppBar>());
       expect(slivers[1], isA<CupertinoSliverRefreshControl>());
     });
 
@@ -1009,6 +972,169 @@ void main() {
       repository.programGate!.complete();
       await tester.pumpAndSettle();
       expect(tester.getTopLeft(find.byType(DayCard).first).dy, before);
+    });
+  });
+
+  group('переход в день и кнопка «Продолжить»', () {
+    String dayPath(String key) => RouteNames.workoutDayPath('aziz', key);
+
+    testWidgets('нажатие на тренировочный день открывает его', (tester) async {
+      await pumpProgram(tester);
+
+      await tester.tap(find.text('Day 2'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DayScreen), findsOneWidget);
+      expect(router.state.matchedLocation, dayPath('day-2'));
+      expect(find.text('Week 1, day 2'), findsWidgets);
+    });
+
+    testWidgets('выполненный день тоже открывается (просмотр)', (tester) async {
+      repository.programResult = stageProgram(completed: {'day-1'});
+      await pumpProgram(tester);
+
+      await tester.tap(find.text('Day 1'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DayScreen), findsOneWidget);
+    });
+
+    testWidgets('у тренировочных карточек есть стрелка, у дней отдыха нет', (tester) async {
+      await pumpProgram(tester);
+
+      expect(find.byIcon(Icons.chevron_right), findsNWidgets(3));
+      expect(
+        find.descendant(of: find.byType(RestDayCard).first, matching: find.byIcon(Icons.chevron_right)),
+        findsNothing,
+      );
+    });
+
+    testWidgets('день отдыха не открывается', (tester) async {
+      await pumpProgram(tester);
+
+      await tester.tap(find.text('Day 3 · Rest day'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DayScreen), findsNothing);
+      expect(find.byType(ProgramScreen), findsOneWidget);
+    });
+
+    testWidgets('день без ключа не нажимается: адрес строится по day_key', (tester) async {
+      repository.programResult = trainerProgram([
+        week(1, [trainingDay(1, key: ''), trainingDay(2, key: 'k2')]),
+      ]);
+      await pumpProgram(tester);
+
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+
+      await tester.tap(find.text('Day 1'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DayScreen), findsNothing);
+    });
+
+    testWidgets('«Continue: week 1, day 1» ведёт к первому невыполненному дню', (tester) async {
+      final l10n = await pumpProgram(tester);
+
+      expect(find.text(l10n.programContinueAction(1, 1)), findsOneWidget);
+      expect(find.text('Continue: week 1, day 1'), findsOneWidget);
+
+      await tester.tap(find.text('Continue: week 1, day 1'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DayScreen), findsOneWidget);
+      expect(router.state.matchedLocation, dayPath('day-1'));
+    });
+
+    testWidgets('по-русски: «Продолжить: неделя 1, день 1»', (tester) async {
+      await pumpProgram(tester, locale: const Locale('ru'));
+
+      expect(find.text('Продолжить: неделя 1, день 1'), findsOneWidget);
+    });
+
+    testWidgets('первый день выполнен — следующий невыполненный, дни отдыха пропущены', (
+      tester,
+    ) async {
+      repository.programResult = stageProgram(completed: {'day-1', 'day-2'});
+
+      await pumpProgram(tester);
+
+      expect(find.text('Continue: week 1, day 4'), findsOneWidget);
+    });
+
+    testWidgets('дни можно делать в любом порядке: выполнен второй — подсказка про первый', (
+      tester,
+    ) async {
+      repository.programResult = stageProgram(completed: {'day-2'});
+
+      await pumpProgram(tester);
+
+      expect(find.text('Continue: week 1, day 1'), findsOneWidget);
+      // Но открыть можно любой день.
+      await tester.tap(find.text('Day 4'));
+      await tester.pumpAndSettle();
+      expect(router.state.matchedLocation, dayPath('day-4'));
+    });
+
+    testWidgets('неделя 1 выполнена — подсказка про неделю 2', (tester) async {
+      repository.programResult = twoWeeks(completed: {'a', 'b'});
+
+      await pumpProgram(tester);
+
+      expect(find.text('Continue: week 2, day 2'), findsOneWidget);
+    });
+
+    testWidgets('всё выполнено — кнопки нет, есть «Программа пройдена»', (tester) async {
+      repository.programResult = stageProgram(completed: {'day-1', 'day-2', 'day-4'});
+
+      final l10n = await pumpProgram(tester);
+
+      expect(find.textContaining('Continue'), findsNothing);
+      expect(find.text(l10n.programFinished), findsOneWidget);
+    });
+
+    testWidgets('программа без тренировочных дней — кнопки нет', (tester) async {
+      repository.programResult = trainerProgram([week(1, [restDay(1)])]);
+
+      await pumpProgram(tester);
+
+      expect(find.textContaining('Continue'), findsNothing);
+    });
+
+    testWidgets('следующий день без ключа — кнопки нет', (tester) async {
+      repository.programResult = trainerProgram([
+        week(1, [trainingDay(1, key: ''), trainingDay(2, key: 'k2')]),
+      ]);
+
+      await pumpProgram(tester);
+
+      expect(find.textContaining('Continue'), findsNothing);
+    });
+
+    testWidgets('кнопка на всю ширину и на сетке 16 px', (tester) async {
+      await pumpProgram(tester);
+
+      final rect = tester.getRect(find.byType(FilledButton));
+
+      expect(rect.left, 16);
+      expect(rect.right, 402 - 16);
+      expect(rect.height, greaterThanOrEqualTo(48));
+    });
+
+    testWidgets('после отметки дня в боте подсказка сдвигается', (tester) async {
+      await pumpProgram(tester);
+      expect(find.text('Continue: week 1, day 1'), findsOneWidget);
+
+      repository.programResult = stageProgram(completed: {'day-1'});
+      await pullToRefresh(tester);
+
+      expect(find.text('Continue: week 1, day 2'), findsOneWidget);
+    });
+
+    testWidgets('кнопка не переполняется при ×2 и узком экране', (tester) async {
+      await pumpProgram(tester, size: const Size(320, 640), textScale: 2, locale: const Locale('ru'));
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(FilledButton), findsOneWidget);
     });
   });
 

@@ -45,6 +45,17 @@ void main() {
         expect(bar.titleTextStyle?.fontSize, AppTextTheme.h4);
       });
 
+      test('крупный заголовок экрана: displaySmall — 34 sp, w700, из текстовой шкалы', () {
+        final style = theme.textTheme.displaySmall!;
+
+        expect(style.fontSize, AppTextTheme.largeTitle);
+        expect(style.fontSize, 34);
+        expect(style.fontWeight, FontWeight.w700);
+        expect(style.fontFamily, 'Inter');
+        expect(style.height, 1.2);
+        expect(style.color, t.foreground);
+      });
+
       test('карточка без внешнего отступа: левый край задаёт список', () {
         expect(theme.cardTheme.margin, EdgeInsets.zero);
       });

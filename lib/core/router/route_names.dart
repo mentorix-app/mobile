@@ -15,6 +15,13 @@ abstract final class RouteNames {
   static String trainerProgramPath(String trainerId) =>
       '/trainers/${Uri.encodeComponent(trainerId)}';
 
+  /// День программы: параметры — `trainer_id` и `day_key` (стабильный ключ дня,
+  /// не номер: номера меняются вместе с программой).
+  static const workoutDay = '/trainers/:trainerId/days/:dayKey';
+
+  static String workoutDayPath(String trainerId, String dayKey) =>
+      '/trainers/${Uri.encodeComponent(trainerId)}/days/${Uri.encodeComponent(dayKey)}';
+
   /// Экраны тренировок: клиент попадает на них только после онбординга.
   static bool isWorkoutLocation(String location) =>
       location.startsWith('/trainers/');

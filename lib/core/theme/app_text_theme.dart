@@ -5,8 +5,15 @@ import 'package:flutter/material.dart';
 /// (`assets/fonts`, веса 400 / 500 / 600).
 ///
 /// Начертания в `globals.css` не заданы: заголовки h1–h5 — `w600`, остальное —
-/// `w400`. Слоты `TextTheme`, которых нет в таблице (`display*`, `titleSmall`,
-/// `labelLarge`, `labelMedium`), остаются Material-умолчаниями.
+/// `w400`. Слоты `TextTheme`, которых нет в таблице (`displayLarge`,
+/// `displayMedium`, `titleSmall`, `labelLarge`, `labelMedium`), остаются
+/// Material-умолчаниями.
+///
+/// Исключение — `displaySmall`: крупный заголовок экрана в духе iOS (large title),
+/// 34 sp, `w700`. Его нет в `globals.css` (там h1 — 24 в мобильной колонке): это
+/// решение приложения от 2026-10-23, дизайнерам стоит предложить токен. Начертания
+/// `w700` в приложении нет (встроены 400 / 500 / 600), поэтому на экране выбирается
+/// ближайшее — SemiBold 600, без синтетического утолщения.
 abstract final class AppTextTheme {
   /// Семейство из секции `fonts` в `pubspec.yaml`.
   static const fontFamily = 'Inter';
@@ -20,6 +27,9 @@ abstract final class AppTextTheme {
   static const double p = 16;
   static const double pSm = 13;
   static const double pXs = 12;
+
+  /// Крупный заголовок экрана (`displaySmall`), см. описание класса.
+  static const double largeTitle = 34;
 
   static TextTheme build({
     required Brightness brightness,
@@ -44,6 +54,11 @@ abstract final class AppTextTheme {
           bodyMedium: scale(base.bodyMedium, p, FontWeight.w400),
           bodySmall: scale(base.bodySmall, pSm, FontWeight.w400),
           labelSmall: scale(base.labelSmall, pXs, FontWeight.w400),
+          displaySmall: scale(
+            base.displaySmall,
+            largeTitle,
+            FontWeight.w700,
+          )?.copyWith(height: 1.2),
         )
         .apply(bodyColor: color, displayColor: color);
   }

@@ -14,7 +14,7 @@ import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
 /// Программа клиента у тренера: недели и дни. Кубит даёт `ProgramScope`.
 ///
-/// Когда программа получена — шапка `SliverAppBar.large` с названием; пока
+/// Когда программа получена — крупная шапка (`LargeTitleSliverAppBar`) с названием; пока
 /// загрузка, ошибка или программы нет — обычная шапка со словом «Программа»
 /// (`ProgramFrame`). Кнопка «назад» есть в обоих случаях.
 class ProgramScreen extends StatelessWidget {

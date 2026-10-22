@@ -113,5 +113,15 @@
   "blockTypeConditioning": "Кондиционная часть",
   "blockTypeGymnastics": "Гимнастика",
   "blockTypeWeightlifting": "Тяжёлая атлетика",
-  "blockTypeUnknown": "Блок"
+  "blockTypeUnknown": "Блок",
+  "workoutDayTitle": "Неделя {week}, день {day}",
+  "dayRestBody": "В этот день тренировки нет.",
+  "exerciseDefaultName": "Упражнение",
+  "exerciseSetsLabel": "Подходы: {value}",
+  "exerciseRepsLabel": "Повторы: {value}",
+  "exerciseRoundsLabel": "Раунды / минуты: {value}",
+  "exerciseSetsRepsSemantics": "Подходы {sets}, повторы {reps}",
+  "showMoreAction": "Показать полностью",
+  "showLessAction": "Свернуть",
+  "programContinueAction": "Продолжить: неделя {week}, день {day}"
 }

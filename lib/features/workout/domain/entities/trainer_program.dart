@@ -4,6 +4,17 @@ import 'package:mentorix_app/features/workout/domain/entities/program_assignment
 import 'package:mentorix_app/features/workout/domain/entities/program_day.dart';
 import 'package:mentorix_app/features/workout/domain/entities/program_week.dart';
 
+/// День вместе с номером недели, в которой он лежит.
+class LocatedDay extends Equatable {
+  const LocatedDay({required this.weekNumber, required this.day});
+
+  final int weekNumber;
+  final ProgramDay day;
+
+  @override
+  List<Object?> get props => [weekNumber, day];
+}
+
 /// Ответ `GET /client/trainers/{trainer_id}/program`.
 ///
 /// **Выполненность дня — только по `completed_days` с сервера** ([completedDayKeys]
@@ -40,6 +51,21 @@ class TrainerProgram extends Equatable {
   Iterable<ProgramDay> get trainingDays => [
     for (final week in weeks) ...week.days.where((day) => day.isTraining),
   ];
+
+  /// День по `day_key` (из адреса экрана) или `null`: дня нет в этой версии
+  /// программы (тренер её поменял) либо ключ не тот. Пустой ключ не ищется.
+  LocatedDay? locate(String dayKey) {
+    if (dayKey.isEmpty) return null;
+
+    for (final week in weeks) {
+      for (final day in week.days) {
+        if (day.dayKey == dayKey) {
+          return LocatedDay(weekNumber: week.weekNumber, day: day);
+        }
+      }
+    }
+    return null;
+  }
 
   bool isCompleted(ProgramDay day) =>
       day.dayKey.isNotEmpty && completedDayKeys.contains(day.dayKey);

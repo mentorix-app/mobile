@@ -157,5 +157,66 @@
   "blockTypeConditioning": "Conditioning",
   "blockTypeGymnastics": "Gymnastics",
   "blockTypeWeightlifting": "Weightlifting",
-  "blockTypeUnknown": "Block"
+  "blockTypeUnknown": "Block",
+  "workoutDayTitle": "Week {week}, day {day}",
+  "@workoutDayTitle": {
+    "placeholders": {
+      "week": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "dayRestBody": "There is no workout on this day.",
+  "exerciseDefaultName": "Exercise",
+  "exerciseSetsLabel": "Sets: {value}",
+  "@exerciseSetsLabel": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseRepsLabel": "Reps: {value}",
+  "@exerciseRepsLabel": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseRoundsLabel": "Rounds / minutes: {value}",
+  "@exerciseRoundsLabel": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseSetsRepsSemantics": "Sets {sets}, reps {reps}",
+  "@exerciseSetsRepsSemantics": {
+    "placeholders": {
+      "sets": {
+        "type": "String"
+      },
+      "reps": {
+        "type": "String"
+      }
+    }
+  },
+  "showMoreAction": "Show more",
+  "showLessAction": "Show less",
+  "programContinueAction": "Continue: week {week}, day {day}",
+  "@programContinueAction": {
+    "placeholders": {
+      "week": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  }
 }

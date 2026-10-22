@@ -61,7 +61,9 @@ neutral; исключения: `destructive` (красный) и `sidebar-primar
 
 Размеры текста — брать **мобильную колонку** (медиазапрос `max-width: 768px`),
 приложение телефонное: `h1 24`, `h2 20`, `h3 18`, `h4 16`, `h5 15`,
-`p-lg 16`, `p 16`, `p-sm 13`, `p-xs 12`. Отступы контента: `9` по горизонтали,
+`p-lg 16`, `p 16`, `p-sm 13`, `p-xs 12`. Единственное исключение — крупный заголовок
+экрана `displaySmall` (34 sp, `w700`, решение приложения от 2026-10-23): в `globals.css`
+его нет, дизайнерам нужно предложить токен. Отступы контента: `9` по горизонтали,
 `8` по вертикали (`--app-content-px/py` в мобильном варианте).
 
 Шкала `AppSpacing` `4 / 8 / 12 / 16 / 24` — решение уровня приложения, в `globals.css`
@@ -306,8 +308,13 @@ const storage = FlutterSecureStorage(
   работает и при коротком списке. Платформа — `Theme.of(context).platform`.
 - `onRefresh` возвращает `Future`, который завершается, когда кубит закончил
   `refresh()` (успех или ошибка): индикатор не прячется раньше.
-- Закреплённая шапка (`SliverAppBar`, в том числе `.large`) передаётся в `headerSlivers`:
-  на iOS индикатор встаёт сразу под ней, на Android `edgeOffset` опускает его под шапку.
+- Закреплённая шапка передаётся в `headerSlivers`: на iOS индикатор встаёт сразу под
+  ней, на Android `edgeOffset` опускает его под шапку.
+- Крупная шапка экрана (large title как в iOS) — `LargeTitleSliverAppBar`
+  ([`lib/core/widgets/large_title_sliver_app_bar.dart`](../lib/core/widgets/large_title_sliver_app_bar.dart)):
+  заголовок `textTheme.displaySmall` (34 sp, `w700`), до двух строк, прижат к низу, при
+  прокрутке сворачивается в маленький по центру тулбара. `SliverAppBar.large` не
+  используем: у него жёсткая высота и пустые поля.
 - Первая страница `ShellRoute` живёт во вложенном `Navigator`, и `AppBar` кнопку
   «назад» ей не рисует: `leading: const AppBackButton()`
   ([`lib/core/widgets/app_back_button.dart`](../lib/core/widgets/app_back_button.dart)).

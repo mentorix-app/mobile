@@ -377,4 +377,46 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get blockTypeUnknown => 'Блок';
+
+  @override
+  String workoutDayTitle(int week, int day) {
+    return 'Неделя $week, день $day';
+  }
+
+  @override
+  String get dayRestBody => 'В этот день тренировки нет.';
+
+  @override
+  String get exerciseDefaultName => 'Упражнение';
+
+  @override
+  String exerciseSetsLabel(String value) {
+    return 'Подходы: $value';
+  }
+
+  @override
+  String exerciseRepsLabel(String value) {
+    return 'Повторы: $value';
+  }
+
+  @override
+  String exerciseRoundsLabel(String value) {
+    return 'Раунды / минуты: $value';
+  }
+
+  @override
+  String exerciseSetsRepsSemantics(String sets, String reps) {
+    return 'Подходы $sets, повторы $reps';
+  }
+
+  @override
+  String get showMoreAction => 'Показать полностью';
+
+  @override
+  String get showLessAction => 'Свернуть';
+
+  @override
+  String programContinueAction(int week, int day) {
+    return 'Продолжить: неделя $week, день $day';
+  }
 }

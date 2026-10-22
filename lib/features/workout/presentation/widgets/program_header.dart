@@ -3,15 +3,27 @@ import 'package:mentorix_app/core/theme/app_radii.dart';
 import 'package:mentorix_app/core/theme/app_spacing.dart';
 import 'package:mentorix_app/core/theme/app_theme_extension.dart';
 import 'package:mentorix_app/features/workout/domain/entities/trainer_program.dart';
+import 'package:mentorix_app/features/workout/domain/usecases/find_next_workout_day.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
 /// Под крупным названием: тренер, прогресс «N из M» по `completed_days` с
 /// сервера и, когда всё выполнено, «Программа пройдена». Прогресса нет, если в
 /// программе нет тренировочных дней.
+///
+/// [onContinue] — кнопка «Продолжить: неделя N, день M» к первому невыполненному
+/// тренировочному дню ([next]); `null` — кнопки нет (всё выполнено или у дня нет
+/// ключа). Это подсказка, а не замок: дни можно выполнять в любом порядке.
 class ProgramHeader extends StatelessWidget {
-  const ProgramHeader({super.key, required this.data});
+  const ProgramHeader({
+    super.key,
+    required this.data,
+    this.next,
+    this.onContinue,
+  });
 
   final TrainerProgram data;
+  final NextWorkoutDay? next;
+  final VoidCallback? onContinue;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +55,19 @@ class ProgramHeader extends StatelessWidget {
             child: LinearProgressIndicator(
               value: (done / total).clamp(0, 1).toDouble(),
               minHeight: 6,
+            ),
+          ),
+        ],
+        if (next != null && onContinue != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: onContinue,
+              child: Text(
+                l10n.programContinueAction(next!.weekNumber, next!.day.dayNumber),
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
         ],

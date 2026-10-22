@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 /// Единственный способ делать pull-to-refresh в приложении (`CLAUDE.md`, §6.1).
 ///
 /// * **iOS и macOS** — `CupertinoSliverRefreshControl` первым сливером (если
-///   есть закреплённая шапка [headerSlivers], например `SliverAppBar.large`, —
+///   есть закреплённая шапка [headerSlivers], например `LargeTitleSliverAppBar`, —
 ///   сразу под ней): контент отъезжает вниз, показывается родной индикатор, по
 ///   завершении всё плавно возвращается. Физика — `BouncingScrollPhysics` поверх
 ///   `AlwaysScrollableScrollPhysics`.

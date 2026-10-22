@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mentorix_app/core/router/route_names.dart';
+import 'package:mentorix_app/core/widgets/app_back_button.dart';
+import 'package:mentorix_app/core/widgets/large_title_sliver_app_bar.dart';
 import 'package:mentorix_app/core/theme/app_spacing.dart';
 import 'package:mentorix_app/core/widgets/adaptive_refresh_scroll_view.dart';
 import 'package:mentorix_app/features/workout/domain/entities/program_day.dart';
@@ -6,7 +10,6 @@ import 'package:mentorix_app/features/workout/domain/entities/trainer_program.da
 import 'package:mentorix_app/features/workout/domain/usecases/find_next_workout_day.dart';
 import 'package:mentorix_app/features/workout/presentation/localized_name.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/day_card.dart';
-import 'package:mentorix_app/features/workout/presentation/widgets/program_app_bar.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/program_header.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/rest_day_card.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/week_heading.dart';
@@ -53,9 +56,14 @@ class _ProgramViewState extends State<ProgramView> {
     return widget.data.isFinished ? weeks.last.weekNumber : weeks.first.weekNumber;
   }
 
+  void _openDay(BuildContext context, ProgramDay day) => context.push(
+    RouteNames.workoutDayPath(widget.data.trainerId, day.dayKey),
+  );
+
   @override
   Widget build(BuildContext context) {
     final data = widget.data;
+    final next = const FindNextWorkoutDay()(data);
     final l10n = AppLocalizations.of(context);
     final title = localizedName(
       name: data.program!.name,
@@ -75,19 +83,30 @@ class _ProgramViewState extends State<ProgramView> {
         return AdaptiveRefreshScrollView(
           onRefresh: widget.onRefresh,
           // Индикатор Android опускается под закреплённую шапку.
-          edgeOffset: MediaQuery.paddingOf(context).top + kToolbarHeight,
+          edgeOffset: LargeTitleSliverAppBar.collapsedExtent(context),
           headerSlivers: [
-            ProgramAppBar(title: title.isEmpty ? l10n.programTitle : title),
+            LargeTitleSliverAppBar(
+              title: title.isEmpty ? l10n.programTitle : title,
+              leading: const AppBackButton(),
+            ),
           ],
           slivers: [
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.lg,
-                AppSpacing.sm,
+                AppSpacing.xs,
                 AppSpacing.lg,
                 AppSpacing.md,
               ),
-              sliver: SliverToBoxAdapter(child: ProgramHeader(data: data)),
+              sliver: SliverToBoxAdapter(
+                child: ProgramHeader(
+                  data: data,
+                  next: next,
+                  onContinue: next == null || next.day.dayKey.isEmpty
+                      ? null
+                      : () => _openDay(context, next.day),
+                ),
+              ),
             ),
             if (data.weeks.length > 1)
               SliverToBoxAdapter(
@@ -117,6 +136,10 @@ class _ProgramViewState extends State<ProgramView> {
                           key: key,
                           day: day,
                           completed: data.isCompleted(day),
+                          // Без ключа день не открыть: адрес строится по `day_key`.
+                          onTap: day.dayKey.isEmpty
+                              ? null
+                              : () => _openDay(context, day),
                         );
                 },
               ),
