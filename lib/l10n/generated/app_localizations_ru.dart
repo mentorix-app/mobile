@@ -281,4 +281,100 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get errorOpenDashboard => 'Не удалось открыть браузер.';
+
+  @override
+  String get programTitle => 'Программа';
+
+  @override
+  String get programNotAssignedTitle => 'Программа не назначена';
+
+  @override
+  String get programNotAssignedBody =>
+      'Тренер ещё не назначил вам программу. Потяните вниз, чтобы обновить.';
+
+  @override
+  String weekLabel(int number) {
+    return 'Неделя $number';
+  }
+
+  @override
+  String dayLabel(int number) {
+    return 'День $number';
+  }
+
+  @override
+  String get dayRest => 'День отдыха';
+
+  @override
+  String get dayCompleted => 'Выполнено';
+
+  @override
+  String programProgress(int done, int total) {
+    return 'Выполнено $done из $total';
+  }
+
+  @override
+  String get programFinished =>
+      'Программа пройдена, тренер назначит следующую.';
+
+  @override
+  String programDayExercises(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count упражнения',
+      many: '$count упражнений',
+      few: '$count упражнения',
+      one: '$count упражнение',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get blockTypeSingle => 'Одиночный';
+
+  @override
+  String get blockTypeEmom => 'EMOM';
+
+  @override
+  String get blockTypeAmrap => 'AMRAP';
+
+  @override
+  String get blockTypeForTime => 'На время';
+
+  @override
+  String get blockTypeIntervals => 'Интервалы';
+
+  @override
+  String get blockTypeChipper => 'Чиппер';
+
+  @override
+  String get blockTypeLadder => 'Лесенка';
+
+  @override
+  String get blockTypeDeathBy => 'Death By';
+
+  @override
+  String get blockTypeSuperset => 'Суперсет';
+
+  @override
+  String get blockTypeComplex => 'Комплекс';
+
+  @override
+  String get blockTypeSkillWork => 'Работа над навыком';
+
+  @override
+  String get blockTypeStrength => 'Силовая часть';
+
+  @override
+  String get blockTypeConditioning => 'Кондиционная часть';
+
+  @override
+  String get blockTypeGymnastics => 'Гимнастика';
+
+  @override
+  String get blockTypeWeightlifting => 'Тяжёлая атлетика';
+
+  @override
+  String get blockTypeUnknown => 'Блок';
 }

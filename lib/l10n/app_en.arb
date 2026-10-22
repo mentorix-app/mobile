@@ -99,5 +99,63 @@
   "trainerWebOnlyTitle": "Trainer tools are in the web dashboard for now",
   "trainerOpenDashboardAction": "Open dashboard",
   "adminWebOnlyTitle": "Administration is only available in the web dashboard",
-  "errorOpenDashboard": "Could not open the browser."
+  "errorOpenDashboard": "Could not open the browser.",
+
+  "programTitle": "Program",
+  "programNotAssignedTitle": "No program assigned",
+  "programNotAssignedBody": "Your trainer hasn't assigned a program yet. Pull down to refresh.",
+  "weekLabel": "Week {number}",
+  "@weekLabel": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "dayLabel": "Day {number}",
+  "@dayLabel": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "dayRest": "Rest day",
+  "dayCompleted": "Completed",
+  "programProgress": "Completed {done} of {total}",
+  "@programProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "programFinished": "Program completed. Your trainer will assign the next one.",
+  "programDayExercises": "{count, plural, =1{1 exercise} other{{count} exercises}}",
+  "@programDayExercises": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "blockTypeSingle": "Single",
+  "blockTypeEmom": "EMOM",
+  "blockTypeAmrap": "AMRAP",
+  "blockTypeForTime": "For Time",
+  "blockTypeIntervals": "Intervals",
+  "blockTypeChipper": "Chipper",
+  "blockTypeLadder": "Ladder",
+  "blockTypeDeathBy": "Death By",
+  "blockTypeSuperset": "Superset",
+  "blockTypeComplex": "Complex",
+  "blockTypeSkillWork": "Skill Work",
+  "blockTypeStrength": "Strength",
+  "blockTypeConditioning": "Conditioning",
+  "blockTypeGymnastics": "Gymnastics",
+  "blockTypeWeightlifting": "Weightlifting",
+  "blockTypeUnknown": "Block"
 }

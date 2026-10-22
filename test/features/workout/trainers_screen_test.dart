@@ -55,6 +55,12 @@ void main() {
           builder: (_, _) => const Scaffold(body: Text('profile-screen')),
         ),
         GoRoute(
+          path: RouteNames.trainerProgram,
+          builder: (_, state) => Scaffold(
+            body: Text('program-screen ${state.pathParameters['trainerId']}'),
+          ),
+        ),
+        GoRoute(
           path: RouteNames.invite,
           builder: (_, _) => const Scaffold(body: Text('invite-screen')),
         ),
@@ -324,16 +330,31 @@ void main() {
     expect(find.text('profile-screen'), findsOneWidget);
   });
 
-  testWidgets('карточка пока не нажимается (экран программы — следующий шаг)', (
-    tester,
-  ) async {
+  testWidgets('карточки тренеров стоят на сетке 16 px с обеих сторон', (tester) async {
     await pumpHome(tester);
 
-    await tester.tap(find.byType(TrainerCard));
+    final rect = tester.getRect(find.byType(TrainerCard).first);
+
+    expect(rect.left, 16);
+    expect(rect.right, 402 - 16);
+  });
+
+  testWidgets('нажатие на карточку открывает программу этого тренера', (
+    tester,
+  ) async {
+    repository.trainersResult = const [
+      LinkedTrainer(trainerId: 't-2', trainerDisplayName: 'Второй'),
+      aziz,
+    ];
+    await pumpHome(tester);
+
+    expect(find.byIcon(Icons.chevron_right), findsNWidgets(2));
+
+    await tester.tap(find.text('Aziz Geidar'));
     await tester.pumpAndSettle();
 
-    expect(router.state.matchedLocation, RouteNames.home);
-    expect(find.byIcon(Icons.chevron_right), findsNothing);
+    expect(router.state.matchedLocation, '/trainers/${aziz.trainerId}');
+    expect(find.text('program-screen ${aziz.trainerId}'), findsOneWidget);
   });
 
   group('вёрстка', () {

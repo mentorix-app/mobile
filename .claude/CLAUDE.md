@@ -287,6 +287,8 @@ const storage = FlutterSecureStorage(
 - `withValues(alpha:)` вместо deprecated `withOpacity()`.
 - Контраст по WCAG AA: 4.5:1 для текста, 3:1 для элементов. На тёмном фоне заливка
   карточки больше 1.2:1 не даёт — работает граница, а не цвет заливки.
+- Левый край заголовков и карточек один — отступ списка `AppSpacing.lg`; у `Card` нет
+  внешнего отступа (`cardTheme.margin: EdgeInsets.zero`), своих `margin` у карточек не пишем.
 - Загрузка — скелетоны, не спиннеры по центру.
 - Тактильный отклик на значимые действия (`HapticFeedback`), но не на каждый тап.
 
@@ -304,6 +306,11 @@ const storage = FlutterSecureStorage(
   работает и при коротком списке. Платформа — `Theme.of(context).platform`.
 - `onRefresh` возвращает `Future`, который завершается, когда кубит закончил
   `refresh()` (успех или ошибка): индикатор не прячется раньше.
+- Закреплённая шапка (`SliverAppBar`, в том числе `.large`) передаётся в `headerSlivers`:
+  на iOS индикатор встаёт сразу под ней, на Android `edgeOffset` опускает его под шапку.
+- Первая страница `ShellRoute` живёт во вложенном `Navigator`, и `AppBar` кнопку
+  «назад» ей не рисует: `leading: const AppBackButton()`
+  ([`lib/core/widgets/app_back_button.dart`](../lib/core/widgets/app_back_button.dart)).
 
 ## 7. Локализация
 

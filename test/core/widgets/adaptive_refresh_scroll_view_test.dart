@@ -167,4 +167,65 @@ void main() {
     expect(AdaptiveRefreshScrollView.usesCupertino(TargetPlatform.macOS), isTrue);
     expect(AdaptiveRefreshScrollView.usesCupertino(TargetPlatform.android), isFalse);
   });
+
+  group('закреплённая шапка (headerSlivers)', () {
+    Future<void> pumpWithHeader(WidgetTester tester, TargetPlatform platform) {
+      return tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(platform: platform),
+          home: Scaffold(
+            body: AdaptiveRefreshScrollView(
+              onRefresh: onRefresh,
+              edgeOffset: 56,
+              headerSlivers: const [
+                SliverAppBar(pinned: true, title: Text('header')),
+              ],
+              slivers: [
+                SliverList.builder(
+                  itemCount: 2,
+                  itemBuilder: (_, i) => SizedBox(height: 48, child: Text('item $i')),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('iOS: шапка, затем индикатор обновления, затем содержимое', (
+      tester,
+    ) async {
+      await pumpWithHeader(tester, TargetPlatform.iOS);
+
+      final slivers = scrollView(tester).slivers;
+      expect(slivers[0], isA<SliverAppBar>());
+      expect(slivers[1], isA<CupertinoSliverRefreshControl>());
+      expect(slivers, hasLength(3));
+    });
+
+    testWidgets('iOS: pull при шапке вызывает refresh', (tester) async {
+      await pumpWithHeader(tester, TargetPlatform.iOS);
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, 300));
+      await tester.pumpAndSettle();
+
+      expect(refreshCalls, 1);
+    });
+
+    testWidgets('Android: шапка первая, индикатор опущен на edgeOffset', (
+      tester,
+    ) async {
+      await pumpWithHeader(tester, TargetPlatform.android);
+
+      expect(scrollView(tester).slivers.first, isA<SliverAppBar>());
+      expect(scrollView(tester).slivers, hasLength(2));
+      expect(tester.widget<RefreshIndicator>(find.byType(RefreshIndicator)).edgeOffset, 56);
+    });
+
+    testWidgets('без шапки edgeOffset по умолчанию 0', (tester) async {
+      await pump(tester, TargetPlatform.android);
+
+      expect(tester.widget<RefreshIndicator>(find.byType(RefreshIndicator)).edgeOffset, 0);
+    });
+  });
 }

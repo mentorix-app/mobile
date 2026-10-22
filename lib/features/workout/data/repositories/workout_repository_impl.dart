@@ -1,5 +1,6 @@
 import 'package:mentorix_app/features/auth/domain/entities/linked_trainer.dart';
 import 'package:mentorix_app/features/workout/data/datasources/workout_remote_datasource.dart';
+import 'package:mentorix_app/features/workout/domain/entities/trainer_program.dart';
 import 'package:mentorix_app/features/workout/domain/repositories/workout_repository.dart';
 
 class WorkoutRepositoryImpl implements WorkoutRepository {
@@ -10,4 +11,8 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
 
   @override
   Future<List<LinkedTrainer>> trainers() => _remote.trainers();
+
+  @override
+  Future<TrainerProgram> program(String trainerId) =>
+      _remote.program(trainerId);
 }

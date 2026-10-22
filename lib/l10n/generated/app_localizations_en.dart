@@ -288,4 +288,98 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorOpenDashboard => 'Could not open the browser.';
+
+  @override
+  String get programTitle => 'Program';
+
+  @override
+  String get programNotAssignedTitle => 'No program assigned';
+
+  @override
+  String get programNotAssignedBody =>
+      'Your trainer hasn\'t assigned a program yet. Pull down to refresh.';
+
+  @override
+  String weekLabel(int number) {
+    return 'Week $number';
+  }
+
+  @override
+  String dayLabel(int number) {
+    return 'Day $number';
+  }
+
+  @override
+  String get dayRest => 'Rest day';
+
+  @override
+  String get dayCompleted => 'Completed';
+
+  @override
+  String programProgress(int done, int total) {
+    return 'Completed $done of $total';
+  }
+
+  @override
+  String get programFinished =>
+      'Program completed. Your trainer will assign the next one.';
+
+  @override
+  String programDayExercises(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count exercises',
+      one: '1 exercise',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get blockTypeSingle => 'Single';
+
+  @override
+  String get blockTypeEmom => 'EMOM';
+
+  @override
+  String get blockTypeAmrap => 'AMRAP';
+
+  @override
+  String get blockTypeForTime => 'For Time';
+
+  @override
+  String get blockTypeIntervals => 'Intervals';
+
+  @override
+  String get blockTypeChipper => 'Chipper';
+
+  @override
+  String get blockTypeLadder => 'Ladder';
+
+  @override
+  String get blockTypeDeathBy => 'Death By';
+
+  @override
+  String get blockTypeSuperset => 'Superset';
+
+  @override
+  String get blockTypeComplex => 'Complex';
+
+  @override
+  String get blockTypeSkillWork => 'Skill Work';
+
+  @override
+  String get blockTypeStrength => 'Strength';
+
+  @override
+  String get blockTypeConditioning => 'Conditioning';
+
+  @override
+  String get blockTypeGymnastics => 'Gymnastics';
+
+  @override
+  String get blockTypeWeightlifting => 'Weightlifting';
+
+  @override
+  String get blockTypeUnknown => 'Block';
 }

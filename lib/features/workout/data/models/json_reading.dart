@@ -92,6 +92,25 @@ abstract final class JsonReading {
     return result;
   }
 
+  /// Как [objects], но по возрастанию `sort_order`. Порядок стабильный:
+  /// элементы с равным или отсутствующим `sort_order` остаются как пришли
+  /// (`List.sort` в Dart не гарантирует стабильность, поэтому сравниваем и
+  /// исходную позицию).
+  static List<Map<String, dynamic>> objectsBySortOrder(
+    Map<String, dynamic> json,
+    String key,
+  ) {
+    final items = objects(json, key);
+    final order = List<int>.generate(items.length, (i) => i)
+      ..sort((a, b) {
+        final byOrder = integer(items[a], 'sort_order').compareTo(
+          integer(items[b], 'sort_order'),
+        );
+        return byOrder != 0 ? byOrder : a.compareTo(b);
+      });
+    return [for (final i in order) items[i]];
+  }
+
   /// Запись о пропущенном элементе. Содержимое элемента не пишется: в нём может
   /// быть текст пользователя.
   static void skip(String where, String reason) =>

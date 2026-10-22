@@ -56,6 +56,9 @@ class HomeScreen extends StatelessWidget {
             TrainersLoaded(trainers: final trainers) => TrainersList(
               trainers: trainers,
               onRefresh: cubit.refresh,
+              onTrainerTap: (trainer) => context.push(
+                RouteNames.trainerProgramPath(trainer.trainerId),
+              ),
             ),
           },
         ),

@@ -26,6 +26,7 @@ import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart'
 import 'package:mentorix_app/features/workout/data/datasources/workout_remote_datasource.dart';
 import 'package:mentorix_app/features/workout/data/repositories/workout_repository_impl.dart';
 import 'package:mentorix_app/features/workout/domain/repositories/workout_repository.dart';
+import 'package:mentorix_app/features/workout/presentation/cubit/program_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/trainers_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -136,6 +137,9 @@ Future<void> configureDependencies() async {
   );
   getIt.registerFactory<TrainersCubit>(
     () => TrainersCubit(getIt<WorkoutRepository>()),
+  );
+  getIt.registerFactoryParam<ProgramCubit, String, void>(
+    (trainerId, _) => ProgramCubit(trainerId, getIt<WorkoutRepository>()),
   );
 
   // --- тема ------------------------------------------------------------------

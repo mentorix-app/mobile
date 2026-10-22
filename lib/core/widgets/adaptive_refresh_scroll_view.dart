@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 /// Прокручиваемая область со «потяни, чтобы обновить» в родном виде платформы.
 /// Единственный способ делать pull-to-refresh в приложении (`CLAUDE.md`, §6.1).
 ///
-/// * **iOS и macOS** — `CupertinoSliverRefreshControl` первым сливером: контент
-///   отъезжает вниз, показывается родной индикатор, по завершении всё плавно
-///   возвращается. Физика — `BouncingScrollPhysics` поверх
+/// * **iOS и macOS** — `CupertinoSliverRefreshControl` первым сливером (если
+///   есть закреплённая шапка [headerSlivers], например `SliverAppBar.large`, —
+///   сразу под ней): контент отъезжает вниз, показывается родной индикатор, по
+///   завершении всё плавно возвращается. Физика — `BouncingScrollPhysics` поверх
 ///   `AlwaysScrollableScrollPhysics`.
 /// * **Остальные платформы** — `RefreshIndicator` вокруг `CustomScrollView` с
-///   `AlwaysScrollableScrollPhysics`.
+///   `AlwaysScrollableScrollPhysics`; при закреплённой шапке [edgeOffset] опускает
+///   индикатор под неё.
 ///
 /// `RefreshIndicator.adaptive` не подходит: он меняет только вид индикатора, а
 /// поведение (контент не отъезжает) остаётся материальным.
@@ -25,6 +27,8 @@ class AdaptiveRefreshScrollView extends StatelessWidget {
     super.key,
     required this.onRefresh,
     required this.slivers,
+    this.headerSlivers = const [],
+    this.edgeOffset = 0,
     this.controller,
   });
 
@@ -32,6 +36,14 @@ class AdaptiveRefreshScrollView extends StatelessWidget {
 
   /// Содержимое. Индикатор обновления на iOS добавляется перед ним сам.
   final List<Widget> slivers;
+
+  /// Закреплённая шапка (`SliverAppBar`): стоит выше индикатора обновления, чтобы
+  /// тот выезжал под шапкой, а не поверх неё.
+  final List<Widget> headerSlivers;
+
+  /// Отступ индикатора `RefreshIndicator` сверху (высота закреплённой шапки с
+  /// учётом строки состояния). На iOS не используется.
+  final double edgeOffset;
 
   final ScrollController? controller;
 
@@ -47,16 +59,21 @@ class AdaptiveRefreshScrollView extends StatelessWidget {
         physics: const BouncingScrollPhysics(
           parent: AlwaysScrollableScrollPhysics(),
         ),
-        slivers: [CupertinoSliverRefreshControl(onRefresh: onRefresh), ...slivers],
+        slivers: [
+          ...headerSlivers,
+          CupertinoSliverRefreshControl(onRefresh: onRefresh),
+          ...slivers,
+        ],
       );
     }
 
     return RefreshIndicator(
       onRefresh: onRefresh,
+      edgeOffset: edgeOffset,
       child: CustomScrollView(
         controller: controller,
         physics: const AlwaysScrollableScrollPhysics(),
-        slivers: slivers,
+        slivers: [...headerSlivers, ...slivers],
       ),
     );
   }

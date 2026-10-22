@@ -583,6 +583,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not open the browser.'**
   String get errorOpenDashboard;
+
+  /// No description provided for @programTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Program'**
+  String get programTitle;
+
+  /// No description provided for @programNotAssignedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No program assigned'**
+  String get programNotAssignedTitle;
+
+  /// No description provided for @programNotAssignedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trainer hasn\'t assigned a program yet. Pull down to refresh.'**
+  String get programNotAssignedBody;
+
+  /// No description provided for @weekLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Week {number}'**
+  String weekLabel(int number);
+
+  /// No description provided for @dayLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Day {number}'**
+  String dayLabel(int number);
+
+  /// No description provided for @dayRest.
+  ///
+  /// In en, this message translates to:
+  /// **'Rest day'**
+  String get dayRest;
+
+  /// No description provided for @dayCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get dayCompleted;
+
+  /// No description provided for @programProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed {done} of {total}'**
+  String programProgress(int done, int total);
+
+  /// No description provided for @programFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Program completed. Your trainer will assign the next one.'**
+  String get programFinished;
+
+  /// No description provided for @programDayExercises.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 exercise} other{{count} exercises}}'**
+  String programDayExercises(int count);
+
+  /// No description provided for @blockTypeSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'Single'**
+  String get blockTypeSingle;
+
+  /// No description provided for @blockTypeEmom.
+  ///
+  /// In en, this message translates to:
+  /// **'EMOM'**
+  String get blockTypeEmom;
+
+  /// No description provided for @blockTypeAmrap.
+  ///
+  /// In en, this message translates to:
+  /// **'AMRAP'**
+  String get blockTypeAmrap;
+
+  /// No description provided for @blockTypeForTime.
+  ///
+  /// In en, this message translates to:
+  /// **'For Time'**
+  String get blockTypeForTime;
+
+  /// No description provided for @blockTypeIntervals.
+  ///
+  /// In en, this message translates to:
+  /// **'Intervals'**
+  String get blockTypeIntervals;
+
+  /// No description provided for @blockTypeChipper.
+  ///
+  /// In en, this message translates to:
+  /// **'Chipper'**
+  String get blockTypeChipper;
+
+  /// No description provided for @blockTypeLadder.
+  ///
+  /// In en, this message translates to:
+  /// **'Ladder'**
+  String get blockTypeLadder;
+
+  /// No description provided for @blockTypeDeathBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Death By'**
+  String get blockTypeDeathBy;
+
+  /// No description provided for @blockTypeSuperset.
+  ///
+  /// In en, this message translates to:
+  /// **'Superset'**
+  String get blockTypeSuperset;
+
+  /// No description provided for @blockTypeComplex.
+  ///
+  /// In en, this message translates to:
+  /// **'Complex'**
+  String get blockTypeComplex;
+
+  /// No description provided for @blockTypeSkillWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Skill Work'**
+  String get blockTypeSkillWork;
+
+  /// No description provided for @blockTypeStrength.
+  ///
+  /// In en, this message translates to:
+  /// **'Strength'**
+  String get blockTypeStrength;
+
+  /// No description provided for @blockTypeConditioning.
+  ///
+  /// In en, this message translates to:
+  /// **'Conditioning'**
+  String get blockTypeConditioning;
+
+  /// No description provided for @blockTypeGymnastics.
+  ///
+  /// In en, this message translates to:
+  /// **'Gymnastics'**
+  String get blockTypeGymnastics;
+
+  /// No description provided for @blockTypeWeightlifting.
+  ///
+  /// In en, this message translates to:
+  /// **'Weightlifting'**
+  String get blockTypeWeightlifting;
+
+  /// No description provided for @blockTypeUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Block'**
+  String get blockTypeUnknown;
 }
 
 class _AppLocalizationsDelegate

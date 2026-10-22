@@ -24,6 +24,8 @@ import 'package:mentorix_app/features/mode/presentation/screens/admin_web_only_s
 import 'package:mentorix_app/features/mode/presentation/screens/trainer_web_only_screen.dart';
 import 'package:mentorix_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/trainers_cubit.dart';
+import 'package:mentorix_app/features/workout/presentation/screens/program_screen.dart';
+import 'package:mentorix_app/features/workout/presentation/widgets/program_scope.dart';
 
 /// Роутер зависит от сессии: куда можно попасть, решает [SessionCubit],
 /// а порядок экранов после входа — [OnboardingFlow].
@@ -91,6 +93,19 @@ GoRouter createAppRouter({
           child: const HomeScreen(),
         ),
       ),
+      // Один ProgramCubit на программу, день и отметку выбранного тренера.
+      ShellRoute(
+        builder: (context, state, child) => ProgramScope(
+          trainerId: state.pathParameters['trainerId']!,
+          child: child,
+        ),
+        routes: [
+          GoRoute(
+            path: RouteNames.trainerProgram,
+            builder: (context, state) => const ProgramScreen(),
+          ),
+        ],
+      ),
       GoRoute(
         path: RouteNames.trainerWebOnly,
         builder: (context, state) => BlocProvider(
@@ -137,8 +152,10 @@ String? _authenticatedRedirect(
       location == RouteNames.adminWebOnly) {
     return next;
   }
-  // Главный экран недоступен, пока не пройден порядок «Telegram → приглашение».
-  if (location == RouteNames.home && next != RouteNames.home) {
+  // Главный экран и экраны тренировок недоступны, пока не пройден порядок
+  // «Telegram → приглашение».
+  if ((location == RouteNames.home || RouteNames.isWorkoutLocation(location)) &&
+      next != RouteNames.home) {
     return next;
   }
   return null;

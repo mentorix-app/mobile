@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:mentorix_app/features/auth/domain/entities/linked_trainer.dart';
+import 'package:mentorix_app/features/workout/domain/entities/trainer_program.dart';
 import 'package:mentorix_app/features/workout/domain/failures/workout_failure.dart';
 import 'package:mentorix_app/features/workout/domain/repositories/workout_repository.dart';
 
@@ -16,6 +17,18 @@ class FakeWorkoutRepository implements WorkoutRepository {
 
   int trainersCalls = 0;
 
+  /// Ответ `program()`. По умолчанию — тренер без назначенной программы.
+  TrainerProgram programResult = const TrainerProgram(trainerId: 'aziz');
+
+  /// Если задан — `program()` бросает его.
+  WorkoutFailure? programFailure;
+
+  /// Если задан — `program()` ждёт его завершения.
+  Completer<void>? programGate;
+
+  int programCalls = 0;
+  final List<String> programTrainerIds = [];
+
   @override
   Future<List<LinkedTrainer>> trainers() async {
     trainersCalls++;
@@ -25,6 +38,18 @@ class FakeWorkoutRepository implements WorkoutRepository {
     final failure = trainersFailure;
     if (failure != null) throw failure;
     return trainersResult;
+  }
+
+  @override
+  Future<TrainerProgram> program(String trainerId) async {
+    programCalls++;
+    programTrainerIds.add(trainerId);
+    final gate = programGate;
+    if (gate != null) await gate.future;
+
+    final failure = programFailure;
+    if (failure != null) throw failure;
+    return programResult;
   }
 }
 

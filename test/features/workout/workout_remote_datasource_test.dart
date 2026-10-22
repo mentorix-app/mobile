@@ -157,4 +157,76 @@ void main() {
       );
     });
   });
+
+  group('program', () {
+    const trainerId = '404dd1be-d973-4b97-8294-28a9e1fe38a9';
+
+    test('образец docs/samples/client_program.json', () async {
+      final sample =
+          jsonDecode(File('docs/samples/client_program.json').readAsStringSync())
+              as Map<String, dynamic>;
+      setUpRemote((_) async => jsonBody(sample));
+
+      final program = await remote.program(trainerId);
+
+      expect(program.trainerId, trainerId, reason: 'идентификатор — из пути запроса');
+      expect(program.hasProgram, isTrue);
+      expect(program.weeks, hasLength(2));
+    });
+
+    test('идёт на путь из ApiEndpoints методом GET', () async {
+      setUpRemote((_) async => jsonBody({'assignment': null, 'program': null, 'completed_days': []}));
+
+      final program = await remote.program(trainerId);
+
+      expect(adapter.requests.single.path, ApiEndpoints.clientTrainerProgram(trainerId));
+      expect(adapter.requests.single.method, 'GET');
+      expect(program.hasProgram, isFalse);
+    });
+
+    test('ошибки разбираются по code', () async {
+      final cases = <int, ({Object body, Type failure})>{
+        403: (body: {'code': ApiErrorCodes.clientNotLinked}, failure: WorkoutNotLinkedFailure),
+        422: (body: {'code': ApiErrorCodes.clientBlocked}, failure: WorkoutBlockedFailure),
+        400: (body: {'code': 'bad_request'}, failure: WorkoutInvalidRequestFailure),
+        401: (body: {'code': ApiErrorCodes.invalidToken}, failure: WorkoutSessionExpiredFailure),
+        429: (body: {'code': ApiErrorCodes.rateLimited}, failure: WorkoutTooManyRequestsFailure),
+        503: (body: {'code': 'x'}, failure: WorkoutServerUnavailableFailure),
+        500: (body: {'code': 'internal'}, failure: WorkoutUnknownFailure),
+      };
+
+      for (final entry in cases.entries) {
+        setUpRemote((_) async => jsonBody(entry.value.body, status: entry.key));
+
+        await expectLater(
+          remote.program(trainerId),
+          throwsA(predicate((e) => e.runtimeType == entry.value.failure)),
+          reason: '${entry.key}',
+        );
+      }
+    });
+
+    test('тело не объект — Unknown', () async {
+      for (final body in <Object>[[1], 'text', 5]) {
+        setUpRemote((_) async => jsonBody(body));
+
+        await expectLater(
+          remote.program(trainerId),
+          throwsA(isA<WorkoutUnknownFailure>()),
+          reason: '$body',
+        );
+      }
+    });
+
+    test('обрыв связи — Network', () async {
+      setUpRemote(
+        (options) async => throw DioException(
+          requestOptions: options,
+          type: DioExceptionType.receiveTimeout,
+        ),
+      );
+
+      await expectLater(remote.program(trainerId), throwsA(isA<WorkoutNetworkFailure>()));
+    });
+  });
 }

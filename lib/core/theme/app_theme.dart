@@ -67,6 +67,9 @@ abstract final class AppTheme {
       bottomSheetTheme: AppComponentThemes.bottomSheet(tokens),
       progressIndicatorTheme: AppComponentThemes.progress(tokens),
       cardTheme: CardThemeData(
+        // Без внешнего отступа Material (4 px): карточки встают на ту же сетку,
+        // что и заголовки, — левый край задаёт отступ списка (`AppSpacing.lg`).
+        margin: EdgeInsets.zero,
         color: tokens.card,
         surfaceTintColor: Colors.transparent,
         elevation: 0,

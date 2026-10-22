@@ -4,6 +4,7 @@ import 'package:mentorix_app/core/logging/app_logger.dart';
 import 'package:mentorix_app/features/auth/data/models/linked_trainer_model.dart';
 import 'package:mentorix_app/features/workout/data/mappers/workout_error_mapper.dart';
 import 'package:mentorix_app/features/workout/data/models/json_reading.dart';
+import 'package:mentorix_app/features/workout/data/models/trainer_program_model.dart';
 import 'package:mentorix_app/features/workout/domain/failures/workout_failure.dart';
 
 /// Эндпоинты клиентских тренировок (`docs/backend_client_api.md`). Бросает
@@ -33,6 +34,19 @@ class WorkoutRemoteDataSource {
       }
     }
     return trainers;
+  });
+
+  /// `GET /client/trainers/{trainer_id}/program`: назначение, программа и
+  /// `completed_days`. `assignment` и `program` — `null`, пока тренер программу не
+  /// назначил. Ошибки: 403 `client_not_linked`, 422 `client_blocked`.
+  Future<TrainerProgramModel> program(String trainerId) => _guard(() async {
+    final response = await _dio.get<Object?>(
+      ApiEndpoints.clientTrainerProgram(trainerId),
+    );
+    return TrainerProgramModel.fromJson(
+      _object(response),
+      trainerId: trainerId,
+    );
   });
 
   Map<String, dynamic> _object(Response<Object?> response) {

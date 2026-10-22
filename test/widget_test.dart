@@ -38,7 +38,9 @@ import 'package:mentorix_app/features/mode/presentation/cubit/dashboard_link_cub
 import 'package:mentorix_app/features/mode/presentation/screens/admin_web_only_screen.dart';
 import 'package:mentorix_app/features/mode/presentation/screens/trainer_web_only_screen.dart';
 import 'package:mentorix_app/features/profile/presentation/screens/profile_screen.dart';
+import 'package:mentorix_app/features/workout/presentation/cubit/program_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/trainers_cubit.dart';
+import 'package:mentorix_app/features/workout/presentation/screens/program_screen.dart';
 import 'package:mentorix_app/features/theme/data/repositories/theme_repository_impl.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
 import 'package:mentorix_app/features/theme/presentation/widgets/theme_mode_button.dart';
@@ -130,6 +132,9 @@ void main() {
       )
       ..registerFactory<TrainersCubit>(
         () => TrainersCubit(FakeWorkoutRepository()..trainersResult = trainers),
+      )
+      ..registerFactoryParam<ProgramCubit, String, void>(
+        (trainerId, _) => ProgramCubit(trainerId, FakeWorkoutRepository()),
       )
       ..registerFactory<DashboardLinkCubit>(
         () => DashboardLinkCubit(launcher, url: dashboardUrl),
@@ -745,6 +750,91 @@ void main() {
         await pumpApp(tester, profile: testProfile);
 
         expect(find.byType(HomeScreen), findsOneWidget);
+      });
+    });
+
+    group('экраны тренировок: доступ по режиму и онбордингу', () {
+      final programPath = RouteNames.trainerProgramPath('trainer-1');
+
+      testWidgets('клиент после онбординга: список → программа тренера', (
+        tester,
+      ) async {
+        await pumpApp(
+          tester,
+          profile: profileWithRoles(['client']),
+          trainers: const [
+            LinkedTrainer(trainerId: 'trainer-1', trainerDisplayName: 'Aziz'),
+          ],
+        );
+
+        await tester.tap(find.text('Aziz'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ProgramScreen), findsOneWidget);
+        expect(routerOf(tester).state.matchedLocation, programPath);
+
+        // Назад — на список.
+        routerOf(tester).pop();
+        await tester.pumpAndSettle();
+        expect(find.byType(HomeScreen), findsOneWidget);
+      });
+
+      testWidgets('клиент напрямую по пути: экран программы открывается', (
+        tester,
+      ) async {
+        await pumpApp(tester, profile: profileWithRoles(['client']));
+
+        routerOf(tester).go(programPath);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ProgramScreen), findsOneWidget);
+      });
+
+      testWidgets('онбординг не пройден → путь программы ведёт на следующий шаг', (
+        tester,
+      ) async {
+        await pumpApp(
+          tester,
+          profile: unfinished(['client']),
+          inviteDone: false,
+        );
+        expect(find.byType(TelegramOfferScreen), findsOneWidget);
+
+        routerOf(tester).go(programPath);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ProgramScreen), findsNothing);
+        expect(find.byType(TelegramOfferScreen), findsOneWidget);
+      });
+
+      testWidgets('тренер на экран программы не попадает', (tester) async {
+        await pumpApp(tester, profile: unfinished(['trainer']));
+
+        routerOf(tester).go(programPath);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ProgramScreen), findsNothing);
+        expect(find.byType(TrainerWebOnlyScreen), findsOneWidget);
+      });
+
+      testWidgets('администратор на экран программы не попадает', (tester) async {
+        await pumpApp(tester, profile: unfinished(['admin']));
+
+        routerOf(tester).go(programPath);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ProgramScreen), findsNothing);
+        expect(find.byType(AdminWebOnlyScreen), findsOneWidget);
+      });
+
+      testWidgets('без сессии путь программы ведёт на вход', (tester) async {
+        await pumpApp(tester, sessionState: _Session.unauthenticated);
+
+        routerOf(tester).go(programPath);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ProgramScreen), findsNothing);
+        expect(find.byType(LoginScreen), findsOneWidget);
       });
     });
 

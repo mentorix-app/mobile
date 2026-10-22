@@ -122,3 +122,23 @@ extension WorkoutFailureDetails on WorkoutFailure {
     };
   }
 }
+
+/// Повтор запроса имеет смысл. Для связи, которой больше нет, и блокировки
+/// тренером повтор ничего не изменит: экран показывает сообщение без
+/// «Повторить». Список исчерпывающий: новый подтип не компилируется, пока не
+/// решено, повторяем ли мы его.
+extension WorkoutFailureRetry on WorkoutFailure {
+  bool get canRetry => switch (this) {
+    WorkoutNotLinkedFailure() || WorkoutBlockedFailure() => false,
+    WorkoutNetworkFailure() ||
+    WorkoutServerUnavailableFailure() ||
+    WorkoutTooManyRequestsFailure() ||
+    WorkoutSessionExpiredFailure() ||
+    WorkoutInvalidRequestFailure() ||
+    WorkoutUnknownFailure() ||
+    WorkoutDayNotFoundFailure() ||
+    WorkoutAlreadyCompletedFailure() ||
+    WorkoutProgramChangedFailure() ||
+    WorkoutInvalidResultFailure() => true,
+  };
+}

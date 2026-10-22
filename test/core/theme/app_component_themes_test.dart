@@ -45,6 +45,10 @@ void main() {
         expect(bar.titleTextStyle?.fontSize, AppTextTheme.h4);
       });
 
+      test('карточка без внешнего отступа: левый край задаёт список', () {
+        expect(theme.cardTheme.margin, EdgeInsets.zero);
+      });
+
       test('поле ввода: радиус 10, контур input, фокус primary', () {
         final input = theme.inputDecorationTheme;
         final enabled = input.enabledBorder! as OutlineInputBorder;
