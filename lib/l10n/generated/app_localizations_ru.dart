@@ -431,4 +431,46 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get profileTelegramLinkAction => 'Привязать';
+
+  @override
+  String get dayCompleteAction => 'Отметить выполненной';
+
+  @override
+  String get completeTitle => 'Результат тренировки';
+
+  @override
+  String get completeHint =>
+      'Как прошла тренировка? Напишите, что сделали, с каким весом и как себя чувствовали.';
+
+  @override
+  String get completeFieldHint =>
+      'Например: 5×5 по 80 кг, последний подход тяжело';
+
+  @override
+  String completeCounter(int count, int max) {
+    return '$count / $max';
+  }
+
+  @override
+  String get completeNextAction => 'Далее';
+
+  @override
+  String get completeConfirmTitle => 'Отметить выполненной?';
+
+  @override
+  String get completeConfirmBody =>
+      'Отменить отметку и изменить результат будет нельзя. Тренер увидит:';
+
+  @override
+  String get completeConfirmAction => 'Отметить';
+
+  @override
+  String get completeBackAction => 'Назад';
+
+  @override
+  String get completeSavedMessage => 'Тренировка отмечена';
+
+  @override
+  String get completeSavedRefreshFailed =>
+      'Отмечено, но обновить программу не удалось. Потяните вниз, чтобы обновить.';
 }

@@ -24,6 +24,7 @@ import 'package:mentorix_app/features/mode/presentation/screens/admin_web_only_s
 import 'package:mentorix_app/features/mode/presentation/screens/trainer_web_only_screen.dart';
 import 'package:mentorix_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/trainers_cubit.dart';
+import 'package:mentorix_app/features/workout/presentation/screens/complete_day_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/day_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/program_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/program_scope.dart';
@@ -108,6 +109,13 @@ GoRouter createAppRouter({
           GoRoute(
             path: RouteNames.workoutDay,
             builder: (context, state) => DayScreen(
+              trainerId: state.pathParameters['trainerId']!,
+              dayKey: state.pathParameters['dayKey']!,
+            ),
+          ),
+          GoRoute(
+            path: RouteNames.completeDay,
+            builder: (context, state) => CompleteDayScreen(
               trainerId: state.pathParameters['trainerId']!,
               dayKey: state.pathParameters['dayKey']!,
             ),

@@ -315,6 +315,10 @@ const storage = FlutterSecureStorage(
   заголовок `textTheme.displaySmall` (34 sp, `w700`), до двух строк, прижат к низу, при
   прокрутке сворачивается в маленький по центру тулбара. `SliverAppBar.large` не
   используем: у него жёсткая высота и пустые поля.
+- Закреплённая внизу кнопка действия — `PinnedActionBar`
+  ([`lib/core/widgets/pinned_action_bar.dart`](../lib/core/widgets/pinned_action_bar.dart)) в
+  `Scaffold.bottomNavigationBar`, а не в `Column` тела: тело кончается над панелью, плавающие
+  `AppSnackBar` встают над ней (иначе перекрывают кнопку), клавиатуру панель обходит сама.
 - Первая страница `ShellRoute` живёт во вложенном `Navigator`, и `AppBar` кнопку
   «назад» ей не рисует: `leading: const AppBackButton()`
   ([`lib/core/widgets/app_back_button.dart`](../lib/core/widgets/app_back_button.dart)).

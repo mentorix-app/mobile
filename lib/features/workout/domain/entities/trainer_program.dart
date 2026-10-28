@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:mentorix_app/features/workout/domain/entities/completion_target.dart';
 import 'package:mentorix_app/features/workout/domain/entities/program.dart';
 import 'package:mentorix_app/features/workout/domain/entities/program_assignment.dart';
 import 'package:mentorix_app/features/workout/domain/entities/program_day.dart';
@@ -65,6 +66,28 @@ class TrainerProgram extends Equatable {
       }
     }
     return null;
+  }
+
+  /// Слепок для отметки дня [dayKey] из **этой** загруженной программы или `null`:
+  /// нет назначения, у него нет идентификаторов, дня нет или его нельзя отметить
+  /// (отдых, нет ключа или упражнений). Выполненность не проверяется: «уже
+  /// отмечен» решает вызывающий по [isCompleted].
+  CompletionTarget? completionTargetFor(String dayKey) {
+    final assignment = this.assignment;
+    final located = locate(dayKey);
+    if (assignment == null ||
+        !assignment.canMarkDays ||
+        located == null ||
+        !located.day.canComplete) {
+      return null;
+    }
+
+    return CompletionTarget(
+      assignmentId: assignment.assignmentId,
+      programVersionId: assignment.programVersionId,
+      completionCycleId: assignment.completionCycleId,
+      dayKey: located.day.dayKey,
+    );
   }
 
   bool isCompleted(ProgramDay day) =>

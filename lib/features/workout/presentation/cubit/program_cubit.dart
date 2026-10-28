@@ -14,7 +14,7 @@ class ProgramCubit extends Cubit<ProgramState> {
 
   /// Обновление уже идёт: повторный вызов (pull-to-refresh и возврат в
   /// приложение подряд) ждёт его, а не шлёт второй запрос.
-  Future<void>? _inFlight;
+  Future<bool>? _inFlight;
 
   /// Первая загрузка и «Повторить» после ошибки: показывает скелетон.
   Future<void> load() async {
@@ -24,20 +24,23 @@ class ProgramCubit extends Cubit<ProgramState> {
 
   /// Обновление без скелетона: показанные данные остаются, пока не придут новые.
   ///
-  /// [silent] — тихое обновление (возврат в приложение): при ошибке ничего не
-  /// сообщается, остаются прежние данные. Pull-to-refresh сообщает об ошибке
-  /// уведомлением ([ProgramLoaded.refreshFailure]).
+  /// [silent] — тихое обновление (возврат в приложение, после отметки дня): при
+  /// ошибке ничего не сообщается, остаются прежние данные. Pull-to-refresh
+  /// сообщает об ошибке уведомлением ([ProgramLoaded.refreshFailure]).
   ///
   /// Future завершается, когда обновление закончилось (успехом или ошибкой), —
-  /// индикатор pull-to-refresh не прячется раньше.
-  Future<void> refresh({bool silent = false}) {
+  /// индикатор pull-to-refresh не прячется раньше. Результат — `true`, если пришли
+  /// свежие данные; `false` — обновление не удалось (или его нет смысла
+  /// запускать), показаны прежние.
+  Future<bool> refresh({bool silent = false}) {
     final running = _inFlight;
     if (running != null) return running;
 
     final current = state;
     if (current is! ProgramLoaded) {
       // Скелетон или ошибка: обновлять нечего, загружаем заново.
-      return silent && current is ProgramLoading ? Future.value() : load();
+      if (silent && current is ProgramLoading) return Future.value(false);
+      return load().then((_) => state is ProgramLoaded);
     }
 
     // Сначала снимаем прошлую ошибку: одинаковая ошибка подряд — тот же объект,
@@ -48,18 +51,20 @@ class ProgramCubit extends Cubit<ProgramState> {
     );
   }
 
-  Future<void> _fetch({ProgramLoaded? previous, bool silent = false}) async {
+  Future<bool> _fetch({ProgramLoaded? previous, bool silent = false}) async {
     try {
       final data = await _repository.program(trainerId);
-      if (isClosed) return;
+      if (isClosed) return false;
       emit(ProgramLoaded(data));
+      return true;
     } on WorkoutFailure catch (failure) {
-      if (isClosed) return;
+      if (isClosed) return false;
       if (previous == null) {
         emit(ProgramFailed(failure));
       } else if (!silent) {
         emit(ProgramLoaded(previous.data, refreshFailure: failure));
       }
+      return false;
     }
   }
 }

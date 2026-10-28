@@ -436,4 +436,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileTelegramLinkAction => 'Link';
+
+  @override
+  String get dayCompleteAction => 'Mark as done';
+
+  @override
+  String get completeTitle => 'Workout result';
+
+  @override
+  String get completeHint =>
+      'How did it go? Write what you did, with what weights and how you felt.';
+
+  @override
+  String get completeFieldHint =>
+      'For example: 5×5 at 80 kg, the last set was hard';
+
+  @override
+  String completeCounter(int count, int max) {
+    return '$count / $max';
+  }
+
+  @override
+  String get completeNextAction => 'Next';
+
+  @override
+  String get completeConfirmTitle => 'Mark as done?';
+
+  @override
+  String get completeConfirmBody =>
+      'You will not be able to undo this or change the result. Your trainer will see:';
+
+  @override
+  String get completeConfirmAction => 'Mark as done';
+
+  @override
+  String get completeBackAction => 'Back';
+
+  @override
+  String get completeSavedMessage => 'Workout marked as done';
+
+  @override
+  String get completeSavedRefreshFailed =>
+      'Marked as done, but the program could not be refreshed. Pull down to refresh.';
 }

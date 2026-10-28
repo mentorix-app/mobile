@@ -823,6 +823,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Link'**
   String get profileTelegramLinkAction;
+
+  /// No description provided for @dayCompleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as done'**
+  String get dayCompleteAction;
+
+  /// No description provided for @completeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout result'**
+  String get completeTitle;
+
+  /// No description provided for @completeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'How did it go? Write what you did, with what weights and how you felt.'**
+  String get completeHint;
+
+  /// No description provided for @completeFieldHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For example: 5×5 at 80 kg, the last set was hard'**
+  String get completeFieldHint;
+
+  /// No description provided for @completeCounter.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} / {max}'**
+  String completeCounter(int count, int max);
+
+  /// No description provided for @completeNextAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get completeNextAction;
+
+  /// No description provided for @completeConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as done?'**
+  String get completeConfirmTitle;
+
+  /// No description provided for @completeConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You will not be able to undo this or change the result. Your trainer will see:'**
+  String get completeConfirmBody;
+
+  /// No description provided for @completeConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as done'**
+  String get completeConfirmAction;
+
+  /// No description provided for @completeBackAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get completeBackAction;
+
+  /// No description provided for @completeSavedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout marked as done'**
+  String get completeSavedMessage;
+
+  /// No description provided for @completeSavedRefreshFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as done, but the program could not be refreshed. Pull down to refresh.'**
+  String get completeSavedRefreshFailed;
 }
 
 class _AppLocalizationsDelegate

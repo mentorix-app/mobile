@@ -5,6 +5,8 @@ import 'package:mentorix_app/features/auth/data/models/linked_trainer_model.dart
 import 'package:mentorix_app/features/workout/data/mappers/workout_error_mapper.dart';
 import 'package:mentorix_app/features/workout/data/models/json_reading.dart';
 import 'package:mentorix_app/features/workout/data/models/trainer_program_model.dart';
+import 'package:mentorix_app/features/workout/data/models/workout_completion_model.dart';
+import 'package:mentorix_app/features/workout/domain/entities/completion_target.dart';
 import 'package:mentorix_app/features/workout/domain/failures/workout_failure.dart';
 
 /// Эндпоинты клиентских тренировок (`docs/backend_client_api.md`). Бросает
@@ -46,6 +48,32 @@ class WorkoutRemoteDataSource {
     return TrainerProgramModel.fromJson(
       _object(response),
       trainerId: trainerId,
+    );
+  });
+
+  /// `POST /client/trainers/{trainer_id}/completions`, ответ 201. Тело запроса — те
+  /// четыре значения слепка и `result_text`. Ответ разбирается терпимо: отметка уже
+  /// записана, даже если тело пришло не того вида. 400 и 413 — проблема с текстом
+  /// результата ([WorkoutErrorMapper.completion]).
+  Future<WorkoutCompletionModel> completeDay({
+    required String trainerId,
+    required CompletionTarget target,
+    required String resultText,
+  }) => _guard(endpoint: WorkoutErrorMapper.completion, () async {
+    final response = await _dio.post<Object?>(
+      ApiEndpoints.clientTrainerCompletions(trainerId),
+      data: {
+        'program_assignment_id': target.assignmentId,
+        'program_version_id': target.programVersionId,
+        'completion_cycle_id': target.completionCycleId,
+        'day_key': target.dayKey,
+        'result_text': resultText,
+      },
+    );
+    final data = response.data;
+    return WorkoutCompletionModel.fromJson(
+      data is Map<String, dynamic> ? data : const {},
+      fallbackDayKey: target.dayKey,
     );
   });
 

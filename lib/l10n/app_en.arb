@@ -222,5 +222,27 @@
   "profileTelegramLabel": "Telegram",
   "profileTelegramLinked": "Linked",
   "profileTelegramNotLinked": "Not linked",
-  "profileTelegramLinkAction": "Link"
+  "profileTelegramLinkAction": "Link",
+  "dayCompleteAction": "Mark as done",
+  "completeTitle": "Workout result",
+  "completeHint": "How did it go? Write what you did, with what weights and how you felt.",
+  "completeFieldHint": "For example: 5×5 at 80 kg, the last set was hard",
+  "completeCounter": "{count} / {max}",
+  "@completeCounter": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "completeNextAction": "Next",
+  "completeConfirmTitle": "Mark as done?",
+  "completeConfirmBody": "You will not be able to undo this or change the result. Your trainer will see:",
+  "completeConfirmAction": "Mark as done",
+  "completeBackAction": "Back",
+  "completeSavedMessage": "Workout marked as done",
+  "completeSavedRefreshFailed": "Marked as done, but the program could not be refreshed. Pull down to refresh."
 }

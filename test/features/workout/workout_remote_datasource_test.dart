@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mentorix_app/core/config/api_endpoints.dart';
 import 'package:mentorix_app/core/network/api_error_codes.dart';
 import 'package:mentorix_app/features/workout/data/datasources/workout_remote_datasource.dart';
+import 'package:mentorix_app/features/workout/domain/entities/completion_target.dart';
+import 'package:mentorix_app/features/workout/domain/entities/workout_completion.dart';
 import 'package:mentorix_app/features/workout/domain/failures/workout_failure.dart';
 
 import '../../helpers/fake_http_adapter.dart';
@@ -227,6 +229,162 @@ void main() {
       );
 
       await expectLater(remote.program(trainerId), throwsA(isA<WorkoutNetworkFailure>()));
+    });
+  });
+
+  group('completeDay', () {
+    const trainerId = '404dd1be-d973-4b97-8294-28a9e1fe38a9';
+    const target = CompletionTarget(
+      assignmentId: 'assignment-1',
+      programVersionId: 'version-1',
+      completionCycleId: 'cycle-1',
+      dayKey: 'day-key-1',
+    );
+
+    Future<WorkoutCompletion> send([String text = 'Сделал 5x5']) => remote.completeDay(
+      trainerId: trainerId,
+      target: target,
+      resultText: text,
+    );
+
+    test('POST на путь из ApiEndpoints с телом из слепка и текста', () async {
+      setUpRemote(
+        (_) async => jsonBody({
+          'id': 'c-1',
+          'day_key': 'day-key-1',
+          'week_number': 1,
+          'day_number': 4,
+          'completed_at': '2026-10-28T10:00:00Z',
+          'result_text': 'Сделал 5x5',
+        }, status: 201),
+      );
+
+      final result = await send();
+
+      final request = adapter.requests.single;
+      expect(request.method, 'POST');
+      expect(request.path, ApiEndpoints.clientTrainerCompletions(trainerId));
+      expect(request.data, {
+        'program_assignment_id': 'assignment-1',
+        'program_version_id': 'version-1',
+        'completion_cycle_id': 'cycle-1',
+        'day_key': 'day-key-1',
+        'result_text': 'Сделал 5x5',
+      });
+      expect(request.headers[Headers.contentTypeHeader], contains('application/json'));
+      expect(result.id, 'c-1');
+      expect(result.dayKey, 'day-key-1');
+      expect(result.weekNumber, 1);
+      expect(result.dayNumber, 4);
+      expect(result.completedAt, DateTime.utc(2026, 10, 28, 10));
+      expect(result.resultText, 'Сделал 5x5');
+    });
+
+    test('отметка записана, а тело ответа неожиданное — это успех', () async {
+      for (final body in <Object>[<String, Object?>{}, [1, 2], 'ok', {'id': null}]) {
+        setUpRemote((_) async => jsonBody(body, status: 201));
+
+        final result = await send();
+
+        expect(result.dayKey, 'day-key-1', reason: '$body');
+      }
+    });
+
+    test('ответ без тела (204-подобный) — тоже успех', () async {
+      setUpRemote((_) async => ResponseBody.fromString('', 201));
+
+      final result = await send();
+
+      expect(result.dayKey, 'day-key-1');
+    });
+
+    test('управляющие символы в ответе убираются', () async {
+      setUpRemote(
+        (_) async => jsonBody({'id': 'x', 'result_text': 'a\u0000b'}, status: 201),
+      );
+
+      expect((await send()).resultText, 'ab');
+    });
+
+    test('ошибки разбираются по code', () async {
+      final cases = <String, ({int status, Object body, Type failure})>{
+        '409 program_changed': (
+          status: 409,
+          body: {'code': ApiErrorCodes.programChanged},
+          failure: WorkoutProgramChangedFailure,
+        ),
+        '409 workout_already_completed': (
+          status: 409,
+          body: {'code': ApiErrorCodes.workoutAlreadyCompleted},
+          failure: WorkoutAlreadyCompletedFailure,
+        ),
+        '404 day_not_found': (
+          status: 404,
+          body: {'code': ApiErrorCodes.dayNotFound},
+          failure: WorkoutDayNotFoundFailure,
+        ),
+        '400 bad_request (пустой текст, длиннее 1000)': (
+          status: 400,
+          body: {'code': 'bad_request'},
+          failure: WorkoutInvalidResultFailure,
+        ),
+        '413 payload_too_large': (
+          status: 413,
+          body: {'code': ApiErrorCodes.payloadTooLarge},
+          failure: WorkoutInvalidResultFailure,
+        ),
+        '403 client_not_linked': (
+          status: 403,
+          body: {'code': ApiErrorCodes.clientNotLinked},
+          failure: WorkoutNotLinkedFailure,
+        ),
+        '422 client_blocked': (
+          status: 422,
+          body: {'code': ApiErrorCodes.clientBlocked},
+          failure: WorkoutBlockedFailure,
+        ),
+        '429': (
+          status: 429,
+          body: {'code': ApiErrorCodes.rateLimited},
+          failure: WorkoutTooManyRequestsFailure,
+        ),
+        '503': (
+          status: 503,
+          body: {'code': 'x'},
+          failure: WorkoutServerUnavailableFailure,
+        ),
+        '500': (status: 500, body: {'code': 'x'}, failure: WorkoutUnknownFailure),
+      };
+
+      for (final entry in cases.entries) {
+        setUpRemote((_) async => jsonBody(entry.value.body, status: entry.value.status));
+
+        await expectLater(
+          send(),
+          throwsA(predicate((e) => e.runtimeType == entry.value.failure)),
+          reason: entry.key,
+        );
+      }
+    });
+
+    test('обрыв связи — Network (отметка могла дойти: повтор даст 409)', () async {
+      setUpRemote(
+        (options) async => throw DioException(
+          requestOptions: options,
+          type: DioExceptionType.receiveTimeout,
+        ),
+      );
+
+      await expectLater(send(), throwsA(isA<WorkoutNetworkFailure>()));
+    });
+
+    test('результат тренировки в журнале запросов скрыт', () async {
+      setUpRemote((_) async => jsonBody({'id': 'x'}, status: 201));
+
+      await send('Колено болело');
+
+      // Настоящий запрос ушёл с текстом, а в журнал он попадает только маской.
+      expect(adapter.requests.single.data['result_text'], 'Колено болело');
     });
   });
 }

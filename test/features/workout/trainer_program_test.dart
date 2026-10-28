@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mentorix_app/features/workout/domain/entities/block_type.dart';
+import 'package:mentorix_app/features/workout/domain/entities/program_assignment.dart';
 import 'package:mentorix_app/features/workout/domain/entities/trainer_program.dart';
 import 'package:mentorix_app/features/workout/domain/usecases/find_next_workout_day.dart';
 
@@ -140,6 +141,55 @@ void main() {
 
     test('ключ чужого дня следующий день не меняет', () {
       expect(find(stageProgram(completed: {'чужой'}))!.day.dayNumber, 1);
+    });
+  });
+
+  group('completionTargetFor — слепок из загруженной программы', () {
+    test('идентификаторы назначения и ключ дня', () {
+      final target = stageProgram().completionTargetFor('day-1')!;
+
+      expect(target.assignmentId, 'assignment-1');
+      expect(target.programVersionId, 'version-1');
+      expect(target.completionCycleId, 'cycle-1');
+      expect(target.dayKey, 'day-1');
+    });
+
+    test('день отдыха, неизвестный и пустой ключ — null', () {
+      final program = stageProgram();
+
+      expect(program.completionTargetFor('day-3'), isNull);
+      expect(program.completionTargetFor('нет-такого'), isNull);
+      expect(program.completionTargetFor(''), isNull);
+    });
+
+    test('нет назначения или у него нет идентификаторов — null', () {
+      expect(const TrainerProgram(trainerId: 't').completionTargetFor('day-1'), isNull);
+
+      final partial = TrainerProgram(
+        trainerId: 't',
+        assignment: const ProgramAssignment(
+          assignmentId: 'a',
+          programVersionId: '',
+          completionCycleId: 'c',
+        ),
+        program: stageProgram().program,
+      );
+      expect(partial.completionTargetFor('day-1'), isNull);
+    });
+
+    test('день без упражнений отметить нельзя', () {
+      final program = trainerProgram([
+        week(1, [trainingDay(1, key: 'k', blocks: [block(BlockType.emom, exercises: [])])]),
+      ]);
+
+      expect(program.completionTargetFor('k'), isNull);
+    });
+
+    test('выполненность не проверяется: «уже отмечен» решает вызывающий', () {
+      final program = stageProgram(completed: {'day-1'});
+
+      expect(program.completionTargetFor('day-1'), isNotNull);
+      expect(program.isCompleted(program.locate('day-1')!.day), isTrue);
     });
   });
 }

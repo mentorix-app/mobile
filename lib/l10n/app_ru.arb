@@ -127,5 +127,17 @@
   "profileTelegramLabel": "Telegram",
   "profileTelegramLinked": "Привязан",
   "profileTelegramNotLinked": "Не привязан",
-  "profileTelegramLinkAction": "Привязать"
+  "profileTelegramLinkAction": "Привязать",
+  "dayCompleteAction": "Отметить выполненной",
+  "completeTitle": "Результат тренировки",
+  "completeHint": "Как прошла тренировка? Напишите, что сделали, с каким весом и как себя чувствовали.",
+  "completeFieldHint": "Например: 5×5 по 80 кг, последний подход тяжело",
+  "completeCounter": "{count} / {max}",
+  "completeNextAction": "Далее",
+  "completeConfirmTitle": "Отметить выполненной?",
+  "completeConfirmBody": "Отменить отметку и изменить результат будет нельзя. Тренер увидит:",
+  "completeConfirmAction": "Отметить",
+  "completeBackAction": "Назад",
+  "completeSavedMessage": "Тренировка отмечена",
+  "completeSavedRefreshFailed": "Отмечено, но обновить программу не удалось. Потяните вниз, чтобы обновить."
 }

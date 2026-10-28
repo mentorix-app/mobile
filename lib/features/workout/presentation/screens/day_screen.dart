@@ -7,10 +7,9 @@ import 'package:mentorix_app/features/workout/domain/failures/workout_failure.da
 import 'package:mentorix_app/features/workout/presentation/cubit/program_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/program_state.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/day_skeleton.dart';
-import 'package:mentorix_app/features/workout/presentation/widgets/day_view.dart';
+import 'package:mentorix_app/features/workout/presentation/widgets/day_screen_body.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/no_program_view.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/program_frame.dart';
-import 'package:mentorix_app/features/workout/presentation/widgets/rest_day_view.dart';
 import 'package:mentorix_app/features/workout/presentation/workout_failure_message.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
@@ -60,29 +59,12 @@ class DayScreen extends StatelessWidget {
             backFallback: back,
             child: ErrorState(message: l10n.errorWorkoutDayNotFound),
           ),
-          final located => Scaffold(
-            body: SafeArea(
-              top: false,
-              child: located.day.isRest
-                  ? RestDayView(
-                      title: l10n.workoutDayTitle(
-                        located.weekNumber,
-                        located.day.dayNumber,
-                      ),
-                      trainerId: trainerId,
-                      onRefresh: cubit.refresh,
-                    )
-                  : DayView(
-                      title: l10n.workoutDayTitle(
-                        located.weekNumber,
-                        located.day.dayNumber,
-                      ),
-                      trainerId: trainerId,
-                      day: located.day,
-                      completed: data.isCompleted(located.day),
-                      onRefresh: cubit.refresh,
-                    ),
-            ),
+          final located => DayScreenBody(
+            trainerId: trainerId,
+            dayKey: dayKey,
+            located: located,
+            data: data,
+            onRefresh: cubit.refresh,
           ),
         },
       },

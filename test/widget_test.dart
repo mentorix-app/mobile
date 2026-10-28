@@ -40,6 +40,7 @@ import 'package:mentorix_app/features/mode/presentation/screens/trainer_web_only
 import 'package:mentorix_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/program_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/trainers_cubit.dart';
+import 'package:mentorix_app/features/workout/presentation/screens/complete_day_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/program_screen.dart';
 import 'package:mentorix_app/features/theme/data/repositories/theme_repository_impl.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
@@ -1060,6 +1061,39 @@ void main() {
 
         expect(find.byType(ProgramScreen), findsNothing);
         expect(find.byType(AdminWebOnlyScreen), findsOneWidget);
+      });
+
+      testWidgets('клиент: экран отметки открывается (форма — после загрузки программы)', (
+        tester,
+      ) async {
+        await pumpApp(tester, profile: profileWithRoles(['client']));
+
+        routerOf(tester).go(RouteNames.completeDayPath('trainer-1', 'day-1'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(CompleteDayScreen), findsOneWidget);
+      });
+
+      testWidgets('тренер и администратор на экран отметки не попадают', (tester) async {
+        await pumpApp(tester, profile: unfinished(['trainer']));
+
+        routerOf(tester).go(RouteNames.completeDayPath('trainer-1', 'day-1'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(CompleteDayScreen), findsNothing);
+        expect(find.byType(TrainerWebOnlyScreen), findsOneWidget);
+      });
+
+      testWidgets('онбординг не пройден → экран отметки ведёт на следующий шаг', (
+        tester,
+      ) async {
+        await pumpApp(tester, profile: unfinished(['client']), inviteDone: false);
+
+        routerOf(tester).go(RouteNames.completeDayPath('trainer-1', 'day-1'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(CompleteDayScreen), findsNothing);
+        expect(find.byType(TelegramOfferScreen), findsOneWidget);
       });
 
       testWidgets('без сессии путь программы ведёт на вход', (tester) async {

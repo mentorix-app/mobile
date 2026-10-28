@@ -26,6 +26,12 @@ abstract final class RouteNames {
   static String workoutDayPath(String trainerId, String dayKey) =>
       '/trainers/${Uri.encodeComponent(trainerId)}/days/${Uri.encodeComponent(dayKey)}';
 
+  /// Результат и отметка дня выполненным.
+  static const completeDay = '/trainers/:trainerId/days/:dayKey/complete';
+
+  static String completeDayPath(String trainerId, String dayKey) =>
+      '${workoutDayPath(trainerId, dayKey)}/complete';
+
   /// Экраны тренировок: клиент попадает на них только после онбординга.
   static bool isWorkoutLocation(String location) =>
       location.startsWith('/trainers/');

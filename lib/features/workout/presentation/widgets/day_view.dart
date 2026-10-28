@@ -9,6 +9,7 @@ import 'package:mentorix_app/features/workout/presentation/widgets/day_app_bar.d
 
 /// Содержимое тренировочного дня: блоки по порядку и, если день уже выполнен
 /// (по `completed_days` сервера), «Выполнено» в конце. Обновляется свайпом вниз.
+/// Кнопка «Отметить выполненной» закреплена снизу самим экраном (`DayScreenBody`).
 class DayView extends StatelessWidget {
   const DayView({
     super.key,
@@ -46,7 +47,10 @@ class DayView extends StatelessWidget {
             itemBuilder: (context, index) {
               final block = day.blocks[index];
 
-              return BlockView(key: ValueKey('${block.id}/$index'), block: block);
+              return BlockView(
+                key: ValueKey('${block.id}/$index'),
+                block: block,
+              );
             },
           ),
         ),

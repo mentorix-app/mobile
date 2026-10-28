@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:mentorix_app/features/auth/domain/entities/linked_trainer.dart';
+import 'package:mentorix_app/features/workout/domain/entities/completion_target.dart';
 import 'package:mentorix_app/features/workout/domain/entities/trainer_program.dart';
+import 'package:mentorix_app/features/workout/domain/entities/workout_completion.dart';
 import 'package:mentorix_app/features/workout/domain/failures/workout_failure.dart';
 import 'package:mentorix_app/features/workout/domain/repositories/workout_repository.dart';
 
@@ -29,6 +31,20 @@ class FakeWorkoutRepository implements WorkoutRepository {
   int programCalls = 0;
   final List<String> programTrainerIds = [];
 
+  /// Если задан — `completeDay()` бросает его (тело запроса при этом записано).
+  WorkoutFailure? completeFailure;
+
+  /// Если задан — `completeDay()` ждёт его завершения.
+  Completer<void>? completeGate;
+
+  /// Вызывается после успешной отметки: тест меняет [programResult], как сервер
+  /// добавил бы день в `completed_days`.
+  void Function(CompletionTarget target, String text)? onCompleted;
+
+  /// Все отправленные отметки: слепок и текст как они пришли в репозиторий.
+  final List<({String trainerId, CompletionTarget target, String text})>
+  completeCalls = [];
+
   @override
   Future<List<LinkedTrainer>> trainers() async {
     trainersCalls++;
@@ -44,12 +60,36 @@ class FakeWorkoutRepository implements WorkoutRepository {
   Future<TrainerProgram> program(String trainerId) async {
     programCalls++;
     programTrainerIds.add(trainerId);
+    // Ответ «на момент запроса»: если сервер потом изменился, запрос, стартовавший
+    // раньше, вернёт старые данные, как в жизни.
+    final snapshot = programResult;
     final gate = programGate;
     if (gate != null) await gate.future;
 
     final failure = programFailure;
     if (failure != null) throw failure;
-    return programResult;
+    return snapshot;
+  }
+
+  @override
+  Future<WorkoutCompletion> completeDay({
+    required String trainerId,
+    required CompletionTarget target,
+    required String resultText,
+  }) async {
+    completeCalls.add((trainerId: trainerId, target: target, text: resultText));
+    final gate = completeGate;
+    if (gate != null) await gate.future;
+
+    final failure = completeFailure;
+    if (failure != null) throw failure;
+
+    onCompleted?.call(target, resultText);
+    return WorkoutCompletion(
+      id: 'completion-${completeCalls.length}',
+      dayKey: target.dayKey,
+      resultText: resultText,
+    );
   }
 }
 

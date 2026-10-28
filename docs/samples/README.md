@@ -8,7 +8,7 @@
 | `client_trainers.json` | `GET /client/trainers` |
 | `client_program.json` | `GET /client/trainers/{trainer_id}/program` |
 | `client_analytics_empty.json` | `GET /client/trainers/{trainer_id}/analytics`, **до первой отметки** (пустая статистика) |
-| `client_analytics.json` | то же, **после первой отметки** (запись с результатом и, если тренер ответил, с его ответом) |
+| `client_analytics.json` | то же, **после первой отметки** (запись с результатом и, если тренер ответил, с его ответом). Кнопка debug-экрана копирует **настоящий** ответ: `result_text` и текст тренера в нём не замаскированы (маска `***` бывает только в журнале запросов), поэтому перед коммитом личный текст заменяет человек |
 
 ## Как снять
 

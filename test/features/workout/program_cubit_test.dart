@@ -209,4 +209,56 @@ void main() {
     await expectLater(loading, completes);
     expect(states.whereType<ProgramLoaded>(), isEmpty);
   });
+
+  group('refresh возвращает, пришли ли свежие данные', () {
+    test('успех — true', () async {
+      await cubit.load();
+
+      expect(await cubit.refresh(), isTrue);
+      expect(await cubit.refresh(silent: true), isTrue);
+    });
+
+    test('ошибка — false, показанные данные остались', () async {
+      await cubit.load();
+      repository.programFailure = const WorkoutNetworkFailure();
+
+      expect(await cubit.refresh(), isFalse);
+      expect(await cubit.refresh(silent: true), isFalse);
+      expect(cubit.state, isA<ProgramLoaded>());
+    });
+
+    test('тихое обновление, пока идёт первая загрузка, — false без запроса', () async {
+      final gate = Completer<void>();
+      repository.programGate = gate;
+      final loading = cubit.load();
+      await settle();
+
+      expect(await cubit.refresh(silent: true), isFalse);
+      expect(repository.programCalls, 1);
+
+      gate.complete();
+      await loading;
+    });
+
+    test('обновление из ошибки работает как load: true, если загрузилось', () async {
+      repository.programFailure = const WorkoutNetworkFailure();
+      await cubit.load();
+      repository.programFailure = null;
+
+      expect(await cubit.refresh(), isTrue);
+    });
+
+    test('параллельные вызовы получают результат одного запроса', () async {
+      await cubit.load();
+      final gate = Completer<void>();
+      repository.programGate = gate;
+
+      final results = Future.wait([cubit.refresh(), cubit.refresh(silent: true)]);
+      await settle();
+      gate.complete();
+
+      expect(await results, [true, true]);
+      expect(repository.programCalls, 2);
+    });
+  });
 }
