@@ -6,7 +6,7 @@ import 'package:mentorix_app/core/widgets/app_snack_bar.dart';
 import 'package:mentorix_app/core/widgets/error_state.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_state.dart';
-import 'package:mentorix_app/features/theme/presentation/widgets/theme_mode_button.dart';
+import 'package:mentorix_app/features/settings/presentation/widgets/settings_button.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/trainers_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/trainers_state.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/no_trainer_view.dart';
@@ -31,7 +31,7 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(l10n.trainersTitle),
         actions: [
-          const ThemeModeButton(),
+          const SettingsButton(),
           IconButton(
             icon: const Icon(Icons.person_outline),
             tooltip: l10n.profileOpenAction,

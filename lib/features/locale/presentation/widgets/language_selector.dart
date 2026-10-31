@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mentorix_app/core/theme/app_spacing.dart';
 import 'package:mentorix_app/core/theme/app_theme_extension.dart';
+import 'package:mentorix_app/core/widgets/option_row.dart';
 import 'package:mentorix_app/features/locale/presentation/cubit/locale_cubit.dart';
-import 'package:mentorix_app/features/locale/presentation/widgets/language_option.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
 /// Выбор языка в профиле: «Системный / Русский / English». Русский и English
@@ -27,17 +27,17 @@ class LanguageSelector extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          LanguageOption(
+          OptionRow(
             label: l10n.languageSystem,
             selected: selected == null,
             onTap: () => cubit.select(null),
           ),
-          LanguageOption(
+          OptionRow(
             label: l10n.languageRussian,
             selected: selected?.languageCode == 'ru',
             onTap: () => cubit.select(const Locale('ru')),
           ),
-          LanguageOption(
+          OptionRow(
             label: l10n.languageEnglish,
             selected: selected?.languageCode == 'en',
             onTap: () => cubit.select(const Locale('en')),

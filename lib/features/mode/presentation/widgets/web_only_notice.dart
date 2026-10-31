@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mentorix_app/core/theme/app_spacing.dart';
-import 'package:mentorix_app/features/theme/presentation/widgets/theme_mode_button.dart';
+import 'package:mentorix_app/features/settings/presentation/widgets/settings_button.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
 /// Каркас экранов режимов, у которых в приложении пока нет своих инструментов:
@@ -18,7 +18,7 @@ class WebOnlyNotice extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.appTitle),
-        actions: const [ThemeModeButton()],
+        actions: const [SettingsButton()],
       ),
       body: SafeArea(
         child: Center(

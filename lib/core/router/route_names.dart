@@ -7,6 +7,9 @@ abstract final class RouteNames {
   static const home = '/';
   static const profile = '/profile';
 
+  /// Тема и язык; доступны в любом режиме.
+  static const settings = '/settings';
+
   /// Привязка Telegram из профиля: тот же экран ввода кода, что в онбординге
   /// ([telegramCode]), но успех возвращает в профиль, а не ведёт к приглашению.
   static const profileTelegram = '/profile/telegram';

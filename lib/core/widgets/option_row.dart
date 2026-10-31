@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mentorix_app/core/theme/app_spacing.dart';
 
-/// Одна строка выбора языка: название и галочка у выбранного.
-class LanguageOption extends StatelessWidget {
-  const LanguageOption({
+/// Одна строка выбора из нескольких вариантов (язык, тема): название и галочка у
+/// выбранного. Строки одной группы помечены для доступности как взаимоисключающие.
+class OptionRow extends StatelessWidget {
+  const OptionRow({
     super.key,
     required this.label,
     required this.selected,

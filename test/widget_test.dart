@@ -39,6 +39,8 @@ import 'package:mentorix_app/features/mode/presentation/screens/admin_web_only_s
 import 'package:mentorix_app/features/mode/presentation/screens/trainer_web_only_screen.dart';
 import 'package:mentorix_app/features/locale/presentation/widgets/language_selector.dart';
 import 'package:mentorix_app/features/profile/presentation/screens/profile_screen.dart';
+import 'package:mentorix_app/features/settings/presentation/screens/settings_screen.dart';
+import 'package:mentorix_app/features/theme/presentation/widgets/theme_selector.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/analytics_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/program_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/trainers_cubit.dart';
@@ -49,7 +51,6 @@ import 'package:mentorix_app/features/locale/data/repositories/locale_repository
 import 'package:mentorix_app/features/locale/presentation/cubit/locale_cubit.dart';
 import 'package:mentorix_app/features/theme/data/repositories/theme_repository_impl.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
-import 'package:mentorix_app/features/theme/presentation/widgets/theme_mode_button.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talker_flutter/talker_flutter.dart';
@@ -211,7 +212,7 @@ void main() {
     }
   });
 
-  group('тема', () {
+  group('тема и настройки', () {
     testWidgets('по умолчанию следует за системной', (tester) async {
       await pumpApp(tester, brightness: Brightness.dark);
 
@@ -230,31 +231,106 @@ void main() {
       expect(currentBrightness(tester), Brightness.dark);
     });
 
-    testWidgets('кнопка проходит систему → светлую → тёмную → систему', (
+    /// Вариант внутри блока «Тема»: в английском «System» есть и у языка.
+    Finder themeOption(String label) =>
+        find.descendant(of: find.byType(ThemeSelector), matching: find.text(label));
+
+    Future<void> openSettings(WidgetTester tester, _Harness app) async {
+      await tester.tap(find.byTooltip(app.l10n.settingsOpenAction));
+      await tester.pumpAndSettle();
+      expect(find.byType(SettingsScreen), findsOneWidget);
+    }
+
+    testWidgets('значок настроек на главном экране открывает настройки; кнопки темы там нет', (
       tester,
     ) async {
+      final app = await pumpApp(tester);
+
+      expect(find.byIcon(Icons.brightness_auto_outlined), findsNothing);
+      await openSettings(tester, app);
+
+      expect(find.text(app.l10n.settingsThemeLabel), findsOneWidget);
+      expect(find.text(app.l10n.profileLanguageLabel), findsOneWidget);
+    });
+
+    testWidgets('выбор темы применяется сразу и сохраняется', (tester) async {
       // Системная тема — тёмная, чтобы «система» и «светлая» различались.
       final app = await pumpApp(tester, brightness: Brightness.dark);
+      await openSettings(tester, app);
+      expect(currentBrightness(tester), Brightness.dark);
 
-      Future<void> tapButton() async {
-        await tester.tap(find.byType(ThemeModeButton));
-        await tester.pumpAndSettle();
-      }
-
-      expect(find.byTooltip(app.l10n.themeModeSystem), findsOneWidget);
-
-      await tapButton();
-      expect(find.byTooltip(app.l10n.themeModeLight), findsOneWidget);
+      await tester.tap(themeOption(app.l10n.themeOptionLight));
+      await tester.pumpAndSettle();
       expect(currentBrightness(tester), Brightness.light);
       expect(app.prefs.getString(StorageKeys.themeMode), 'light');
 
-      await tapButton();
-      expect(find.byTooltip(app.l10n.themeModeDark), findsOneWidget);
+      await tester.tap(themeOption(app.l10n.themeOptionDark));
+      await tester.pumpAndSettle();
       expect(currentBrightness(tester), Brightness.dark);
+      expect(app.prefs.getString(StorageKeys.themeMode), 'dark');
 
-      await tapButton();
-      expect(find.byTooltip(app.l10n.themeModeSystem), findsOneWidget);
+      await tester.tap(themeOption(app.l10n.themeOptionSystem));
+      await tester.pumpAndSettle();
       expect(app.prefs.getString(StorageKeys.themeMode), 'system');
+    });
+
+    testWidgets('сохранённая тема отмечена галочкой', (tester) async {
+      final app = await pumpApp(tester, stored: {StorageKeys.themeMode: 'light'});
+      await openSettings(tester, app);
+
+      Finder check(String label) => find.descendant(
+        of: find.ancestor(of: themeOption(label), matching: find.byType(InkWell)),
+        matching: find.byIcon(Icons.check),
+      );
+      expect(check(app.l10n.themeOptionLight), findsOneWidget);
+      expect(check(app.l10n.themeOptionDark), findsNothing);
+      expect(check(app.l10n.themeOptionSystem), findsNothing);
+    });
+
+    testWidgets('смена языка в настройках перерисовывает экран без перезапуска', (tester) async {
+      final app = await pumpApp(tester);
+      await openSettings(tester, app);
+
+      await tester.tap(find.text('Русский'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Настройки'), findsWidgets);
+      expect(find.text('Тема'), findsOneWidget);
+      expect(find.text('Язык'), findsOneWidget);
+      expect(app.prefs.getString(StorageKeys.localeMode), 'ru');
+    });
+
+    testWidgets('русский: «Системная / Светлая / Тёмная»', (tester) async {
+      final app = await pumpApp(tester, locale: const Locale('ru'));
+      await openSettings(tester, app);
+
+      for (final label in ['Системная', 'Светлая', 'Тёмная']) {
+        expect(themeOption(label), findsOneWidget, reason: label);
+      }
+    });
+
+    testWidgets('назад из настроек — на главный экран', (tester) async {
+      final app = await pumpApp(tester);
+      await openSettings(tester, app);
+
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(HomeScreen), findsOneWidget);
+    });
+
+    testWidgets('320 px, шрифт ×2, ru: без переполнения', (tester) async {
+      tester.view
+        ..physicalSize = const Size(320, 568)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final app = await pumpApp(tester, locale: const Locale('ru'));
+
+      await openSettings(tester, app);
+
+      expect(tester.takeException(), isNull);
     });
   });
 
@@ -380,20 +456,10 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('в профиле есть выбор языка; смена перерисовывает профиль без перезапуска', (
-      tester,
-    ) async {
-      final app = await openProfile(tester, profile: testProfile);
-      expect(find.byType(LanguageSelector), findsOneWidget);
-      expect(find.text(app.l10n.profileTitle), findsOneWidget);
+    testWidgets('в профиле выбора языка нет — он в настройках', (tester) async {
+      await openProfile(tester, profile: testProfile);
 
-      await tester.ensureVisible(find.text('Русский'));
-      await tester.tap(find.text('Русский'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Профиль'), findsOneWidget);
-      expect(find.text('Язык'), findsOneWidget);
-      expect(app.prefs.getString(StorageKeys.localeMode), 'ru');
+      expect(find.byType(LanguageSelector), findsNothing);
     });
 
     testWidgets('привязан: «Привязан» без кнопки', (tester) async {
@@ -1156,6 +1222,16 @@ void main() {
         expect(find.byType(TelegramOfferScreen), findsOneWidget);
       });
 
+      testWidgets('без сессии настройки ведут на вход', (tester) async {
+        await pumpApp(tester, sessionState: _Session.unauthenticated);
+
+        routerOf(tester).go(RouteNames.settings);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(SettingsScreen), findsNothing);
+        expect(find.byType(LoginScreen), findsOneWidget);
+      });
+
       testWidgets('без сессии статистика ведёт на вход', (tester) async {
         await pumpApp(tester, sessionState: _Session.unauthenticated);
 
@@ -1204,6 +1280,24 @@ void main() {
     });
 
     group('trainer', () {
+      testWidgets('настройки доступны: значок на экране и прямой путь, назад — на экран роли', (
+        tester,
+      ) async {
+        final app = await pumpApp(tester, profile: profileWithRoles(['trainer']));
+
+        await tester.tap(find.byTooltip(app.l10n.settingsOpenAction));
+        await tester.pumpAndSettle();
+        expect(find.byType(SettingsScreen), findsOneWidget);
+
+        await tester.tap(find.byType(BackButton));
+        await tester.pumpAndSettle();
+        expect(find.byType(TrainerWebOnlyScreen), findsOneWidget);
+
+        routerOf(tester).go(RouteNames.settings);
+        await tester.pumpAndSettle();
+        expect(find.byType(SettingsScreen), findsOneWidget);
+      });
+
       testWidgets('экран «пока в веб-кабинете» вместо онбординга', (
         tester,
       ) async {
@@ -1370,6 +1464,24 @@ void main() {
     });
 
     group('admin', () {
+      testWidgets('настройки доступны: значок на экране и прямой путь, назад — на экран роли', (
+        tester,
+      ) async {
+        final app = await pumpApp(tester, profile: profileWithRoles(['admin']));
+
+        await tester.tap(find.byTooltip(app.l10n.settingsOpenAction));
+        await tester.pumpAndSettle();
+        expect(find.byType(SettingsScreen), findsOneWidget);
+
+        await tester.tap(find.byType(BackButton));
+        await tester.pumpAndSettle();
+        expect(find.byType(AdminWebOnlyScreen), findsOneWidget);
+
+        routerOf(tester).go(RouteNames.settings);
+        await tester.pumpAndSettle();
+        expect(find.byType(SettingsScreen), findsOneWidget);
+      });
+
       testWidgets('экран «только в веб-кабинете» вместо онбординга', (
         tester,
       ) async {

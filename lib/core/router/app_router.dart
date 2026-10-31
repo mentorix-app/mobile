@@ -23,6 +23,7 @@ import 'package:mentorix_app/features/mode/presentation/cubit/dashboard_link_cub
 import 'package:mentorix_app/features/mode/presentation/screens/admin_web_only_screen.dart';
 import 'package:mentorix_app/features/mode/presentation/screens/trainer_web_only_screen.dart';
 import 'package:mentorix_app/features/profile/presentation/screens/profile_screen.dart';
+import 'package:mentorix_app/features/settings/presentation/screens/settings_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/trainers_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/analytics_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/complete_day_screen.dart';
@@ -153,6 +154,10 @@ GoRouter createAppRouter({
           child: const ProfileScreen(),
         ),
       ),
+      GoRoute(
+        path: RouteNames.settings,
+        builder: (context, state) => const SettingsScreen(),
+      ),
       // Привязка Telegram из профиля: свой TelegramLinkCubit и тот же экран
       // ввода кода; после успеха — назад в профиль (профиль к тому времени уже
       // обновлён через /auth/me).
@@ -193,7 +198,8 @@ String? _authenticatedRedirect(
   if (profile.mode != AppMode.client) {
     return location == next ||
             location == RouteNames.profile ||
-            location == RouteNames.profileTelegram
+            location == RouteNames.profileTelegram ||
+            location == RouteNames.settings
         ? null
         : next;
   }

@@ -104,23 +104,41 @@ abstract class AppLocalizations {
   /// **'Mentorix'**
   String get appTitle;
 
-  /// Theme mode that follows the device setting
+  /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:
-  /// **'System theme'**
-  String get themeModeSystem;
+  /// **'Settings'**
+  String get settingsTitle;
 
-  /// No description provided for @themeModeLight.
+  /// No description provided for @settingsOpenAction.
   ///
   /// In en, this message translates to:
-  /// **'Light theme'**
-  String get themeModeLight;
+  /// **'Settings'**
+  String get settingsOpenAction;
 
-  /// No description provided for @themeModeDark.
+  /// No description provided for @settingsThemeLabel.
   ///
   /// In en, this message translates to:
-  /// **'Dark theme'**
-  String get themeModeDark;
+  /// **'Theme'**
+  String get settingsThemeLabel;
+
+  /// No description provided for @themeOptionSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get themeOptionSystem;
+
+  /// No description provided for @themeOptionLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get themeOptionLight;
+
+  /// No description provided for @themeOptionDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get themeOptionDark;
 
   /// No description provided for @retryAction.
   ///

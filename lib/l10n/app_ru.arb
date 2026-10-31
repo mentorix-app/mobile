@@ -1,9 +1,13 @@
 {
   "@@locale": "ru",
   "appTitle": "Mentorix",
-  "themeModeSystem": "Системная тема",
-  "themeModeLight": "Светлая тема",
-  "themeModeDark": "Тёмная тема",
+
+  "settingsTitle": "Настройки",
+  "settingsOpenAction": "Настройки",
+  "settingsThemeLabel": "Тема",
+  "themeOptionSystem": "Системная",
+  "themeOptionLight": "Светлая",
+  "themeOptionDark": "Тёмная",
 
   "retryAction": "Повторить",
   "continueAction": "Продолжить",
