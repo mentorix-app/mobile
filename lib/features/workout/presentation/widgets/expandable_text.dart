@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:mentorix_app/core/theme/app_spacing.dart';
+import 'package:mentorix_app/core/theme/app_theme_extension.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
 /// Длинный текст (инструкция тренера до 5000 символов): первые [maxLines] строк и
 /// «Показать полностью». Если текст помещается, кнопки нет. Раскрытие хранится
-/// здесь и сбрасывается вместе с виджетом.
+/// здесь и сбрасывается вместе с виджетом. По умолчанию цвет `muted-foreground`:
+/// инструкция отличается от названий упражнений.
 class ExpandableText extends StatefulWidget {
   const ExpandableText({
     super.key,
@@ -48,7 +50,10 @@ class _ExpandableTextState extends State<ExpandableText> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final style = DefaultTextStyle.of(context).style.merge(
-      widget.style ?? Theme.of(context).textTheme.bodyMedium,
+      widget.style ??
+          Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: context.themeExt.mutedForeground,
+          ),
     );
 
     return LayoutBuilder(

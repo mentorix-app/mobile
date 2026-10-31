@@ -102,7 +102,7 @@ class _ProgramViewState extends State<ProgramView> {
                 AppSpacing.lg,
                 AppSpacing.xs,
                 AppSpacing.lg,
-                AppSpacing.md,
+                AppSpacing.xl,
               ),
               sliver: SliverToBoxAdapter(
                 child: ProgramHeader(

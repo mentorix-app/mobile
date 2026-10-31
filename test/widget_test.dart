@@ -37,6 +37,7 @@ import 'package:mentorix_app/features/home/presentation/screens/home_screen.dart
 import 'package:mentorix_app/features/mode/presentation/cubit/dashboard_link_cubit.dart';
 import 'package:mentorix_app/features/mode/presentation/screens/admin_web_only_screen.dart';
 import 'package:mentorix_app/features/mode/presentation/screens/trainer_web_only_screen.dart';
+import 'package:mentorix_app/features/locale/presentation/widgets/language_selector.dart';
 import 'package:mentorix_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/analytics_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/program_cubit.dart';
@@ -44,6 +45,8 @@ import 'package:mentorix_app/features/workout/presentation/cubit/trainers_cubit.
 import 'package:mentorix_app/features/workout/presentation/screens/complete_day_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/program_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/stats_screen.dart';
+import 'package:mentorix_app/features/locale/data/repositories/locale_repository_impl.dart';
+import 'package:mentorix_app/features/locale/presentation/cubit/locale_cubit.dart';
 import 'package:mentorix_app/features/theme/data/repositories/theme_repository_impl.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
 import 'package:mentorix_app/features/theme/presentation/widgets/theme_mode_button.dart';
@@ -158,6 +161,9 @@ void main() {
         providers: [
           BlocProvider<ThemeCubit>(
             create: (_) => ThemeCubit(ThemeRepositoryImpl(prefs)),
+          ),
+          BlocProvider<LocaleCubit>(
+            create: (_) => LocaleCubit(LocaleRepositoryImpl(prefs)),
           ),
           BlocProvider<SessionCubit>.value(value: session),
         ],
@@ -373,6 +379,22 @@ void main() {
       await tester.tap(find.text(app.l10n.continueAction));
       await tester.pumpAndSettle();
     }
+
+    testWidgets('в профиле есть выбор языка; смена перерисовывает профиль без перезапуска', (
+      tester,
+    ) async {
+      final app = await openProfile(tester, profile: testProfile);
+      expect(find.byType(LanguageSelector), findsOneWidget);
+      expect(find.text(app.l10n.profileTitle), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Русский'));
+      await tester.tap(find.text('Русский'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Профиль'), findsOneWidget);
+      expect(find.text('Язык'), findsOneWidget);
+      expect(app.prefs.getString(StorageKeys.localeMode), 'ru');
+    });
 
     testWidgets('привязан: «Привязан» без кнопки', (tester) async {
       final app = await openProfile(tester, profile: testProfile);
@@ -700,6 +722,9 @@ void main() {
       await confirmDelete(tester, app);
 
       app.repository.deleteFailure = null;
+      // Сообщение с «Повторить» ниже выбора языка и кнопок: на малом экране его надо прокрутить.
+      await tester.ensureVisible(find.text(app.l10n.retryAction));
+      await tester.pumpAndSettle();
       await tester.tap(find.text(app.l10n.retryAction));
       await tester.pumpAndSettle();
 

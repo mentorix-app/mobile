@@ -338,6 +338,30 @@ abstract class AppLocalizations {
   /// **'Email'**
   String get profileEmailLabel;
 
+  /// No description provided for @profileLanguageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get profileLanguageLabel;
+
+  /// No description provided for @languageSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get languageSystem;
+
+  /// No description provided for @languageRussian.
+  ///
+  /// In en, this message translates to:
+  /// **'Русский'**
+  String get languageRussian;
+
+  /// No description provided for @languageEnglish.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get languageEnglish;
+
   /// No description provided for @profileValueEmpty.
   ///
   /// In en, this message translates to:

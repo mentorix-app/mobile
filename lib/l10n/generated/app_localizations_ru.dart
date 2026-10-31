@@ -136,6 +136,18 @@ class AppLocalizationsRu extends AppLocalizations {
   String get profileEmailLabel => 'Почта';
 
   @override
+  String get profileLanguageLabel => 'Язык';
+
+  @override
+  String get languageSystem => 'Системный';
+
+  @override
+  String get languageRussian => 'Русский';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
   String get profileValueEmpty => 'Не указано';
 
   @override

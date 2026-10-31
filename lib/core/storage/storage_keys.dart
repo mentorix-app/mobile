@@ -9,6 +9,9 @@ abstract final class StorageKeys {
   /// Выбранный режим темы: `system`, `light` или `dark`.
   static const themeMode = 'theme_mode';
 
+  /// Язык приложения: `system`, `ru` или `en`. Нет значения — «Системный».
+  static const localeMode = 'locale_mode';
+
   /// Флаг первой установки. Лежит в `shared_preferences`, потому что при
   /// удалении приложения он стирается, а Keychain на iOS — нет: нет флага —
   /// токены прошлой установки удаляются.

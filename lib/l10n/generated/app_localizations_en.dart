@@ -137,6 +137,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileEmailLabel => 'Email';
 
   @override
+  String get profileLanguageLabel => 'Language';
+
+  @override
+  String get languageSystem => 'System';
+
+  @override
+  String get languageRussian => 'Русский';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
   String get profileValueEmpty => 'Not set';
 
   @override

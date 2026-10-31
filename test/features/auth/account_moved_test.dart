@@ -26,6 +26,8 @@ import 'package:mentorix_app/features/auth/presentation/cubit/session_cubit.dart
 import 'package:mentorix_app/features/auth/presentation/cubit/session_state.dart';
 import 'package:mentorix_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:mentorix_app/features/auth/presentation/screens/splash_screen.dart';
+import 'package:mentorix_app/features/locale/data/repositories/locale_repository_impl.dart';
+import 'package:mentorix_app/features/locale/presentation/cubit/locale_cubit.dart';
 import 'package:mentorix_app/features/theme/data/repositories/theme_repository_impl.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -137,6 +139,9 @@ void main() {
           providers: [
             BlocProvider<ThemeCubit>(
               create: (_) => ThemeCubit(ThemeRepositoryImpl(prefs)),
+            ),
+            BlocProvider<LocaleCubit>(
+              create: (_) => LocaleCubit(LocaleRepositoryImpl(prefs)),
             ),
             BlocProvider<SessionCubit>.value(value: session),
           ],

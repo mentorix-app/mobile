@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mentorix_app/core/router/route_names.dart';
 import 'package:mentorix_app/core/theme/app_theme.dart';
+import 'package:mentorix_app/core/theme/app_theme_extension.dart';
 import 'package:mentorix_app/core/widgets/error_state.dart';
 import 'package:mentorix_app/core/widgets/large_title_sliver_app_bar.dart';
 import 'package:mentorix_app/core/widgets/skeleton_box.dart';
@@ -364,6 +365,19 @@ void main() {
       final squatY = tester.getTopLeft(find.text('Squat')).dy;
       expect(tester.getTopLeft(find.text('Темп 3-1-1')).dy, greaterThan(squatY));
     });
+
+    for (final entry in {'светлая': AppTheme.light, 'тёмная': AppTheme.dark}.entries) {
+      testWidgets('${entry.key}: инструкция — muted-foreground, название — не она', (tester) async {
+        repository.programResult = withBlocks([
+          block(BlockType.single, exercises: [exercise('Squat', instruction: 'Темп 3-1-1')]),
+        ]);
+        await pumpDay(tester, 'k', theme: entry.value);
+        final tokens = entry.value.extension<AppThemeExtension>()!;
+
+        expect(tester.widget<Text>(find.text('Темп 3-1-1')).style?.color, tokens.mutedForeground);
+        expect(tester.widget<Text>(find.text('Squat')).style?.color, isNot(tokens.mutedForeground));
+      });
+    }
 
     testWidgets('короткая инструкция без «Show more»', (tester) async {
       repository.programResult = withBlocks([

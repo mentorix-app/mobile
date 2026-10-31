@@ -8,6 +8,7 @@ import 'package:mentorix_app/app.dart';
 import 'package:mentorix_app/core/di/service_locator.dart';
 import 'package:mentorix_app/core/startup/precache_splash_logos.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_cubit.dart';
+import 'package:mentorix_app/features/locale/presentation/cubit/locale_cubit.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
 
 Future<void> main() async {
@@ -20,6 +21,7 @@ Future<void> main() async {
     MultiBlocProvider(
       providers: [
         BlocProvider<ThemeCubit>(create: (_) => GetIt.I<ThemeCubit>()),
+        BlocProvider<LocaleCubit>(create: (_) => GetIt.I<LocaleCubit>()),
         BlocProvider<SessionCubit>.value(value: session),
       ],
       child: MentorixApp(router: GetIt.I<GoRouter>()),

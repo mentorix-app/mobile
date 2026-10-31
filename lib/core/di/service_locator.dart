@@ -20,6 +20,9 @@ import 'package:mentorix_app/features/auth/presentation/cubit/login_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/telegram_link_cubit.dart';
 import 'package:mentorix_app/features/mode/presentation/cubit/dashboard_link_cubit.dart';
+import 'package:mentorix_app/features/locale/data/repositories/locale_repository_impl.dart';
+import 'package:mentorix_app/features/locale/domain/repositories/locale_repository.dart';
+import 'package:mentorix_app/features/locale/presentation/cubit/locale_cubit.dart';
 import 'package:mentorix_app/features/theme/data/repositories/theme_repository_impl.dart';
 import 'package:mentorix_app/features/theme/domain/repositories/theme_repository.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
@@ -169,6 +172,10 @@ Future<void> configureDependencies() async {
     () => ThemeRepositoryImpl(getIt<SharedPreferences>()),
   );
   getIt.registerFactory<ThemeCubit>(() => ThemeCubit(getIt<ThemeRepository>()));
+  getIt.registerLazySingleton<LocaleRepository>(
+    () => LocaleRepositoryImpl(getIt<SharedPreferences>()),
+  );
+  getIt.registerFactory<LocaleCubit>(() => LocaleCubit(getIt<LocaleRepository>()));
 
   // --- роутер ----------------------------------------------------------------
   getIt.registerLazySingleton<GoRouter>(

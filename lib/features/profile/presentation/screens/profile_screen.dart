@@ -13,6 +13,7 @@ import 'package:mentorix_app/features/auth/presentation/cubit/account_deletion_c
 import 'package:mentorix_app/features/auth/presentation/cubit/account_deletion_state.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:mentorix_app/features/auth/presentation/cubit/session_state.dart';
+import 'package:mentorix_app/features/locale/presentation/widgets/language_selector.dart';
 import 'package:mentorix_app/features/profile/presentation/widgets/account_deletion_notice.dart';
 import 'package:mentorix_app/features/profile/presentation/widgets/delete_account_dialog.dart';
 import 'package:mentorix_app/features/profile/presentation/widgets/profile_info_row.dart';
@@ -108,6 +109,8 @@ class ProfileScreen extends StatelessWidget {
                                   );
                                 },
                               ),
+                              const SizedBox(height: AppSpacing.lg),
+                              const LanguageSelector(),
                               const SizedBox(height: AppSpacing.xl),
                               OutlinedButton(
                                 onPressed: busy

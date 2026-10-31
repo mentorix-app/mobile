@@ -16,6 +16,7 @@ import 'package:mentorix_app/features/workout/domain/entities/trainer_program.da
 import 'package:mentorix_app/features/workout/domain/failures/workout_failure.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/day_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/program_screen.dart';
+import 'package:mentorix_app/features/workout/presentation/widgets/week_heading.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/day_card.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/no_program_view.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/rest_day_card.dart';
@@ -1043,6 +1044,15 @@ void main() {
 
       expect(find.byType(DayScreen), findsOneWidget);
       expect(router.state.matchedLocation, dayPath('day-1'));
+    });
+
+    testWidgets('между «Continue» и заголовком недели не меньше 24 px', (tester) async {
+      await pumpProgram(tester);
+
+      final button = tester.getRect(find.byType(FilledButton).first);
+      final heading = tester.getTopLeft(find.byType(WeekHeading));
+
+      expect(heading.dy - button.bottom, greaterThanOrEqualTo(24));
     });
 
     testWidgets('по-русски: «Продолжить: неделя 1, день 1»', (tester) async {
