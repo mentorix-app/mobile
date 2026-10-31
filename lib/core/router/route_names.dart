@@ -26,6 +26,12 @@ abstract final class RouteNames {
   static String workoutDayPath(String trainerId, String dayKey) =>
       '/trainers/${Uri.encodeComponent(trainerId)}/days/${Uri.encodeComponent(dayKey)}';
 
+  /// Статистика и ответы тренера.
+  static const stats = '/trainers/:trainerId/stats';
+
+  static String statsPath(String trainerId) =>
+      '${trainerProgramPath(trainerId)}/stats';
+
   /// Результат и отметка дня выполненным.
   static const completeDay = '/trainers/:trainerId/days/:dayKey/complete';
 

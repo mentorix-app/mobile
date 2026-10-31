@@ -1,0 +1,81 @@
+{
+  "client": {
+    "client_user_id": "6b13d3213122be-2832132132b-4fb1-9c52-c3213213253cbf94f2e",
+    "display_name": ""
+  },
+  "trainer": {
+    "trainer_id": "404dd1be-d321321973-331234b97-8294321321-28a9e1fe38a9321321321321",
+    "display_name": "Aziz Geidar"
+  },
+  "current_assignment": {
+    "program_id": "e0d804ee-09b5-4d8b-9dd9-a503158cb3bb",
+    "program_version_id": "696be677-9bf8-4126-95f6-bd989174771c",
+    "program_name": "Mentorix-app",
+    "program_name_ru": "Mentorix-app (тест)",
+    "assigned_at": "2026-10-22T17:51:40.283916Z",
+    "is_behind_latest": false,
+    "progress": {
+      "completed_days": 2,
+      "total_training_days": 3,
+      "completion_percent": 66.7,
+      "weeks": [
+        {
+          "week_number": 1,
+          "total_days": 3,
+          "completed_days": 2
+        }
+      ]
+    }
+  },
+  "activity": {
+    "total_completions": 2,
+    "completions_last_7_days": 2,
+    "completions_last_30_days": 2,
+    "first_completed_at": "2026-10-28T16:31:18.234372Z",
+    "last_completed_at": "2026-10-28T16:33:04.675113Z",
+    "week_streak": 1,
+    "by_program": [
+      {
+        "program_id": "e0d804ee-09b5-4d8b-9dd9-a503158cb3bb",
+        "program_name": "Mentorix-app",
+        "program_name_ru": "Mentorix-app (тест)",
+        "total_completions": 2,
+        "first_completed_at": "2026-10-28T16:31:18.234372Z",
+        "last_completed_at": "2026-10-28T16:33:04.675113Z"
+      }
+    ]
+  },
+  "recent_completions": [
+    {
+      "id": "a3307c8f-d2ae-4876-befe-e00aa2ead728",
+      "completed_at": "2026-10-28T16:33:04.675113Z",
+      "program_id": "e0d804ee-09b5-4d8b-9dd9-a503158cb3bb",
+      "program_name": "Mentorix-app",
+      "program_name_ru": "Mentorix-app (тест)",
+      "week_number": 1,
+      "day_number": 2,
+      "result_text": "Kkk",
+      "is_current_cycle": true,
+      "comments": [
+        {
+          "id": "da0d50ca-936c-4022-babf-2c8a70cb3012",
+          "text": "Хорошая работа! В следующий раз напиши, с каким весом делал свинги.",
+          "created_at": "2026-10-29T13:28:02.890307Z"
+        }
+      ]
+    },
+    {
+      "id": "7d9ac5a3-512a-4965-8c62-0054ab087a5b",
+      "completed_at": "2026-10-28T16:31:18.234372Z",
+      "program_id": "e0d804ee-09b5-4d8b-9dd9-a503158cb3bb",
+      "program_name": "Mentorix-app",
+      "program_name_ru": "Mentorix-app (тест)",
+      "week_number": 1,
+      "day_number": 1,
+      "result_text": "Sssss",
+      "is_current_cycle": true,
+      "comments": []
+    }
+  ],
+  "expires_at": null
+}

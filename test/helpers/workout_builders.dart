@@ -128,3 +128,8 @@ TrainerProgram stageProgram({Set<String> completed = const {}}) => trainerProgra
   ],
   completed: completed,
 );
+
+/// Живой образец статистики из `docs/samples/`: [name] — `client_analytics.json`
+/// (две отметки, на одной ответ тренера) или `client_analytics_empty.json`.
+Map<String, dynamic> loadAnalyticsSample([String name = 'client_analytics.json']) =>
+    jsonDecode(File('docs/samples/$name').readAsStringSync()) as Map<String, dynamic>;

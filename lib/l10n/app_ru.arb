@@ -139,5 +139,17 @@
   "completeConfirmAction": "Отметить",
   "completeBackAction": "Назад",
   "completeSavedMessage": "Тренировка отмечена",
-  "completeSavedRefreshFailed": "Отмечено, но обновить программу не удалось. Потяните вниз, чтобы обновить."
+  "completeSavedRefreshFailed": "Отмечено, но обновить программу не удалось. Потяните вниз, чтобы обновить.",
+  "statsTitle": "Статистика",
+  "statsOpenAction": "Результаты тренировок",
+  "statsCurrentProgram": "Текущая программа",
+  "statsActivity": "Активность",
+  "statsResults": "Результаты тренировок",
+  "statsTrainerReply": "Ответ тренера",
+  "statsTotal": "Всего",
+  "statsLast7Days": "За 7 дней",
+  "statsLast30Days": "За 30 дней",
+  "statsWeekStreak": "Серия недель",
+  "statsEmptyResults": "Вы ещё не отмечали тренировки",
+  "statsWeekProgress": "Неделя {week}: {done} из {total}"
 }

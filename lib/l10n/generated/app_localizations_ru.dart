@@ -473,4 +473,42 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get completeSavedRefreshFailed =>
       'Отмечено, но обновить программу не удалось. Потяните вниз, чтобы обновить.';
+
+  @override
+  String get statsTitle => 'Статистика';
+
+  @override
+  String get statsOpenAction => 'Результаты тренировок';
+
+  @override
+  String get statsCurrentProgram => 'Текущая программа';
+
+  @override
+  String get statsActivity => 'Активность';
+
+  @override
+  String get statsResults => 'Результаты тренировок';
+
+  @override
+  String get statsTrainerReply => 'Ответ тренера';
+
+  @override
+  String get statsTotal => 'Всего';
+
+  @override
+  String get statsLast7Days => 'За 7 дней';
+
+  @override
+  String get statsLast30Days => 'За 30 дней';
+
+  @override
+  String get statsWeekStreak => 'Серия недель';
+
+  @override
+  String get statsEmptyResults => 'Вы ещё не отмечали тренировки';
+
+  @override
+  String statsWeekProgress(int week, int done, int total) {
+    return 'Неделя $week: $done из $total';
+  }
 }

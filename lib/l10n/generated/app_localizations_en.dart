@@ -478,4 +478,42 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get completeSavedRefreshFailed =>
       'Marked as done, but the program could not be refreshed. Pull down to refresh.';
+
+  @override
+  String get statsTitle => 'Statistics';
+
+  @override
+  String get statsOpenAction => 'Workout results';
+
+  @override
+  String get statsCurrentProgram => 'Current program';
+
+  @override
+  String get statsActivity => 'Activity';
+
+  @override
+  String get statsResults => 'Workout results';
+
+  @override
+  String get statsTrainerReply => 'Trainer reply';
+
+  @override
+  String get statsTotal => 'Total';
+
+  @override
+  String get statsLast7Days => 'Last 7 days';
+
+  @override
+  String get statsLast30Days => 'Last 30 days';
+
+  @override
+  String get statsWeekStreak => 'Week streak';
+
+  @override
+  String get statsEmptyResults => 'You haven\'t marked any workouts yet';
+
+  @override
+  String statsWeekProgress(int week, int done, int total) {
+    return 'Week $week: $done of $total';
+  }
 }

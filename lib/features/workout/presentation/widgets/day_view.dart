@@ -4,7 +4,7 @@ import 'package:mentorix_app/core/widgets/adaptive_refresh_scroll_view.dart';
 import 'package:mentorix_app/core/widgets/large_title_sliver_app_bar.dart';
 import 'package:mentorix_app/features/workout/domain/entities/program_day.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/block_view.dart';
-import 'package:mentorix_app/features/workout/presentation/widgets/completed_status.dart';
+import 'package:mentorix_app/features/workout/presentation/widgets/completed_day_footer.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/day_app_bar.dart';
 
 /// Содержимое тренировочного дня: блоки по порядку и, если день уже выполнен
@@ -55,14 +55,16 @@ class DayView extends StatelessWidget {
           ),
         ),
         if (completed)
-          const SliverPadding(
-            padding: EdgeInsets.fromLTRB(
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
               AppSpacing.lg,
               0,
               AppSpacing.lg,
               AppSpacing.xl,
             ),
-            sliver: SliverToBoxAdapter(child: CompletedStatus()),
+            sliver: SliverToBoxAdapter(
+              child: CompletedDayFooter(trainerId: trainerId),
+            ),
           ),
       ],
     );

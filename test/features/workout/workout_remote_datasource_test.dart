@@ -387,4 +387,76 @@ void main() {
       expect(adapter.requests.single.data['result_text'], 'Колено болело');
     });
   });
+
+  group('analytics', () {
+    const trainerId = '404dd1be-d973-4b97-8294-28a9e1fe38a9';
+
+    test('образцы docs/samples/client_analytics*.json', () async {
+      for (final name in ['client_analytics.json', 'client_analytics_empty.json']) {
+        final sample = jsonDecode(File('docs/samples/$name').readAsStringSync());
+        setUpRemote((_) async => jsonBody(sample as Object));
+
+        final analytics = await remote.analytics(trainerId);
+
+        expect(analytics.currentAssignment, isNotNull, reason: name);
+      }
+    });
+
+    test('GET на путь из ApiEndpoints, не на подписанную ссылку бота', () async {
+      setUpRemote((_) async => jsonBody({'recent_completions': []}));
+
+      await remote.analytics(trainerId);
+
+      final request = adapter.requests.single;
+      expect(request.method, 'GET');
+      expect(request.path, ApiEndpoints.clientTrainerAnalytics(trainerId));
+      expect(request.path, isNot(contains('sig=')));
+      expect(request.queryParameters, isEmpty);
+    });
+
+    test('результат с записью и ответом тренера', () async {
+      final sample = jsonDecode(File('docs/samples/client_analytics.json').readAsStringSync());
+      setUpRemote((_) async => jsonBody(sample as Object));
+
+      final analytics = await remote.analytics(trainerId);
+
+      expect(analytics.recentCompletions.first.comments.single.text, contains('Хорошая работа'));
+    });
+
+    test('ошибки: 404 client_not_found — связи нет, остальное по code', () async {
+      final cases = <int, ({Object body, Type failure})>{
+        404: (body: {'code': ApiErrorCodes.clientNotFound}, failure: WorkoutNotLinkedFailure),
+        400: (body: {'code': 'bad_request'}, failure: WorkoutInvalidRequestFailure),
+        401: (body: {'code': ApiErrorCodes.invalidToken}, failure: WorkoutSessionExpiredFailure),
+        429: (body: {'code': ApiErrorCodes.rateLimited}, failure: WorkoutTooManyRequestsFailure),
+        503: (body: {'code': 'x'}, failure: WorkoutServerUnavailableFailure),
+        500: (body: {'code': 'x'}, failure: WorkoutUnknownFailure),
+      };
+
+      for (final entry in cases.entries) {
+        setUpRemote((_) async => jsonBody(entry.value.body, status: entry.key));
+
+        await expectLater(
+          remote.analytics(trainerId),
+          throwsA(predicate((e) => e.runtimeType == entry.value.failure)),
+          reason: '${entry.key}',
+        );
+      }
+    });
+
+    test('тело не объект — Unknown; обрыв связи — Network', () async {
+      for (final body in <Object>[[1], 'text']) {
+        setUpRemote((_) async => jsonBody(body));
+        await expectLater(remote.analytics(trainerId), throwsA(isA<WorkoutUnknownFailure>()));
+      }
+
+      setUpRemote(
+        (options) async => throw DioException(
+          requestOptions: options,
+          type: DioExceptionType.connectionError,
+        ),
+      );
+      await expectLater(remote.analytics(trainerId), throwsA(isA<WorkoutNetworkFailure>()));
+    });
+  });
 }

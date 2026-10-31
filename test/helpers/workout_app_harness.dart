@@ -5,23 +5,31 @@ import 'package:go_router/go_router.dart';
 import 'package:mentorix_app/core/router/route_names.dart';
 import 'package:mentorix_app/core/theme/app_theme.dart';
 import 'package:mentorix_app/features/workout/domain/usecases/complete_workout_day.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mentorix_app/features/workout/presentation/cubit/analytics_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/completion_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/program_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/complete_day_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/day_screen.dart';
+import 'package:mentorix_app/features/workout/presentation/screens/stats_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/program_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/program_scope.dart';
 import 'package:mentorix_app/l10n/generated/app_localizations.dart';
 
+import 'stats_fakes.dart';
 import 'workout_fakes.dart';
 
 /// Роутер, `ProgramCubit` и реальные экраны программы и дня под тем же
 /// `ShellRoute`, что и в приложении. Фейковый репозиторий подставляется в GetIt
 /// на время теста.
 class WorkoutAppHarness {
-  WorkoutAppHarness(this.repository) {
+  WorkoutAppHarness(this.repository, {FakeStatsRepository? stats})
+    : stats = stats ?? FakeStatsRepository() {
     GetIt.I.registerFactoryParam<ProgramCubit, String, void>(
       (trainerId, _) => ProgramCubit(trainerId, repository),
+    );
+    GetIt.I.registerFactoryParam<AnalyticsCubit, String, void>(
+      (trainerId, _) => AnalyticsCubit(trainerId, this.stats),
     );
     GetIt.I.registerFactoryParam<CompletionCubit, ProgramCubit, String>(
       (program, dayKey) => CompletionCubit(
@@ -33,6 +41,9 @@ class WorkoutAppHarness {
   }
 
   final FakeWorkoutRepository repository;
+
+  /// Статистика (`GET …/analytics`) — свой фейк, по умолчанию пустая.
+  final FakeStatsRepository stats;
 
   late GoRouter router;
 
@@ -84,6 +95,17 @@ class WorkoutAppHarness {
                 trainerId: state.pathParameters['trainerId']!,
                 dayKey: state.pathParameters['dayKey']!,
               ),
+            ),
+            GoRoute(
+              path: RouteNames.stats,
+              builder: (_, state) {
+                final trainerId = state.pathParameters['trainerId']!;
+
+                return BlocProvider(
+                  create: (_) => GetIt.I<AnalyticsCubit>(param1: trainerId)..load(),
+                  child: StatsScreen(trainerId: trainerId),
+                );
+              },
             ),
             GoRoute(
               path: RouteNames.completeDay,

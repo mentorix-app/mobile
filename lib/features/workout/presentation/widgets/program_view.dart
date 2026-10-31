@@ -88,6 +88,12 @@ class _ProgramViewState extends State<ProgramView> {
             LargeTitleSliverAppBar(
               title: title.isEmpty ? l10n.programTitle : title,
               leading: const AppBackButton(),
+              trailing: IconButton(
+                icon: const Icon(Icons.bar_chart_outlined),
+                tooltip: l10n.statsOpenAction,
+                onPressed: () =>
+                    context.push(RouteNames.statsPath(data.trainerId)),
+              ),
             ),
           ],
           slivers: [

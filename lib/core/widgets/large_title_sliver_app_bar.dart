@@ -16,12 +16,20 @@ import 'package:mentorix_app/core/widgets/large_title_header_delegate.dart';
 /// `AdaptiveRefreshScrollView`; [collapsedExtent] — высота свёрнутой шапки для
 /// `edgeOffset` индикатора Android.
 class LargeTitleSliverAppBar extends StatelessWidget {
-  const LargeTitleSliverAppBar({super.key, required this.title, this.leading});
+  const LargeTitleSliverAppBar({
+    super.key,
+    required this.title,
+    this.leading,
+    this.trailing,
+  });
 
   final String title;
 
   /// Обычно `AppBackButton`.
   final Widget? leading;
+
+  /// Действие справа (значок). Должен помещаться в тулбар высотой 56.
+  final Widget? trailing;
 
   /// Высота свёрнутой шапки вместе со строкой состояния.
   static double collapsedExtent(BuildContext context) =>
@@ -58,6 +66,7 @@ class LargeTitleSliverAppBar extends StatelessWidget {
             topInset: topInset,
             toolbarHeight: kToolbarHeight,
             leading: leading,
+            trailing: trailing,
           ),
         );
       },

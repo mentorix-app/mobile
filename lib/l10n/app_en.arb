@@ -244,5 +244,30 @@
   "completeConfirmAction": "Mark as done",
   "completeBackAction": "Back",
   "completeSavedMessage": "Workout marked as done",
-  "completeSavedRefreshFailed": "Marked as done, but the program could not be refreshed. Pull down to refresh."
+  "completeSavedRefreshFailed": "Marked as done, but the program could not be refreshed. Pull down to refresh.",
+  "statsTitle": "Statistics",
+  "statsOpenAction": "Workout results",
+  "statsCurrentProgram": "Current program",
+  "statsActivity": "Activity",
+  "statsResults": "Workout results",
+  "statsTrainerReply": "Trainer reply",
+  "statsTotal": "Total",
+  "statsLast7Days": "Last 7 days",
+  "statsLast30Days": "Last 30 days",
+  "statsWeekStreak": "Week streak",
+  "statsEmptyResults": "You haven't marked any workouts yet",
+  "statsWeekProgress": "Week {week}: {done} of {total}",
+  "@statsWeekProgress": {
+    "placeholders": {
+      "week": {
+        "type": "int"
+      },
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  }
 }

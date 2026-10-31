@@ -895,6 +895,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Marked as done, but the program could not be refreshed. Pull down to refresh.'**
   String get completeSavedRefreshFailed;
+
+  /// No description provided for @statsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics'**
+  String get statsTitle;
+
+  /// No description provided for @statsOpenAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout results'**
+  String get statsOpenAction;
+
+  /// No description provided for @statsCurrentProgram.
+  ///
+  /// In en, this message translates to:
+  /// **'Current program'**
+  String get statsCurrentProgram;
+
+  /// No description provided for @statsActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity'**
+  String get statsActivity;
+
+  /// No description provided for @statsResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout results'**
+  String get statsResults;
+
+  /// No description provided for @statsTrainerReply.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer reply'**
+  String get statsTrainerReply;
+
+  /// No description provided for @statsTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get statsTotal;
+
+  /// No description provided for @statsLast7Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 days'**
+  String get statsLast7Days;
+
+  /// No description provided for @statsLast30Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days'**
+  String get statsLast30Days;
+
+  /// No description provided for @statsWeekStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Week streak'**
+  String get statsWeekStreak;
+
+  /// No description provided for @statsEmptyResults.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t marked any workouts yet'**
+  String get statsEmptyResults;
+
+  /// No description provided for @statsWeekProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Week {week}: {done} of {total}'**
+  String statsWeekProgress(int week, int done, int total);
 }
 
 class _AppLocalizationsDelegate

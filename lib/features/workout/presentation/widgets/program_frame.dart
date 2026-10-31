@@ -13,9 +13,13 @@ class ProgramFrame extends StatelessWidget {
     super.key,
     required this.child,
     this.backFallback = RouteNames.home,
+    this.title,
   });
 
   final Widget child;
+
+  /// Заголовок шапки; по умолчанию «Программа».
+  final String? title;
   final String backFallback;
 
   @override
@@ -23,7 +27,7 @@ class ProgramFrame extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: AppBackButton(fallbackLocation: backFallback),
-        title: Text(AppLocalizations.of(context).programTitle),
+        title: Text(title ?? AppLocalizations.of(context).programTitle),
       ),
       body: SafeArea(child: child),
     );

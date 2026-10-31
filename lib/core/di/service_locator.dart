@@ -24,9 +24,12 @@ import 'package:mentorix_app/features/theme/data/repositories/theme_repository_i
 import 'package:mentorix_app/features/theme/domain/repositories/theme_repository.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
 import 'package:mentorix_app/features/workout/data/datasources/workout_remote_datasource.dart';
+import 'package:mentorix_app/features/workout/data/repositories/stats_repository_impl.dart';
 import 'package:mentorix_app/features/workout/data/repositories/workout_repository_impl.dart';
+import 'package:mentorix_app/features/workout/domain/repositories/stats_repository.dart';
 import 'package:mentorix_app/features/workout/domain/repositories/workout_repository.dart';
 import 'package:mentorix_app/features/workout/domain/usecases/complete_workout_day.dart';
+import 'package:mentorix_app/features/workout/presentation/cubit/analytics_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/completion_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/program_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/trainers_cubit.dart';
@@ -130,18 +133,25 @@ Future<void> configureDependencies() async {
   );
 
   // --- тренировки ------------------------------------------------------------
-  getIt.registerLazySingleton<WorkoutRepository>(
-    () => WorkoutRepositoryImpl(
-      remote: WorkoutRemoteDataSource(
-        apiDio: getIt<Dio>(instanceName: DioNames.api),
-      ),
+  getIt.registerLazySingleton<WorkoutRemoteDataSource>(
+    () => WorkoutRemoteDataSource(
+      apiDio: getIt<Dio>(instanceName: DioNames.api),
     ),
+  );
+  getIt.registerLazySingleton<WorkoutRepository>(
+    () => WorkoutRepositoryImpl(remote: getIt<WorkoutRemoteDataSource>()),
   );
   getIt.registerFactory<TrainersCubit>(
     () => TrainersCubit(getIt<WorkoutRepository>()),
   );
   getIt.registerFactoryParam<ProgramCubit, String, void>(
     (trainerId, _) => ProgramCubit(trainerId, getIt<WorkoutRepository>()),
+  );
+  getIt.registerLazySingleton<StatsRepository>(
+    () => StatsRepositoryImpl(remote: getIt<WorkoutRemoteDataSource>()),
+  );
+  getIt.registerFactoryParam<AnalyticsCubit, String, void>(
+    (trainerId, _) => AnalyticsCubit(trainerId, getIt<StatsRepository>()),
   );
   getIt.registerLazySingleton<CompleteWorkoutDay>(
     () => CompleteWorkoutDay(getIt<WorkoutRepository>()),

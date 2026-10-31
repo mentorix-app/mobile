@@ -38,10 +38,12 @@ import 'package:mentorix_app/features/mode/presentation/cubit/dashboard_link_cub
 import 'package:mentorix_app/features/mode/presentation/screens/admin_web_only_screen.dart';
 import 'package:mentorix_app/features/mode/presentation/screens/trainer_web_only_screen.dart';
 import 'package:mentorix_app/features/profile/presentation/screens/profile_screen.dart';
+import 'package:mentorix_app/features/workout/presentation/cubit/analytics_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/program_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/trainers_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/complete_day_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/program_screen.dart';
+import 'package:mentorix_app/features/workout/presentation/screens/stats_screen.dart';
 import 'package:mentorix_app/features/theme/data/repositories/theme_repository_impl.dart';
 import 'package:mentorix_app/features/theme/presentation/cubit/theme_cubit.dart';
 import 'package:mentorix_app/features/theme/presentation/widgets/theme_mode_button.dart';
@@ -52,6 +54,7 @@ import 'package:talker_flutter/talker_flutter.dart';
 import 'helpers/auth_fakes.dart';
 import 'helpers/fake_external_link_launcher.dart';
 import 'helpers/talker_capture.dart';
+import 'helpers/stats_fakes.dart';
 import 'helpers/workout_fakes.dart';
 
 class _Harness {
@@ -136,6 +139,9 @@ void main() {
       )
       ..registerFactoryParam<ProgramCubit, String, void>(
         (trainerId, _) => ProgramCubit(trainerId, FakeWorkoutRepository()),
+      )
+      ..registerFactoryParam<AnalyticsCubit, String, void>(
+        (trainerId, _) => AnalyticsCubit(trainerId, FakeStatsRepository()),
       )
       ..registerFactory<DashboardLinkCubit>(
         () => DashboardLinkCubit(launcher, url: dashboardUrl),
@@ -1094,6 +1100,45 @@ void main() {
 
         expect(find.byType(CompleteDayScreen), findsNothing);
         expect(find.byType(TelegramOfferScreen), findsOneWidget);
+      });
+
+      testWidgets('клиент: статистика открывается по пути', (tester) async {
+        await pumpApp(tester, profile: profileWithRoles(['client']));
+
+        routerOf(tester).go(RouteNames.statsPath('trainer-1'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(StatsScreen), findsOneWidget);
+      });
+
+      testWidgets('тренер и администратор на статистику не попадают', (tester) async {
+        await pumpApp(tester, profile: unfinished(['trainer']));
+
+        routerOf(tester).go(RouteNames.statsPath('trainer-1'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(StatsScreen), findsNothing);
+        expect(find.byType(TrainerWebOnlyScreen), findsOneWidget);
+      });
+
+      testWidgets('онбординг не пройден → статистика ведёт на следующий шаг', (tester) async {
+        await pumpApp(tester, profile: unfinished(['client']), inviteDone: false);
+
+        routerOf(tester).go(RouteNames.statsPath('trainer-1'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(StatsScreen), findsNothing);
+        expect(find.byType(TelegramOfferScreen), findsOneWidget);
+      });
+
+      testWidgets('без сессии статистика ведёт на вход', (tester) async {
+        await pumpApp(tester, sessionState: _Session.unauthenticated);
+
+        routerOf(tester).go(RouteNames.statsPath('trainer-1'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(StatsScreen), findsNothing);
+        expect(find.byType(LoginScreen), findsOneWidget);
       });
 
       testWidgets('без сессии путь программы ведёт на вход', (tester) async {

@@ -24,9 +24,11 @@ import 'package:mentorix_app/features/mode/presentation/screens/admin_web_only_s
 import 'package:mentorix_app/features/mode/presentation/screens/trainer_web_only_screen.dart';
 import 'package:mentorix_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/cubit/trainers_cubit.dart';
+import 'package:mentorix_app/features/workout/presentation/cubit/analytics_cubit.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/complete_day_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/day_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/screens/program_screen.dart';
+import 'package:mentorix_app/features/workout/presentation/screens/stats_screen.dart';
 import 'package:mentorix_app/features/workout/presentation/widgets/program_scope.dart';
 
 /// Роутер зависит от сессии: куда можно попасть, решает [SessionCubit],
@@ -112,6 +114,17 @@ GoRouter createAppRouter({
               trainerId: state.pathParameters['trainerId']!,
               dayKey: state.pathParameters['dayKey']!,
             ),
+          ),
+          GoRoute(
+            path: RouteNames.stats,
+            builder: (context, state) {
+              final trainerId = state.pathParameters['trainerId']!;
+
+              return BlocProvider(
+                create: (_) => GetIt.I<AnalyticsCubit>(param1: trainerId)..load(),
+                child: StatsScreen(trainerId: trainerId),
+              );
+            },
           ),
           GoRoute(
             path: RouteNames.completeDay,

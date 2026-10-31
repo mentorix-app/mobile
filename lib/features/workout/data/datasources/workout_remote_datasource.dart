@@ -3,6 +3,7 @@ import 'package:mentorix_app/core/config/api_endpoints.dart';
 import 'package:mentorix_app/core/logging/app_logger.dart';
 import 'package:mentorix_app/features/auth/data/models/linked_trainer_model.dart';
 import 'package:mentorix_app/features/workout/data/mappers/workout_error_mapper.dart';
+import 'package:mentorix_app/features/workout/data/models/client_analytics_model.dart';
 import 'package:mentorix_app/features/workout/data/models/json_reading.dart';
 import 'package:mentorix_app/features/workout/data/models/trainer_program_model.dart';
 import 'package:mentorix_app/features/workout/data/models/workout_completion_model.dart';
@@ -49,6 +50,15 @@ class WorkoutRemoteDataSource {
       _object(response),
       trainerId: trainerId,
     );
+  });
+
+  /// `GET /client/trainers/{trainer_id}/analytics`. 404 `client_not_found` — связи с
+  /// тренером нет или он заблокировал клиента.
+  Future<ClientAnalyticsModel> analytics(String trainerId) => _guard(() async {
+    final response = await _dio.get<Object?>(
+      ApiEndpoints.clientTrainerAnalytics(trainerId),
+    );
+    return ClientAnalyticsModel.fromJson(_object(response));
   });
 
   /// `POST /client/trainers/{trainer_id}/completions`, ответ 201. Тело запроса — те

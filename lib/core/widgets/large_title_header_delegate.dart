@@ -20,6 +20,7 @@ class LargeTitleHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.topInset,
     required this.toolbarHeight,
     this.leading,
+    this.trailing,
   });
 
   final String title;
@@ -37,6 +38,9 @@ class LargeTitleHeaderDelegate extends SliverPersistentHeaderDelegate {
   final double topInset;
   final double toolbarHeight;
   final Widget? leading;
+
+  /// Действие справа в тулбаре (например, значок статистики).
+  final Widget? trailing;
 
   /// Отступ под развёрнутым заголовком.
   static const double bottomGap = AppSpacing.xs;
@@ -117,6 +121,7 @@ class LargeTitleHeaderDelegate extends SliverPersistentHeaderDelegate {
               height: toolbarHeight,
               child: NavigationToolbar(
                 leading: leading,
+                trailing: trailing,
                 centerMiddle: true,
                 middleSpacing: AppSpacing.sm,
                 // Заголовок для экранных читалок уже есть в развёрнутой строке.
@@ -147,5 +152,6 @@ class LargeTitleHeaderDelegate extends SliverPersistentHeaderDelegate {
       titleHeight != old.titleHeight ||
       topInset != old.topInset ||
       toolbarHeight != old.toolbarHeight ||
-      leading != old.leading;
+      leading != old.leading ||
+      trailing != old.trailing;
 }
